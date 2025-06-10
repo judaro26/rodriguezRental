@@ -13,8 +13,7 @@
     "react-dom": "^18.2.0"
   },
 "devDependencies": {
-  "@vitejs/plugin-react": "^x.x.x",   // < this line is crucial
-  "vite": "^x.x.x",
-  ...
+  "@vitejs/plugin-react": "^x.x.x",
+  "vite": "^x.x.x"
 }
 }
