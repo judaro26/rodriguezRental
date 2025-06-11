@@ -25,8 +25,7 @@ exports.handler = async function(event, context) {
 
   try {
     await client.connect();
-    // Destructure new field: detail_logo_url
-    const { property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url } = JSON.parse(event.body);
+    const { property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url, detail_username, detail_password } = JSON.parse(event.body);
 
     if (!property_id || !category_name || !detail_name || !detail_url) {
       return {
@@ -37,17 +36,19 @@ exports.handler = async function(event, context) {
     }
 
     const queryText = `
-      INSERT INTO property_category_details(property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url, created_at)
-      VALUES($1, $2, $3, $4, $5, $6, NOW())
-      RETURNING id, property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url, created_at;
+      INSERT INTO property_category_details(property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url, detail_username, detail_password, created_at)
+      VALUES($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      RETURNING id, property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url, detail_username, detail_password, created_at;
     `;
     const result = await client.query(queryText, [
         property_id,
         category_name,
         detail_name,
         detail_url,
-        detail_description || null, // description can be null
-        detail_logo_url || null     // new: detail_logo_url can be null
+        detail_description || null,
+        detail_logo_url || null,
+        detail_username || null, // Ensure this is passed as a parameter
+        detail_password || null   // Ensure this is passed as a parameter
     ]);
     const newDetail = result.rows[0];
 
