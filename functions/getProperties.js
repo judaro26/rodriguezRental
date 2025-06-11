@@ -1,8 +1,16 @@
 const { Client } = require('pg');
 
 exports.handler = async function(event, context) {
+  if (event.httpMethod !== "GET") {
+    return {
+      statusCode: 405,
+      headers: { "Allow": "GET", "Access-Control-Allow-Origin": "*" },
+      body: "Method Not Allowed"
+    };
+  }
+
   if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL environment variable is not set.");
+    console.error("DATABASE_URL environment variable is NOT set.");
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
@@ -12,15 +20,13 @@ exports.handler = async function(event, context) {
 
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false }
   });
 
   try {
     await client.connect();
-    // Fetch all properties, including the new 'categories' column
-    const result = await client.query('SELECT id, title, image, description, categories FROM properties ORDER BY created_at DESC');
+    // Fetch all properties, including the new 'is_foreign' column
+    const result = await client.query('SELECT id, title, image, description, categories, is_foreign FROM properties ORDER BY created_at DESC');
     const properties = result.rows;
 
     return {
