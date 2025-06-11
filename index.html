@@ -27,6 +27,7 @@
             background: #555;
         }
     </style>
+    <!-- Removed Firebase SDKs, as property data is now managed by Netlify Functions + Neon DB -->
 </head>
 <body class="flex flex-col min-h-screen">
 
@@ -59,7 +60,12 @@
     <!-- Property Selection Page -->
     <div id="property-selection-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col items-center">
         <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">Select a Property</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+        <div id="properties-loading-message" class="text-gray-600 text-lg my-4">Loading properties...</div>
+        <div id="properties-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4 rounded-md hidden" role="alert">
+            <p class="font-bold">Error loading properties:</p>
+            <p class="text-sm" id="properties-error-text"></p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl" id="property-cards-container">
             <!-- Property cards will be inserted here by JavaScript -->
         </div>
         <button id="add-property-button" class="mt-8 bg-green-600 text-white py-3 px-6 rounded-xl hover:bg-green-700 transition-colors duration-200 font-semibold shadow-md flex items-center justify-center gap-2">
@@ -92,10 +98,7 @@
                     <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Property</button>
                 </div>
             </form>
-            <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mt-6 rounded-md" role="alert">
-                <p class="font-bold">Important:</p>
-                <p class="text-sm">In this client-side application, new properties are only saved in your browser's memory and will not persist if you refresh the page or close your browser. For permanent storage, a backend database is required.</p>
-            </div>
+            <div id="add-property-status" class="mt-4 hidden"></div>
         </div>
     </div>
 
@@ -126,7 +129,7 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => { // Made async to use await for fetch
+        document.addEventListener('DOMContentLoaded', async () => {
             // --- DOM Elements ---
             const loginPage = document.getElementById('login-page');
             const loginForm = document.getElementById('login-form');
@@ -135,7 +138,10 @@
             const loginErrorMessage = document.getElementById('login-error-message');
 
             const propertySelectionPage = document.getElementById('property-selection-page');
-            const propertyCardsContainer = propertySelectionPage.querySelector('.grid');
+            const propertyCardsContainer = document.getElementById('property-cards-container');
+            const propertiesLoadingMessage = document.getElementById('properties-loading-message');
+            const propertiesErrorMessage = document.getElementById('properties-error-message');
+            const propertiesErrorText = document.getElementById('properties-error-text');
             const addPropertyButton = document.getElementById('add-property-button');
 
             const addPropertyPage = document.getElementById('add-property-page');
@@ -144,6 +150,8 @@
             const propertyImageInput = document.getElementById('property-image');
             const propertyDescriptionInput = document.getElementById('property-description');
             const cancelAddPropertyButton = document.getElementById('cancel-add-property');
+            const addPropertyStatus = document.getElementById('add-property-status');
+
 
             const lenderCategoriesPage = document.getElementById('lender-categories-page');
             const categoriesNav = document.getElementById('lender-categories-nav');
@@ -152,32 +160,13 @@
             const lenderLoadingMessage = document.getElementById('lender-loading-message');
 
             // --- Data Definitions ---
-            let lenderData = []; // Will be populated from CSV
+            let lenderData = []; // Populated from CSV
+            let properties = []; // Populated from Neon DB via Netlify Function
+
             const categories = [
                 { id: 'utilities', name: 'Utilities', dataCategories: ['Utilities'] },
                 { id: 'insurance', name: 'Insurance Providers', dataCategories: ['Insurance'] },
                 { id: 'banking-mortgage', name: 'Banking & Mortgage', dataCategories: ['Banking', 'Mortgage'] }
-            ];
-
-            let properties = [
-                {
-                    id: 'property-1',
-                    title: 'Cozy Family Home',
-                    image: 'https://placehold.co/400x250/AEC6CF/FFFFFF?text=Property+1',
-                    description: 'A charming 3-bedroom house perfect for a growing family. Located in a quiet, suburban neighborhood.'
-                },
-                {
-                    id: 'property-2',
-                    title: 'Modern City Apartment',
-                    image: 'https://placehold.co/400x250/FFDDC1/FFFFFF?text=Property+2',
-                    description: 'Sleek 1-bedroom apartment in the heart of downtown. Ideal for young professionals.'
-                },
-                {
-                    id: 'property-3',
-                    title: 'Spacious Country Estate',
-                    image: 'https://placehold.co/400x250/B5EAD7/FFFFFF?text=Property+3',
-                    description: 'Expansive estate with acres of land, perfect for privacy and outdoor activities.'
-                }
             ];
 
             // --- Helper Function to Parse CSV ---
@@ -201,22 +190,46 @@
             // --- Fetch Lender Data from CSV ---
             async function fetchLenderData() {
                 try {
-                    const response = await fetch('properties.csv'); // Fetch the CSV file
+                    const response = await fetch('lenders.csv');
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     const csvText = await response.text();
                     lenderData = parseCSV(csvText);
                     console.log('Lender data loaded:', lenderData);
-                    lenderLoadingMessage.style.display = 'none'; // Hide loading message on success
-                    const initialContent = detailsContent.querySelector('p'); // Get current paragraph
-                    if (initialContent && initialContent.id !== 'security-warning') { // Remove if not the security warning
-                        initialContent.remove();
+                    lenderLoadingMessage.style.display = 'none';
+                    const initialContent = detailsContent.querySelector('p');
+                    if (initialContent && initialContent.id !== 'security-warning') {
+                         initialContent.remove();
                     }
                 } catch (error) {
                     console.error('Error fetching or parsing lender CSV:', error);
-                    lenderLoadingMessage.textContent = 'Failed to load lender data. Please check properties.csv.';
+                    lenderLoadingMessage.textContent = 'Failed to load lender data. Please check lenders.csv.';
                     lenderLoadingMessage.classList.add('text-red-600');
+                }
+            }
+
+            // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
+            async function fetchProperties() {
+                propertiesLoadingMessage.style.display = 'block';
+                propertiesErrorMessage.classList.add('hidden'); // Hide any previous error
+                propertyCardsContainer.innerHTML = ''; // Clear previous properties
+
+                try {
+                    const response = await fetch('/.netlify/functions/getProperties');
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                    }
+                    properties = await response.json();
+                    console.log('Properties loaded from Neon DB:', properties);
+                    renderPropertyCards(); // Render properties after fetching
+                } catch (error) {
+                    console.error('Error fetching properties from Netlify Function:', error);
+                    propertiesErrorMessage.classList.remove('hidden');
+                    propertiesErrorText.textContent = error.message;
+                } finally {
+                    propertiesLoadingMessage.style.display = 'none';
                 }
             }
 
@@ -228,7 +241,8 @@
                 addPropertyPage.style.display = 'none';
                 lenderCategoriesPage.style.display = 'none';
 
-                // Show the requested page by setting its display to flex
+                // Show the requested page by setting its display property
+                // 'flex' is used for pages designed with flexbox layout
                 pageElement.style.display = 'flex';
 
                 // Handle specific hidden class for login error message
@@ -247,7 +261,7 @@
                 if (username === 'user' && password === 'password') {
                     loginErrorMessage.classList.add('hidden');
                     showPage(propertySelectionPage);
-                    renderPropertyCards();
+                    fetchProperties(); // Fetch properties on successful login
                 } else {
                     loginErrorMessage.classList.remove('hidden');
                     passwordInput.value = '';
@@ -257,6 +271,10 @@
             // --- Property Selection Logic ---
             function renderPropertyCards() {
                 propertyCardsContainer.innerHTML = '';
+                if (properties.length === 0) {
+                    propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found. Add a new one!</p>`;
+                    return;
+                }
                 properties.forEach(property => {
                     const propertyCard = document.createElement('div');
                     propertyCard.classList.add(
@@ -265,6 +283,9 @@
                         'flex', 'flex-col'
                     );
                     propertyCard.dataset.propertyId = property.id;
+
+                    // Ensure 'id' from database is used if available, otherwise fallback
+                    const displayId = property.id || `temp-${Math.random().toString(36).substr(2, 9)}`;
 
                     const imageUrl = property.image || 'https://placehold.co/400x250/CCCCCC/FFFFFF?text=No+Image';
 
@@ -282,14 +303,12 @@
                     propertyCard.addEventListener('click', () => {
                         showPage(lenderCategoriesPage);
                         renderLenderCategories();
-                        // Only try to click if lender data is loaded and categories exist
                         if (lenderData.length > 0 && categoriesNav.children.length > 0) {
                             const firstCategoryDiv = categoriesNav.querySelector('div');
                             if (firstCategoryDiv) {
                                 firstCategoryDiv.click();
                             }
                         } else if (lenderLoadingMessage.style.display !== 'none') {
-                             // If lender data is still loading or failed, show a message
                             detailsContent.innerHTML = `<p class="text-gray-600 mt-4">Lender data is still loading or could not be retrieved. Please try again later.</p>`;
                         } else {
                             detailsContent.innerHTML = `<p class="text-gray-600 mt-4">No lender categories available.</p>`;
@@ -303,29 +322,63 @@
             addPropertyButton.addEventListener('click', () => {
                 showPage(addPropertyPage);
                 addPropertyForm.reset();
+                addPropertyStatus.classList.add('hidden'); // Hide status message
             });
 
             // --- Add New Property Form Logic ---
-            addPropertyForm.addEventListener('submit', (event) => {
-                event.preventDefault();
+            addPropertyForm.addEventListener('submit', async (event) => {
+                event.preventDefault(); // <--- CRITICAL: Prevents default form submission
+
+                console.log("Add Property form submitted!"); // Debugging log
 
                 const title = propertyTitleInput.value.trim();
                 const image = propertyImageInput.value.trim();
                 const description = propertyDescriptionInput.value.trim();
 
                 if (title && image && description) {
-                    const newProperty = {
-                        id: `property-${properties.length + 1}-${Date.now()}`,
-                        title: title,
-                        image: image,
-                        description: description
-                    };
-                    properties.push(newProperty);
+                    addPropertyStatus.classList.remove('hidden');
+                    addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                    addPropertyStatus.textContent = 'Saving property...';
 
-                    showPage(propertySelectionPage);
-                    renderPropertyCards();
+                    console.log("Attempting to save property:", { title, image, description }); // Debugging log
+
+                    try {
+                        const response = await fetch('/.netlify/functions/saveProperty', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ title, image, description })
+                        });
+
+                        if (!response.ok) {
+                            const errorBody = await response.json();
+                            throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                        }
+
+                        const savedProperty = await response.json();
+                        console.log('Property saved successfully:', savedProperty); // Debugging log
+
+                        addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                        addPropertyStatus.textContent = 'Property saved successfully!';
+                        
+                        // Give user a moment to see success message before navigating
+                        setTimeout(async () => {
+                            showPage(propertySelectionPage);
+                            await fetchProperties(); // Re-fetch all properties to update the list
+                        }, 1500); // Wait 1.5 seconds
+
+
+                    } catch (error) {
+                        console.error('Error saving property:', error); // Debugging log
+                        addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                        addPropertyStatus.textContent = `Error saving property: ${error.message}`;
+                    }
                 } else {
-                    alert('Please fill in all fields to add a new property.');
+                    // Use a message box for missing fields (instead of alert)
+                    addPropertyStatus.classList.remove('hidden');
+                    addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                    addPropertyStatus.textContent = 'Please fill in all fields to add a new property.';
                 }
             });
 
@@ -403,8 +456,8 @@
             }
 
             // --- Initial Load: Fetch data and Show Login Page ---
-            await fetchLenderData(); // Fetch data first
-            showPage(loginPage); // Then show the login page
+            await fetchLenderData(); // Fetch static lender data
+            showPage(loginPage); // Show the login page initially
         });
     </script>
 </body>
