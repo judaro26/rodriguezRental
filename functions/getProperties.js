@@ -1,9 +1,8 @@
-const { Client } = require('pg'); // Import the PostgreSQL client
+const { Client } = require('pg');
 
 exports.handler = async function(event, context) {
-  // Ensure the database connection string is available
-  if (!process.env.NETLIFY_DATABASE_URL) {
-    console.error("NETLIFY_DATABASE_URL environment variable is not set.");
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL environment variable is not set.");
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
@@ -12,22 +11,22 @@ exports.handler = async function(event, context) {
   }
 
   const client = new Client({
-    connectionString: process.env.NETLIFY_DATABASE_URL,
+    connectionString: process.env.DATABASE_URL,
     ssl: {
-      rejectUnauthorized: false // Required for Neon connections on Netlify
+      rejectUnauthorized: false
     }
   });
 
   try {
-    await client.connect(); // Connect to the database
-    // Fetch all properties from a table named 'properties'
-    const result = await client.query('SELECT id, title, image, description FROM properties ORDER BY created_at DESC');
+    await client.connect();
+    // Fetch all properties, including the new 'categories' column
+    const result = await client.query('SELECT id, title, image, description, categories FROM properties ORDER BY created_at DESC');
     const properties = result.rows;
 
     return {
       statusCode: 200,
       headers: {
-        "Access-Control-Allow-Origin": "*", // Allow CORS for your frontend
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json"
       },
@@ -45,6 +44,6 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ error: "Failed to fetch properties", details: error.message })
     };
   } finally {
-    await client.end(); // Close the database connection
+    await client.end();
   }
 };
