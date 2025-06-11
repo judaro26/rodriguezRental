@@ -235,7 +235,7 @@
             // --- Fetch Lender Data from CSV ---
             async function fetchLenderData() {
                 try {
-                    const response = await fetch('lenders.csv');
+                    const response = await fetch('properties.csv');
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -245,8 +245,8 @@
                     // Initial message in lender section
                     lenderDetailsContent.innerHTML = `<p id="lender-loading-message" class="text-gray-600">Select a property category to view lenders.</p><div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">Due to modern browser security policies (Same-Origin Policy), it is not possible to pre-populate login credentials on external websites loaded within an iframe. For your security, lender links will open in a new browser tab.</p></div>`;
                 } catch (error) {
-                    console.error('Error fetching or parsing lender CSV:', error);
-                    lenderDetailsContent.innerHTML = `<p class="text-red-600 mt-4">Failed to load lender data from lenders.csv: ${error.message}</p>`;
+                    console.error('Error fetching or parsing properties CSV:', error);
+                    lenderDetailsContent.innerHTML = `<p class="text-red-600 mt-4">Failed to load lender data from properties.csv: ${error.message}</p>`;
                 }
             }
 
