@@ -192,6 +192,9 @@
                 <p class="text-gray-600">No categories for this property or still loading.</p>
                 <!-- Property category titles will be inserted here by JavaScript -->
             </nav>
+            <button id="add-new-category-button" class="mt-4 bg-yellow-600 text-white py-2 px-4 rounded-xl hover:bg-yellow-700 transition-colors duration-200 font-semibold w-full">
+                Add New Category
+            </button>
             <button id="add-category-detail-button" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
                 Add Category Detail
             </button>
@@ -213,7 +216,32 @@
         </main>
     </div>
 
-    <!-- Add Category Detail Page (New Page) -->
+    <!-- Add New Category Page (New Page) -->
+    <div id="add-new-category-page" class="flex-grow flex items-center justify-center p-4 relative pt-16 hidden">
+        <button id="back-from-add-new-category-btn" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back
+        </button>
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Add New Category to <span id="category-property-title" class="text-blue-600"></span></h2>
+            <form id="add-new-category-form" class="space-y-4">
+                <div>
+                    <label for="new-category-name" class="block text-gray-700 text-sm font-semibold mb-2">Category Name</label>
+                    <input type="text" id="new-category-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Utilities, Insurance" required>
+                </div>
+                <div class="flex justify-between gap-4">
+                    <button type="button" id="cancel-new-category" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
+                    <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Category</button>
+                </div>
+            </form>
+            <div id="add-new-category-status" class="mt-4 hidden"></div>
+        </div>
+    </div>
+
+
+    <!-- Add Category Detail Page -->
     <div id="add-category-detail-page" class="flex-grow flex items-center justify-center p-4 relative pt-16 hidden">
         <button id="back-from-add-detail-btn" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -293,6 +321,8 @@
             const categoryLoadingMessage = document.getElementById('category-loading-message');
             const backToPropertiesBtn = document.getElementById('back-to-properties-btn');
             const addCategoryDetailButton = document.getElementById('add-category-detail-button');
+            const addNewCategoryButton = document.getElementById('add-new-category-button');
+
 
             // New elements for Add Category Detail Page
             const addCategoryDetailPage = document.getElementById('add-category-detail-page');
@@ -304,6 +334,15 @@
             const addDetailStatus = document.getElementById('add-detail-status');
             const backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn');
             const addDetailCategoryNameSpan = document.getElementById('add-detail-category-name');
+
+            // New elements for Add New Category Page
+            const addNewCategoryPage = document.getElementById('add-new-category-page');
+            const addNewCategoryForm = document.getElementById('add-new-category-form');
+            const newCategoryNameInput = document.getElementById('new-category-name');
+            const categoryPropertyTitleSpan = document.getElementById('category-property-title');
+            const cancelNewCategoryButton = document.getElementById('cancel-new-category');
+            const addNewCategoryStatus = document.getElementById('add-new-category-status');
+            const backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn');
 
 
             // --- Data Definitions ---
@@ -347,6 +386,7 @@
                 addPropertyPage.style.display = 'none';
                 propertyCategoriesPage.style.display = 'none';
                 addCategoryDetailPage.style.display = 'none';
+                addNewCategoryPage.style.display = 'none';
 
                 pageElement.style.display = 'flex';
 
@@ -576,10 +616,13 @@
                     propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
                     // Hide "Add Category Detail" button if no categories
                     addCategoryDetailButton.style.display = 'none';
+                    // Hide "Add New Category" button if no property selected (shouldn't happen here, but for safety)
+                    addNewCategoryButton.style.display = 'none';
                     return;
                 }
 
                 addCategoryDetailButton.style.display = 'block'; // Show button if categories exist
+                addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
 
                 currentSelectedProperty.categories.forEach(categoryName => {
                     const categoryDiv = document.createElement('div');
@@ -675,7 +718,8 @@
                     addDetailForm.reset();
                     addDetailStatus.classList.add('hidden');
                 } else {
-                    alert('Please select a property and a category first to add details.');
+                    // Provide a more informative alert if no category is selected
+                    alert('Please select a property category first to add details to it.');
                 }
             });
 
@@ -738,6 +782,82 @@
             });
 
 
+            // --- Add New Category Button & Form Logic ---
+            addNewCategoryButton.addEventListener('click', () => {
+                if (currentSelectedProperty) {
+                    categoryPropertyTitleSpan.textContent = `"${currentSelectedProperty.title}"`; // Show property title in form
+                    showPage(addNewCategoryPage);
+                    addNewCategoryForm.reset();
+                    addNewCategoryStatus.classList.add('hidden');
+                } else {
+                    alert('Please select a property first to add a new category.');
+                }
+            });
+
+            addNewCategoryForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const newCategoryName = newCategoryNameInput.value.trim();
+
+                if (!newCategoryName) {
+                    addNewCategoryStatus.classList.remove('hidden');
+                    addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                    addNewCategoryStatus.textContent = 'Please enter a category name.';
+                    return;
+                }
+
+                addNewCategoryStatus.classList.remove('hidden');
+                addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                addNewCategoryStatus.textContent = 'Adding category...';
+
+                try {
+                    const response = await fetch('/.netlify/functions/updatePropertyCategories', { // New Function call
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            property_id: currentSelectedProperty.id,
+                            new_category_name: newCategoryName
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('Category added successfully:', result.message);
+
+                    addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                    addNewCategoryStatus.textContent = 'Category added successfully!';
+                    
+                    // Update currentSelectedProperty's categories immediately in client-side state
+                    // This is crucial because `fetchProperties` is only called on property selection page,
+                    // but we are currently on the categories page.
+                    currentSelectedProperty.categories = result.updatedProperty.categories;
+
+                    setTimeout(() => {
+                        showPage(propertyCategoriesPage); // Go back to property categories
+                        renderPropertyCategories(); // Re-render categories for the current property
+                    }, 1500);
+
+                } catch (error) {
+                    console.error('Error adding new category:', error);
+                    addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                    // Check for duplicate category message specifically
+                    if (error.message.includes('Category already exists')) {
+                        addNewCategoryStatus.textContent = 'Category already exists for this property.';
+                    } else {
+                        addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
+                    }
+                }
+            });
+
+            cancelNewCategoryButton.addEventListener('click', () => {
+                showPage(propertyCategoriesPage);
+            });
+
+
             // --- Back Button Event Listeners ---
             backToLoginBtn.addEventListener('click', () => {
                 showPage(loginPage);
@@ -762,11 +882,15 @@
             backToPropertiesBtn.addEventListener('click', () => {
                 showPage(propertySelectionPage);
                 currentSelectedProperty = null;
-                currentSelectedCategoryName = null; // Clear selected category as well
+                currentSelectedCategoryName = null;
             });
 
             backFromAddDetailBtn.addEventListener('click', () => {
-                showPage(propertyCategoriesPage); // Go back to property categories page
+                showPage(propertyCategoriesPage);
+            });
+
+            backFromAddNewCategoryBtn.addEventListener('click', () => {
+                showPage(propertyCategoriesPage);
             });
 
             // --- Initial Load: Show Login Page ---
