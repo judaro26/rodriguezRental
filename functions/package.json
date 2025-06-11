@@ -10,6 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "pg": "^8.11.3"  // New dependency for PostgreSQL
+    "pg": "^8.11.3"
   }
 }
