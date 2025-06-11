@@ -190,7 +190,7 @@
             // --- Fetch Lender Data from CSV ---
             async function fetchLenderData() {
                 try {
-                    const response = await fetch('lenders.csv');
+                    const response = await fetch('properties.csv');
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -204,7 +204,7 @@
                     }
                 } catch (error) {
                     console.error('Error fetching or parsing lender CSV:', error);
-                    lenderLoadingMessage.textContent = 'Failed to load lender data. Please check lenders.csv.';
+                    lenderLoadingMessage.textContent = 'Failed to load lender data. Please check properties.csv.';
                     lenderLoadingMessage.classList.add('text-red-600');
                 }
             }
