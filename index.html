@@ -593,6 +593,7 @@
             const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties'); // Filter button
             const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties'); // Filter button
             const propertyIsForeignInput = document.getElementById('property-is-foreign'); // New checkbox for Add Property Form
+            const refreshPropertiesButton = document.getElementById('refresh-properties-button'); // New refresh properties button
 
 
             const addPropertyPage = document.getElementById('add-property-page');
@@ -672,6 +673,20 @@
             const detailPasswordAddInput = document.getElementById('detail-password-add'); // For Add form
             const updateDetailUsernameInput = document.getElementById('update-detail-username'); // For Update form
             const updateDetailPasswordInput = document.getElementById('update-detail-password'); // For Update form
+
+            // New elements for Update Property Page
+            const updatePropertyPage = document.getElementById('update-property-page'); // NEW: Update Property page
+            const updatePropertyForm = document.getElementById('update-property-form'); // NEW: Update Property form
+            const updatePropertyIdInput = document.getElementById('update-property-id'); // NEW: Hidden ID for update
+            const updatePropertyTitleInput = document.getElementById('update-property-title'); // NEW
+            const updatePropertyImageInput = document.getElementById('update-property-image'); // NEW
+            const updatePropertyDescriptionInput = document.getElementById('update-property-description'); // NEW
+            const updatePropertyCategoriesInput = document.getElementById('update-property-categories'); // NEW
+            const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign'); // NEW checkbox
+            const cancelUpdatePropertyButton = document.getElementById('cancel-update-property'); // NEW
+            const updatePropertyStatus = document.getElementById('update-property-status'); // NEW
+            const backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn'); // NEW
+
 
             // --- Global variable to hold the callback for the verification modal ---
             let currentVerificationCallback = null;
@@ -1528,42 +1543,41 @@
             });
 
 
-            // --- Update Category Detail Logic ---
-            updateDetailForm.addEventListener('submit', async (event) => {
+            // --- Update Property Logic ---
+            updatePropertyForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
-                const detailId = updateDetailIdInput.value;
-                const detailName = updateDetailNameInput.value.trim();
-                const detailUrl = updateDetailUrlInput.value.trim();
-                const detailDescription = updateDetailDescriptionInput.value.trim();
-                const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput.value.trim() !== '' ? updateCustomLogoUrlInput.value.trim() : null);
-                const usernameToSave = updateDetailUsernameInput.value.trim();
-                const passwordToSave = updateDetailPasswordInput.value.trim();
+                const propertyId = updatePropertyIdInput.value;
+                const title = updatePropertyTitleInput.value.trim();
+                const image = updatePropertyImageInput.value.trim();
+                const description = updatePropertyDescriptionInput.value.trim();
+                const categoriesString = updatePropertyCategoriesInput.value.trim();
+                const isForeign = updatePropertyIsForeignInput.checked;
 
-
-                if (!detailName || !detailUrl) {
-                    updateDetailStatus.classList.remove('hidden');
-                    updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
-                    updateDetailStatus.textContent = 'Detail Name and URL are required.';
+                if (!title || !image || !description || !categoriesString) {
+                    updatePropertyStatus.classList.remove('hidden');
+                    updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                    updatePropertyStatus.textContent = 'All fields except Username/Password are required.';
                     return;
                 }
 
-                updateDetailStatus.classList.remove('hidden');
-                updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                updateDetailStatus.textContent = 'Updating detail...';
+                const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
+
+                updatePropertyStatus.classList.remove('hidden');
+                updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                updatePropertyStatus.textContent = 'Updating property...';
 
                 try {
-                    const response = await fetch('/.netlify/functions/updateCategoryDetail', {
+                    const response = await fetch('/.netlify/functions/updateProperty', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            id: detailId,
-                            detail_name: detailName,
-                            detail_url: detailUrl,
-                            detail_description: detailDescription,
-                            detail_logo_url: logoUrlToSend,
-                            detail_username: usernameToSave,
-                            detail_password: passwordToSave
+                            id: propertyId,
+                            title: title,
+                            image: image,
+                            description: description,
+                            categories: parsedCategories,
+                            is_foreign: isForeign
                         })
                     });
 
@@ -1572,26 +1586,26 @@
                         throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
                     }
 
-                    const updatedDetail = await response.json();
-                    console.log('Category detail updated:', updatedDetail);
+                    const result = await response.json();
+                    console.log('Property updated successfully:', result.message);
 
-                    updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                    updateDetailStatus.textContent = 'Detail updated successfully!';
+                    updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                    updatePropertyStatus.textContent = 'Property updated successfully!';
 
-                    setTimeout(() => {
-                        showPage(propertyCategoriesPage);
-                        displayCategoryDetails(currentSelectedCategoryName);
+                    setTimeout(async () => {
+                        showPage(propertySelectionPage);
+                        await fetchProperties(currentPropertyFilter); // Refresh properties to show updated data
                     }, 1500);
 
                 } catch (error) {
-                    console.error('Error updating detail:', error);
-                    updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                    updateDetailStatus.textContent = `Error updating detail: ${error.message}`;
+                    console.error('Error updating property:', error);
+                    updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                    updatePropertyStatus.textContent = `Error updating property: ${error.message}`;
                 }
             });
 
-            cancelUpdateDetailButton.addEventListener('click', () => {
-                showPage(propertyCategoriesPage);
+            cancelUpdatePropertyButton.addEventListener('click', () => {
+                showPage(propertySelectionPage);
             });
 
 
