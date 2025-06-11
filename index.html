@@ -173,20 +173,25 @@
 
         /* Specific styles for credential fields within tiles */
         .credential-container {
-            width: 100%;
+            width: 100%; /* Ensure container takes full width of tile */
             margin-top: 0.75rem;
             text-align: left;
             font-size: 0.875rem;
+            padding: 0 0.5rem; /* Add horizontal padding to keep content within tile */
+            box-sizing: border-box; /* Include padding in width */
         }
         .credential-field {
             display: flex;
             align-items: center;
             margin-bottom: 0.5rem;
+            flex-wrap: nowrap; /* Prevent wrapping to keep elements on one line */
+            gap: 0.25rem; /* Small gap between elements */
         }
         .credential-field label {
-            min-width: 60px;
+            min-width: 40px; /* Adjusted min-width for labels */
             font-weight: 500;
             color: #4a5568;
+            flex-shrink: 0; /* Prevent label from shrinking */
         }
         .credential-field input {
             flex-grow: 1;
@@ -195,14 +200,15 @@
             border-radius: 0.25rem;
             background-color: #ffffff;
             font-family: monospace; /* For password visibility */
+            min-width: 0; /* Allow input to shrink if needed */
         }
         .credential-field button {
-            margin-left: 0.5rem;
             padding: 0.25rem 0.5rem;
             border-radius: 0.25rem;
             background-color: #e5e7eb;
             color: #4b5563;
             transition: background-color 0.2s;
+            flex-shrink: 0; /* Prevent buttons from shrinking */
         }
         .credential-field button:hover {
             background-color: #d1d5db;
@@ -1071,7 +1077,7 @@
                             // Add unique IDs for username/password inputs and their toggles
                             const usernameInputId = `username-${detail.id}`;
                             const passwordInputId = `password-${detail.id}`;
-                            const passwordToggleId = `password-toggle-${detail.id}`;
+                            const passwordToggleId = `password-toggle-${detail.id}`; // Not directly used for ID, but for context
 
                             detailTile.innerHTML = `
                                 ${logoHtml}
@@ -1080,15 +1086,16 @@
                                 <div class="credential-container">
                                     <div class="credential-field">
                                         <label for="${usernameInputId}">User:</label>
-                                        <input type="text" id="${usernameInputId}" placeholder="Enter username">
+                                        <input type="text" id="${usernameInputId}" value="" placeholder="Enter username" readonly>
                                         <button class="copy-btn" data-target="${usernameInputId}">Copy</button>
                                     </div>
                                     <div class="credential-field">
                                         <label for="${passwordInputId}">Pass:</label>
-                                        <input type="password" id="${passwordInputId}" placeholder="Enter password">
-                                        <button class="password-toggle-btn" data-target="${passwordInputId}" data-toggle-id="${passwordToggleId}">👁️</button>
+                                        <input type="password" id="${passwordInputId}" value="" placeholder="Enter password" readonly>
+                                        <button class="password-toggle-btn" data-target="${passwordInputId}">👁️</button>
                                         <button class="copy-btn" data-target="${passwordInputId}">Copy</button>
                                     </div>
+                                    <p class="text-xs text-red-500 mt-1">Credentials are not stored for security.</p>
                                 </div>
                                 <div class="detail-tile-actions">
                                     <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View Site</button>
@@ -1101,7 +1108,7 @@
                                 const targetInput = document.getElementById(e.target.dataset.target);
                                 if (targetInput.type === 'password') {
                                     targetInput.type = 'text';
-                                    e.target.textContent = '🙈';
+                                    e.target.textContent = '�';
                                 } else {
                                     targetInput.type = 'password';
                                     e.target.textContent = '👁️';
@@ -1496,3 +1503,4 @@
     </script>
 </body>
 </html>
+�
