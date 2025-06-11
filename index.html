@@ -306,6 +306,11 @@
             Back to Login
         </button>
         <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">Select a Property</h2>
+        <div class="flex space-x-4 mb-6">
+            <button id="filter-all-properties" class="filter-btn px-4 py-2 rounded-lg font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors">All Properties</button>
+            <button id="filter-domestic-properties" class="filter-btn px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors">Domestic</button>
+            <button id="filter-foreign-properties" class="filter-btn px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors">Foreign</button>
+        </div>
         <div id="properties-loading-message" class="text-gray-600 text-lg my-4">Loading properties...</div>
         <div id="properties-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4 rounded-md hidden" role="alert">
             <p class="font-bold">Error loading properties:</p>
@@ -348,6 +353,12 @@
                  <div>
                     <label for="property-categories" class="block text-gray-700 text-sm font-semibold mb-2">Categories (comma-separated)</label>
                     <input type="text" id="property-categories" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Utilities, Insurance, Banking" required>
+                </div>
+                <div>
+                    <label for="property-is-foreign" class="flex items-center text-gray-700 text-sm font-semibold mb-2">
+                        <input type="checkbox" id="property-is-foreign" class="mr-2 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        This is a foreign address
+                    </label>
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-add-property" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
@@ -527,7 +538,7 @@
     <div id="verification-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Confirm Action</h3>
-            <p class="text-gray-600 mb-4 text-center">Please enter your credentials to confirm deleting category: <span id="modal-category-name" class="font-bold text-red-600"></span></p>
+            <p class="text-gray-600 mb-4 text-center">Please enter your credentials to confirm deleting <span id="modal-item-to-delete-name" class="font-bold text-red-600"></span></p>
             <form id="verification-form" class="space-y-4">
                 <div>
                     <label for="modal-username" class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
@@ -629,7 +640,8 @@
             const modalUsernameInput = document.getElementById('modal-username');
             const modalPasswordInput = document.getElementById('modal-password');
             const verificationStatus = document.getElementById('verification-status');
-            const modalCategoryNameSpan = document.getElementById('modal-category-name');
+            // Renamed from modalCategoryNameSpan to modalItemToDeleteNameSpan to be more generic
+            const modalItemToDeleteNameSpan = document.getElementById('modal-item-to-delete-name');
             const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
 
             // New elements for Update Category Detail Page (for editing existing details)
@@ -655,7 +667,6 @@
 
             // --- Global variable to hold the callback for the verification modal ---
             let currentVerificationCallback = null;
-            let currentDetailIdToDelete = null; // Store ID for detail deletion
 
 
             // --- Data Definitions ---
@@ -761,7 +772,7 @@
 
 
             // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
-            async function fetchProperties() {
+            async function fetchProperties(isForeignFilter = null) { // Added filter parameter
                 propertiesLoadingMessage.style.display = 'block';
                 propertiesErrorMessage.classList.add('hidden');
                 propertyCardsContainer.innerHTML = '';
@@ -773,10 +784,11 @@
                         throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
                     }
                     properties = await response.json();
-                    // Sort properties by ID
+                    // Sort all properties once by ID
                     properties.sort((a, b) => a.id - b.id);
-                    console.log('Properties loaded from Neon DB (sorted by ID):', properties);
-                    renderPropertyCards();
+                    console.log('All Properties loaded from Neon DB (sorted by ID):', properties);
+
+                    applyPropertyFilter(isForeignFilter); // Apply filter after fetching
                 }
                 catch (error) {
                     console.error('Error fetching properties from Netlify Function:', error);
@@ -784,6 +796,44 @@
                     propertiesErrorText.textContent = error.message;
                 } finally {
                     propertiesLoadingMessage.style.display = 'none';
+                }
+            }
+
+            // --- Apply Property Filter and Render Cards ---
+            let displayedProperties = []; // Array for properties currently displayed
+            let currentPropertyFilter = null; // null for all, true for foreign, false for domestic
+
+            function applyPropertyFilter(filter) {
+                currentPropertyFilter = filter; // Update the current filter state
+
+                if (filter === true) {
+                    displayedProperties = properties.filter(p => p.is_foreign === true);
+                } else if (filter === false) {
+                    displayedProperties = properties.filter(p => p.is_foreign === false);
+                } else {
+                    displayedProperties = [...properties]; // Show all properties
+                }
+                renderPropertyCards(); // Render the filtered list
+                updateFilterButtonsHighlight(); // Update button highlights
+            }
+
+            function updateFilterButtonsHighlight() {
+                // Remove highlight from all filter buttons
+                document.querySelectorAll('#property-selection-page .filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-blue-500', 'text-white');
+                    btn.classList.add('bg-gray-200', 'text-gray-800');
+                });
+
+                // Add highlight to the active filter button
+                if (currentPropertyFilter === null) {
+                    document.getElementById('filter-all-properties').classList.remove('bg-gray-200', 'text-gray-800');
+                    document.getElementById('filter-all-properties').classList.add('bg-blue-500', 'text-white');
+                } else if (currentPropertyFilter === false) {
+                    document.getElementById('filter-domestic-properties').classList.remove('bg-gray-200', 'text-gray-800');
+                    document.getElementById('filter-domestic-properties').classList.add('bg-blue-500', 'text-white');
+                } else if (currentPropertyFilter === true) {
+                    document.getElementById('filter-foreign-properties').classList.remove('bg-gray-200', 'text-gray-800');
+                    document.getElementById('filter-foreign-properties').classList.add('bg-blue-500', 'text-white');
                 }
             }
 
@@ -817,7 +867,7 @@
             // Now accepts a callback function and a message for the modal
             function showModal(modalElement, confirmationMessage, callback) {
                 modalElement.classList.remove('hidden');
-                modalCategoryNameSpan.textContent = confirmationMessage; // Update modal message dynamically
+                modalItemToDeleteNameSpan.textContent = confirmationMessage; // Update modal message dynamically
                 currentVerificationCallback = callback; // Store the callback
                 modalUsernameInput.value = '';
                 modalPasswordInput.value = '';
@@ -858,7 +908,9 @@
                     if (response.ok) {
                         console.log("Login successful:", data.message);
                         showPage(propertySelectionPage);
-                        fetchProperties();
+                        // Fetch properties after successful login, applying default filter (all)
+                        await fetchProperties(null);
+                        updateFilterButtonsHighlight(); // Highlight "All Properties"
                     } else {
                         loginErrorMessage.classList.remove('hidden');
                         loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
@@ -918,7 +970,7 @@
                     }
                 } catch (error) {
                     console.error("Fetch error during registration:", error);
-                    registerErrorMessage.classList.remove('hidden');
+                    registerErrorMessage.classList.add('hidden');
                     registerErrorText.textContent = 'Network error or server issue. Please try again later.';
                     regPasswordInput.value = '';
                 }
@@ -927,11 +979,11 @@
             // --- Property Selection Logic ---
             function renderPropertyCards() {
                 propertyCardsContainer.innerHTML = '';
-                if (properties.length === 0) {
-                    propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found. Add a new one!</p>`;
+                if (displayedProperties.length === 0) { // Use displayedProperties
+                    propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found matching this filter. Add a new one!</p>`;
                     return;
                 }
-                properties.forEach(property => {
+                displayedProperties.forEach(property => { // Iterate over displayedProperties
                     const propertyCard = document.createElement('div');
                     propertyCard.classList.add(
                         'bg-white', 'rounded-xl', 'shadow-md', 'overflow-hidden', 'cursor-pointer',
@@ -967,6 +1019,11 @@
                 });
             }
 
+            // Filter button event listeners
+            document.getElementById('filter-all-properties').addEventListener('click', () => applyPropertyFilter(null));
+            document.getElementById('filter-domestic-properties').addEventListener('click', () => applyPropertyFilter(false));
+            document.getElementById('filter-foreign-properties').addEventListener('click', () => applyPropertyFilter(true));
+
             addPropertyButton.addEventListener('click', () => {
                 showPage(addPropertyPage);
                 addPropertyForm.reset();
@@ -977,12 +1034,13 @@
             addPropertyForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
-                console.log("Add Property form submitted!");
+                console.log("Add Property form submitted.");
 
                 const title = propertyTitleInput.value.trim();
                 const image = propertyImageInput.value.trim();
                 const description = propertyDescriptionInput.value.trim();
                 const categoriesString = propertyCategoriesInput.value.trim();
+                const isForeign = propertyIsForeignInput.checked; // Get checkbox value
 
                 if (title && image && description && categoriesString) {
                     const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
@@ -998,7 +1056,7 @@
                     addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                     addPropertyStatus.textContent = 'Saving property...';
 
-                    console.log("Attempting to save property:", { title, image, description, categories: parsedCategories });
+                    console.log("Attempting to save property:", { title, image, description, categories: parsedCategories, isForeign });
 
                     try {
                         const response = await fetch('/.netlify/functions/saveProperty', {
@@ -1006,7 +1064,7 @@
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ title, image, description, categories: parsedCategories })
+                            body: JSON.stringify({ title, image, description, categories: parsedCategories, is_foreign: isForeign })
                         });
 
                         if (!response.ok) {
@@ -1022,7 +1080,8 @@
                         
                         setTimeout(async () => {
                             showPage(propertySelectionPage);
-                            await fetchProperties();
+                            // Refresh properties with the *current* filter applied, not necessarily all
+                            await fetchProperties(currentPropertyFilter);
                         }, 1500);
 
                     } catch (error) {
@@ -1222,7 +1281,7 @@
                                 updateDetailPasswordInput.value = detail.detail_password || '';
 
                                 renderPresetLogosForUpdate(detail.detail_logo_url); // Render presets with current one selected
-                                updateDetailCategoryNameNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+                                updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
                                 updateDetailStatus.classList.add('hidden'); // Clear status
                             });
 
@@ -1239,7 +1298,7 @@
                                         // This is the callback that runs if verification is successful
                                         verificationStatus.classList.remove('hidden');
                                         verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                                        verificationStatus.textContent = 'Deleting vendor detail...';
+                                        verificationStatus.textContent = 'Verifying and deleting vendor detail...';
                                         try {
                                             const response = await fetch('/.netlify/functions/deleteCategoryDetail', { // Call new function
                                                 method: 'POST',
@@ -1262,7 +1321,7 @@
                                                 }, 1500);
                                             } else {
                                                 verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials.';
                                             }
                                         } catch (error) {
                                             console.error('Error during vendor detail deletion:', error);
@@ -1335,8 +1394,8 @@
                             detail_url: detailUrl,
                             detail_description: detailDescription,
                             detail_logo_url: logoUrlToSend,
-                            detail_username: usernameToSave, // Send username
-                            detail_password: passwordToSave  // Send password
+                            detail_username: usernameToSave,
+                            detail_password: passwordToSave
                         })
                     });
 
@@ -1449,7 +1508,6 @@
                 const detailUrl = updateDetailUrlInput.value.trim();
                 const detailDescription = updateDetailDescriptionInput.value.trim();
                 const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput.value.trim() !== '' ? updateCustomLogoUrlInput.value.trim() : null);
-                // Get username and password for update
                 const usernameToSave = updateDetailUsernameInput.value.trim();
                 const passwordToSave = updateDetailPasswordInput.value.trim();
 
@@ -1514,7 +1572,7 @@
                     alert('Please select a property and a category to delete.');
                     return;
                 }
-                modalCategoryNameSpan.textContent = `"${currentSelectedCategoryName}"`;
+                // Prepare modal for category deletion
                 showModal(
                     verificationModal,
                     `category: "${currentSelectedCategoryName}"`, // Specific message for deleting category
@@ -1579,6 +1637,7 @@
 
 
             // --- Verification Modal Form Submission Handler ---
+            // This handler is now generic and calls currentVerificationCallback
             verificationForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 // Execute the stored callback with modal credentials
