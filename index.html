@@ -1027,6 +1027,8 @@
                             detailTile.classList.add('detail-tile'); // Apply tile styling
                             detailTile.dataset.detailId = detail.id; // Store detail ID for potential updates
 
+                            // --- CRITICAL PART FOR LOGO DISPLAY ---
+                            // This checks if detail_logo_url exists. If it fails to load, the onerror kicks in.
                             const logoHtml = detail.detail_logo_url
                                 ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
                                 : `<div class="logo-placeholder">${detail.detail_name.substring(0,3)}</div>`;
@@ -1078,7 +1080,6 @@
                     buttonsContainer.innerHTML = ''; // Clear any partial content
                 }
             }
-
             // --- Add Category Detail Button & Form Logic ---
             addCategoryDetailButton.addEventListener('click', () => {
                 if (currentSelectedProperty && currentSelectedCategoryName) {
