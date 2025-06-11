@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
   },
   "dependencies": {
     "papaparse": "^5.4.1",
@@ -17,8 +17,5 @@
   "postcss": "^8.4.31",
   "autoprefixer": "^10.4.19",
   "vite": "^4.0.0"
-},
-  "scripts": {
-  "build": "vite build"
 }
 }
