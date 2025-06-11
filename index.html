@@ -298,7 +298,7 @@
     </div>
 
     <!-- Property Selection Page -->
-    <div id="property-selection-page" class="flex-grow flex flex-col items-center justify-center p-4 relative pt-16">
+    <div id="property-selection-page" class="flex-grow flex flex-col items-center p-4 relative pt-16">
         <button id="back-to-login-btn" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -1005,19 +1005,38 @@
                             <h3 class="text-xl font-bold text-gray-800 mb-2">${property.title}</h3>
                             <p class="text-gray-600 text-sm">${property.description}</p>
                         </div>
-                        <div class="p-4 pt-0">
-                            <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold">View Property Details</button>
+                        <div class="p-4 pt-0 flex justify-between gap-2">
+                            <button class="w-1/2 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold" data-action="view-property-details" data-property-id="${property.id}">View Details</button>
+                            <button class="w-1/2 bg-gray-400 text-gray-800 py-2 rounded-lg hover:bg-gray-500 transition-colors duration-200 font-semibold" data-action="edit-property" data-property-id="${property.id}">Edit</button>
                         </div>
                     `;
 
-                    propertyCard.addEventListener('click', () => {
-                        currentSelectedProperty = property; // Store the selected property object
+                    propertyCard.querySelector('[data-action="view-property-details"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Find the full property object from the 'properties' array
+                        currentSelectedProperty = properties.find(p => p.id == e.target.dataset.propertyId);
                         showPage(propertyCategoriesPage);
-                        renderPropertyCategories(); // This will populate categories based on currentSelectedProperty.categories
-                        // Reset/initial message for category details when a new property is selected
+                        renderPropertyCategories();
                         categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
-                        // Reset category details heading
                         categoryDetailsHeading.textContent = 'Category Details';
+                    });
+
+                    propertyCard.querySelector('[data-action="edit-property"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const propertyIdToEdit = e.target.dataset.propertyId;
+                        const propertyToEdit = properties.find(p => p.id == propertyIdToEdit);
+                        if (propertyToEdit) {
+                            showPage(updatePropertyPage); // Show the new update property page
+                            updatePropertyIdInput.value = propertyToEdit.id;
+                            updatePropertyTitleInput.value = propertyToEdit.title;
+                            updatePropertyImageInput.value = propertyToEdit.image;
+                            updatePropertyDescriptionInput.value = propertyToEdit.description;
+                            updatePropertyCategoriesInput.value = propertyToEdit.categories.join(', ');
+                            updatePropertyIsForeignInput.checked = propertyToEdit.is_foreign;
+                            updatePropertyStatus.classList.add('hidden'); // Clear status
+                        } else {
+                            alert('Property not found for editing.');
+                        }
                     });
 
                     propertyCardsContainer.appendChild(propertyCard);
@@ -1244,7 +1263,7 @@
                                 const targetInput = document.getElementById(e.target.dataset.target);
                                 if (targetInput.type === 'password') {
                                     targetInput.type = 'text';
-                                    e.target.textContent = '�';
+                                    e.target.textContent = '🙈';
                                 } else {
                                     targetInput.type = 'password';
                                     e.target.textContent = '👁️';
@@ -1703,4 +1722,3 @@
     </script>
 </body>
 </html>
-�
