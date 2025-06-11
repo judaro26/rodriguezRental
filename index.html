@@ -119,6 +119,57 @@
             padding: 2px;
             box-sizing: border-box;
         }
+        /* New Tile styling */
+        .detail-tile {
+            background-color: #f0f4f8; /* Light blue-gray background */
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid #e2e8f0;
+        }
+        .detail-tile:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            background-color: #e2e8f0;
+        }
+        .detail-tile img {
+            width: 64px; /* Larger logo for tiles */
+            height: 64px;
+            margin-bottom: 0.75rem;
+        }
+        .detail-tile .logo-placeholder {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+        .detail-tile h3 {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            color: #1a202c; /* text-gray-900 */
+            margin-bottom: 0.25rem;
+        }
+        .detail-tile p {
+            font-size: 0.875rem; /* text-sm */
+            color: #4a5568; /* text-gray-700 */
+        }
+        .detail-tile-actions {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .detail-tile-actions button {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -840,7 +891,7 @@
                 }
             }
 
-            // --- Display Category Details / Dynamic Buttons ---
+            // --- Display Category Details / Dynamic Buttons (now tiles) ---
             async function displayCategoryDetails(selectedCategoryName) {
                 const securityWarningDiv = document.getElementById('security-warning');
                 categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
@@ -877,26 +928,52 @@
                         categoryDetailsContent.insertBefore(noDetailsMessage, buttonsContainer);
                     } else {
                         details.forEach(detail => {
-                            const detailButton = document.createElement('button');
-                            detailButton.classList.add(
-                                'bg-indigo-600', 'text-white', 'py-3', 'px-5', 'rounded-xl', 'hover:bg-indigo-700',
-                                'transition-transform', 'transform', 'hover:scale-105', 'shadow-md', 'font-semibold',
-                                'focus:outline-none', 'focus:ring-2', 'focus:ring-indigo-500', 'focus:ring-opacity-50',
-                                'flex', 'flex-col', 'items-center', 'justify-center', 'text-center'
-                            );
-                            detailButton.innerHTML = `
-                                ${detail.detail_logo_url ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="w-10 h-10 mb-2 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/50x50/CCCCCC/FFFFFF?text=Logo';">` : `<div class="logo-placeholder w-10 h-10 mb-2">${detail.detail_name.substring(0,3)}</div>`}
-                                <span>${detail.detail_name}</span>
-                                ${detail.detail_description ? `<span class="text-xs opacity-75 mt-1">${detail.detail_description}</span>` : ''}
+                            const detailTile = document.createElement('div'); // Changed to div for tile
+                            detailTile.classList.add('detail-tile'); // Apply tile styling
+                            detailTile.dataset.detailId = detail.id; // Store detail ID for potential updates
+
+                            const logoHtml = detail.detail_logo_url
+                                ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
+                                : `<div class="logo-placeholder">${detail.detail_name.substring(0,3)}</div>`;
+
+                            detailTile.innerHTML = `
+                                ${logoHtml}
+                                <h3>${detail.detail_name}</h3>
+                                ${detail.detail_description ? `<p>${detail.detail_description}</p>` : ''}
+                                <div class="detail-tile-actions">
+                                    <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View</button>
+                                    <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="${detail.id}" data-name="${detail.detail_name}" data-url="${detail.detail_url}" data-description="${detail.detail_description || ''}" data-logo="${detail.detail_logo_url || ''}">Edit</button>
+                                </div>
                             `;
-                            detailButton.addEventListener('click', () => {
-                                if (detail.detail_url) {
-                                    window.open(detail.detail_url, '_blank');
+
+                            // Event delegation for buttons inside the tile
+                            detailTile.querySelector('[data-action="view"]').addEventListener('click', (e) => {
+                                e.stopPropagation(); // Prevent tile click from firing
+                                const url = e.target.dataset.url;
+                                if (url) {
+                                    window.open(url, '_blank');
                                 } else {
                                     alert(`Detail: "${detail.detail_name}" has no URL.`);
                                 }
                             });
-                            buttonsContainer.appendChild(detailButton);
+
+                            detailTile.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+                                e.stopPropagation(); // Prevent tile click from firing
+                                // Pre-populate form for editing
+                                // This assumes a new 'update-category-detail-page' or a modal for editing
+                                showPage(updateCategoryDetailPage); // Navigate to the new update detail page
+                                updateDetailIdInput.value = detail.id; // Set ID
+                                updateDetailNameInput.value = detail.detail_name;
+                                updateDetailUrlInput.value = detail.detail_url;
+                                updateDetailDescriptionInput.value = detail.detail_description || '';
+                                updateCustomLogoUrlInput.value = detail.detail_logo_url || ''; // Set custom logo input
+
+                                renderPresetLogosForUpdate(detail.detail_logo_url); // Render presets with current one selected
+                                updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+                                updateDetailStatus.classList.add('hidden'); // Clear status
+                            });
+
+                            buttonsContainer.appendChild(detailTile);
                         });
                     }
 
@@ -915,8 +992,7 @@
                     showPage(addCategoryDetailPage);
                     addDetailForm.reset();
                     addDetailStatus.classList.add('hidden');
-                    // Render preset logos when showing the add detail page
-                    renderPresetLogos();
+                    renderPresetLogos(); // Render preset logos for adding
                     selectedPresetLogoUrl = null; // Reset selected preset
                     customLogoUrlInput.value = ''; // Clear custom URL
                 } else {
@@ -930,9 +1006,7 @@
                 const detailName = detailNameInput.value.trim();
                 const detailUrl = detailUrlInput.value.trim();
                 const detailDescription = detailDescriptionInput.value.trim();
-                // Determine the logo URL to send
                 const logoUrlToSend = selectedPresetLogoUrl || (customLogoUrlInput.value.trim() !== '' ? customLogoUrlInput.value.trim() : null);
-
 
                 if (!detailName || !detailUrl) {
                     addDetailStatus.classList.remove('hidden');
@@ -955,7 +1029,7 @@
                             detail_name: detailName,
                             detail_url: detailUrl,
                             detail_description: detailDescription,
-                            detail_logo_url: logoUrlToSend // Send the selected or custom logo URL
+                            detail_logo_url: logoUrlToSend
                         })
                     });
 
@@ -971,8 +1045,8 @@
                     addDetailStatus.textContent = 'Detail saved successfully!';
 
                     setTimeout(() => {
-                        showPage(propertyCategoriesPage); // Go back to property categories
-                        displayCategoryDetails(currentSelectedCategoryName); // Re-fetch details for the current category
+                        showPage(propertyCategoriesPage);
+                        displayCategoryDetails(currentSelectedCategoryName);
                     }, 1500);
 
                 } catch (error) {
@@ -1040,14 +1114,13 @@
                     currentSelectedProperty.categories = result.updatedProperty.categories;
 
                     setTimeout(() => {
-                        showPage(propertyCategoriesPage); // Go back to property categories
-                        renderPropertyCategories(); // Re-render categories for the current property
+                        showPage(propertyCategoriesPage);
+                        renderPropertyCategories();
                     }, 1500);
 
                 } catch (error) {
                     console.error('Error adding new category:', error);
                     addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                    // Check for duplicate category message specifically
                     if (error.message.includes('Category already exists')) {
                         addNewCategoryStatus.textContent = 'Category already exists for this property.';
                     } else {
@@ -1071,7 +1144,7 @@
                 showModal(verificationModal);
                 modalUsernameInput.value = '';
                 modalPasswordInput.value = '';
-                verificationStatus.classList.add('hidden'); // Clear status from previous attempts
+                verificationStatus.classList.add('hidden');
             });
 
             verificationForm.addEventListener('submit', async (event) => {
@@ -1082,7 +1155,7 @@
 
                 verificationStatus.classList.add('hidden');
                 verificationStatus.textContent = '';
-                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center'; // Reset classes
+                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center';
 
                 if (!username || !password) {
                     verificationStatus.classList.remove('hidden');
@@ -1113,17 +1186,15 @@
                         verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         verificationStatus.textContent = 'Category deleted successfully!';
                         
-                        // Update currentSelectedProperty's categories immediately
                         currentSelectedProperty.categories = data.updatedProperty.categories;
 
                         setTimeout(() => {
                             hideModal(verificationModal);
                             showPage(propertyCategoriesPage);
-                            renderPropertyCategories(); // Re-render to reflect deletion
-                            // Reset selected category if it was the one deleted
+                            renderPropertyCategories();
                             if (!currentSelectedProperty.categories.includes(currentSelectedCategoryName)) {
                                 currentSelectedCategoryName = null;
-                                categoryDetailsHeading.textContent = 'Category Details'; // Reset heading
+                                categoryDetailsHeading.textContent = 'Category Details';
                                 categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
                             }
                         }, 1500);
@@ -1131,7 +1202,7 @@
                     } else {
                         verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                         verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
-                        modalPasswordInput.value = ''; // Clear password on failure
+                        modalPasswordInput.value = '';
                     }
                 } catch (error) {
                     console.error('Error during delete verification:', error);
@@ -1174,7 +1245,7 @@
                 showPage(propertySelectionPage);
                 currentSelectedProperty = null;
                 currentSelectedCategoryName = null;
-                categoryDetailsHeading.textContent = 'Category Details'; // Reset heading
+                categoryDetailsHeading.textContent = 'Category Details';
             });
 
             backFromAddDetailBtn.addEventListener('click', () => {
