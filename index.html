@@ -50,6 +50,28 @@
             width: 1.25rem;
             height: 1.25rem;
         }
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 28rem;
+            width: 90%;
+            position: relative;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -195,11 +217,14 @@
             <button id="add-new-category-button" class="mt-4 bg-yellow-600 text-white py-2 px-4 rounded-xl hover:bg-yellow-700 transition-colors duration-200 font-semibold w-full">
                 Add New Category
             </button>
+            <button id="delete-category-button" class="mt-2 bg-red-600 text-white py-2 px-4 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold w-full">
+                Delete Selected Category
+            </button>
         </aside>
 
         <!-- Right Section: Category Details / Dynamic Buttons -->
         <main class="w-full md:w-3/4 bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Category Details</h2>
+            <h2 id="category-details-heading" class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Category Details</h2>
             <div id="category-details-content" class="flex-grow overflow-y-auto pr-2">
                 <p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p>
                 <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -273,6 +298,29 @@
         </div>
     </div>
 
+    <!-- Verification Modal (Hidden by default) -->
+    <div id="verification-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Confirm Action</h3>
+            <p class="text-gray-600 mb-4 text-center">Please enter your credentials to confirm deleting category: <span id="modal-category-name" class="font-bold text-red-600"></span></p>
+            <form id="verification-form" class="space-y-4">
+                <div>
+                    <label for="modal-username" class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
+                    <input type="text" id="modal-username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Your username" required>
+                </div>
+                <div>
+                    <label for="modal-password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="modal-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Your password" required>
+                </div>
+                <div id="verification-status" class="mt-4 p-3 rounded-md text-sm text-center hidden"></div>
+                <div class="flex justify-between gap-4 mt-6">
+                    <button type="button" id="cancel-verification-btn" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold">Cancel</button>
+                    <button type="submit" id="confirm-delete-btn" class="w-1/2 bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold">Confirm Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -316,12 +364,14 @@
 
             const propertyCategoriesPage = document.getElementById('property-categories-page');
             const propertyCategoriesNav = document.getElementById('property-categories-nav');
+            const categoryDetailsHeading = document.getElementById('category-details-heading');
             const categoryDetailsContent = document.getElementById('category-details-content');
             const dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
             const categoryLoadingMessage = document.getElementById('category-loading-message');
             const backToPropertiesBtn = document.getElementById('back-to-properties-btn');
             const addCategoryDetailButton = document.getElementById('add-category-detail-button');
             const addNewCategoryButton = document.getElementById('add-new-category-button');
+            const deleteCategoryButton = document.getElementById('delete-category-button');
 
 
             // New elements for Add Category Detail Page
@@ -343,6 +393,15 @@
             const cancelNewCategoryButton = document.getElementById('cancel-new-category');
             const addNewCategoryStatus = document.getElementById('add-new-category-status');
             const backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn');
+
+            // New elements for Verification Modal
+            const verificationModal = document.getElementById('verification-modal');
+            const verificationForm = document.getElementById('verification-form');
+            const modalUsernameInput = document.getElementById('modal-username');
+            const modalPasswordInput = document.getElementById('modal-password');
+            const verificationStatus = document.getElementById('verification-status');
+            const modalCategoryNameSpan = document.getElementById('modal-category-name');
+            const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
 
 
             // --- Data Definitions ---
@@ -380,6 +439,7 @@
 
             // --- Page Navigation Functions ---
             function showPage(pageElement) {
+                // Hide all main pages
                 loginPage.style.display = 'none';
                 registerPage.style.display = 'none';
                 propertySelectionPage.style.display = 'none';
@@ -387,9 +447,12 @@
                 propertyCategoriesPage.style.display = 'none';
                 addCategoryDetailPage.style.display = 'none';
                 addNewCategoryPage.style.display = 'none';
+                verificationModal.classList.add('hidden'); // Ensure modal is hidden
 
+                // Show the requested main page
                 pageElement.style.display = 'flex';
 
+                // Handle specific messages/errors
                 if (pageElement !== loginPage) {
                     loginErrorMessage.classList.add('hidden');
                     registrationStatusMessage.classList.add('hidden');
@@ -397,6 +460,15 @@
                 if (pageElement !== registerPage) {
                     registerErrorMessage.classList.add('hidden');
                 }
+            }
+
+            // --- Show/Hide Modal Function ---
+            function showModal(modalElement) {
+                modalElement.classList.remove('hidden');
+            }
+
+            function hideModal(modalElement) {
+                modalElement.classList.add('hidden');
             }
 
             // --- Login Logic ---
@@ -528,6 +600,8 @@
                         renderPropertyCategories(); // This will populate categories based on currentSelectedProperty.categories
                         // Reset/initial message for category details when a new property is selected
                         categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
+                        // Reset category details heading
+                        categoryDetailsHeading.textContent = 'Category Details';
                     });
 
                     propertyCardsContainer.appendChild(propertyCard);
@@ -589,7 +663,7 @@
                         
                         setTimeout(async () => {
                             showPage(propertySelectionPage);
-                            await fetchProperties(); // Re-fetch all properties to update the list, includes new one
+                            await fetchProperties();
                         }, 1500);
 
                     } catch (error) {
@@ -610,18 +684,17 @@
 
             // --- Property Categories Page Logic ---
             function renderPropertyCategories() {
-                propertyCategoriesNav.innerHTML = ''; // Clear previous categories
-                // Display categories for the currently selected property
+                propertyCategoriesNav.innerHTML = '';
                 if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
                     propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
-                    // Hide "Add Category Detail" button if no categories
                     addCategoryDetailButton.style.display = 'none';
-                    // Hide "Add New Category" button if no property selected (shouldn't happen here, but for safety)
-                    addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
+                    deleteCategoryButton.style.display = 'none';
+                    addNewCategoryButton.style.display = 'block';
                     return;
                 }
 
-                addCategoryDetailButton.style.display = 'block'; // Show button if categories exist
+                addCategoryDetailButton.style.display = 'none'; // Initially hide "Add Category Detail" on category list load
+                deleteCategoryButton.style.display = 'block'; // Show delete button if categories exist
                 addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
 
                 currentSelectedProperty.categories.forEach(categoryName => {
@@ -629,21 +702,22 @@
                     categoryDiv.classList.add(
                         'cursor-pointer', 'p-3', 'rounded-lg', 'hover:bg-blue-100', 'transition-colors', 'duration-200', 'text-gray-700', 'font-medium', 'mb-2'
                     );
-                    categoryDiv.textContent = categoryName; // Display the category name
-                    categoryDiv.dataset.categoryName = categoryName; // Store the category name for filtering details
+                    categoryDiv.textContent = categoryName;
+                    categoryDiv.dataset.categoryName = categoryName;
                     categoryDiv.addEventListener('click', () => {
-                        currentSelectedCategoryName = categoryName; // Store the currently selected category name
-                        displayCategoryDetails(categoryName); // Call to display category details
-                        // Highlight selected category
+                        currentSelectedCategoryName = categoryName;
+                        displayCategoryDetails(categoryName);
+                        categoryDetailsHeading.textContent = `Your ${categoryName} Details`; // Dynamic label update
                         document.querySelectorAll('#property-categories-nav > div').forEach(div => {
                             div.classList.remove('bg-blue-200', 'text-blue-800');
                         });
                         categoryDiv.classList.add('bg-blue-200', 'text-blue-800');
+                        // Show "Add Category Detail" button only when a category is selected
+                        addCategoryDetailButton.style.display = 'block';
                     });
                     propertyCategoriesNav.appendChild(categoryDiv);
                 });
 
-                // Automatically click the first category to show initial details if available
                 if (currentSelectedProperty.categories.length > 0) {
                     const firstCategoryDiv = propertyCategoriesNav.querySelector('div');
                     if (firstCategoryDiv) {
@@ -654,7 +728,6 @@
 
             // --- Display Category Details / Dynamic Buttons ---
             async function displayCategoryDetails(selectedCategoryName) {
-                // Clear existing buttons/messages, but preserve the security warning
                 const securityWarningDiv = document.getElementById('security-warning');
                 categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
                 // Re-append the security warning
@@ -662,13 +735,13 @@
                 const buttonsContainer = categoryDetailsContent.querySelector('#dynamic-category-buttons-container');
                 const loadingMessage = categoryDetailsContent.querySelector('#category-loading-message');
 
-                // Make the "Add Category Detail" button visible and place it AFTER the dynamic buttons container
-                addCategoryDetailButton.style.display = 'block';
-                // Remove previous button if it exists before re-appending
+                // Place the "Add Category Detail" button at the bottom of the right column's content area
+                // Ensure it's removed from its previous parent before re-appending
                 if (addCategoryDetailButton.parentNode) {
                     addCategoryDetailButton.parentNode.removeChild(addCategoryDetailButton);
                 }
                 categoryDetailsContent.appendChild(addCategoryDetailButton);
+                addCategoryDetailButton.style.display = 'block'; // Make sure it's visible after a category is selected
 
 
                 try {
@@ -728,7 +801,6 @@
                     addDetailForm.reset();
                     addDetailStatus.classList.add('hidden');
                 } else {
-                    // This alert should ideally not be hit if the button is correctly hidden/shown
                     alert('Please select a property category first to add details to it.');
                 }
             });
@@ -821,7 +893,7 @@
                 addNewCategoryStatus.textContent = 'Adding category...';
 
                 try {
-                    const response = await fetch('/.netlify/functions/updatePropertyCategories', { // New Function call
+                    const response = await fetch('/.netlify/functions/updatePropertyCategories', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -842,8 +914,6 @@
                     addNewCategoryStatus.textContent = 'Category added successfully!';
                     
                     // Update currentSelectedProperty's categories immediately in client-side state
-                    // This is crucial because `fetchProperties` is only called on property selection page,
-                    // but we are currently on the categories page.
                     currentSelectedProperty.categories = result.updatedProperty.categories;
 
                     setTimeout(() => {
@@ -865,6 +935,94 @@
 
             cancelNewCategoryButton.addEventListener('click', () => {
                 showPage(propertyCategoriesPage);
+            });
+
+
+            // --- Delete Category Logic ---
+            deleteCategoryButton.addEventListener('click', () => {
+                if (!currentSelectedProperty || !currentSelectedCategoryName) {
+                    alert('Please select a property and a category to delete.');
+                    return;
+                }
+                modalCategoryNameSpan.textContent = `"${currentSelectedCategoryName}"`;
+                showModal(verificationModal);
+                modalUsernameInput.value = '';
+                modalPasswordInput.value = '';
+                verificationStatus.classList.add('hidden'); // Clear status from previous attempts
+            });
+
+            verificationForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const username = modalUsernameInput.value.trim();
+                const password = modalPasswordInput.value.trim();
+
+                verificationStatus.classList.add('hidden');
+                verificationStatus.textContent = '';
+                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center'; // Reset classes
+
+                if (!username || !password) {
+                    verificationStatus.classList.remove('hidden');
+                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                    verificationStatus.textContent = 'Please enter both username and password.';
+                    return;
+                }
+
+                verificationStatus.classList.remove('hidden');
+                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                verificationStatus.textContent = 'Verifying and deleting...';
+
+                try {
+                    const response = await fetch('/.netlify/functions/deletePropertyCategory', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: username,
+                            password: password,
+                            property_id: currentSelectedProperty.id,
+                            category_to_delete: currentSelectedCategoryName
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                        verificationStatus.textContent = 'Category deleted successfully!';
+                        
+                        // Update currentSelectedProperty's categories immediately
+                        currentSelectedProperty.categories = data.updatedProperty.categories;
+
+                        setTimeout(() => {
+                            hideModal(verificationModal);
+                            showPage(propertyCategoriesPage);
+                            renderPropertyCategories(); // Re-render to reflect deletion
+                            // Reset selected category if it was the one deleted
+                            if (!currentSelectedProperty.categories.includes(currentSelectedCategoryName)) {
+                                currentSelectedCategoryName = null;
+                                categoryDetailsHeading.textContent = 'Category Details'; // Reset heading
+                                categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
+                            }
+                        }, 1500);
+
+                    } else {
+                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                        verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                        modalPasswordInput.value = ''; // Clear password on failure
+                    }
+                } catch (error) {
+                    console.error('Error during delete verification:', error);
+                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                    verificationStatus.textContent = `Network error: ${error.message}`;
+                    modalPasswordInput.value = '';
+                }
+            });
+
+            cancelVerificationBtn.addEventListener('click', () => {
+                hideModal(verificationModal);
+                modalUsernameInput.value = '';
+                modalPasswordInput.value = '';
+                verificationStatus.classList.add('hidden');
             });
 
 
@@ -893,6 +1051,7 @@
                 showPage(propertySelectionPage);
                 currentSelectedProperty = null;
                 currentSelectedCategoryName = null;
+                categoryDetailsHeading.textContent = 'Category Details'; // Reset heading
             });
 
             backFromAddDetailBtn.addEventListener('click', () => {
