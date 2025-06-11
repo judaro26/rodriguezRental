@@ -25,7 +25,7 @@ exports.handler = async function(event, context) {
 
   try {
     await client.connect();
-    const { property_id, new_category_name } = JSON.parse(event.body);
+    const { property_id, new_category_name, initial_detail_name, initial_detail_url, initial_detail_description } = JSON.parse(event.body);
 
     if (!property_id || !new_category_name) {
       return {
@@ -35,7 +35,7 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // 1. Fetch current categories for the property
+    // --- Part 1: Update Property's Categories ---
     const getCategoriesQuery = 'SELECT categories FROM properties WHERE id = $1';
     const result = await client.query(getCategoriesQuery, [property_id]);
 
@@ -48,7 +48,6 @@ exports.handler = async function(event, context) {
     }
 
     let currentCategories = result.rows[0].categories || [];
-    // Ensure categories is an array, in case it's null or other unexpected format
     if (!Array.isArray(currentCategories)) {
         currentCategories = [];
     }
@@ -61,7 +60,6 @@ exports.handler = async function(event, context) {
             body: JSON.stringify({ message: "Category name cannot be empty." })
         };
     }
-    // Check for duplicate category (case-insensitive)
     if (currentCategories.some(cat => cat.toLowerCase() === trimmedNewCategory.toLowerCase())) {
       return {
         statusCode: 409, // Conflict
@@ -70,10 +68,8 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // 2. Append the new category
     currentCategories.push(trimmedNewCategory);
 
-    // 3. Update categories in the database
     const updateCategoriesQuery = `
       UPDATE properties
       SET categories = $1
@@ -81,6 +77,29 @@ exports.handler = async function(event, context) {
       RETURNING id, categories;
     `;
     const updateResult = await client.query(updateCategoriesQuery, [JSON.stringify(currentCategories), property_id]);
+    const updatedProperty = updateResult.rows[0];
+
+    // --- Part 2: Add Initial Category Detail (if provided) ---
+    let newDetailAdded = false;
+    let newDetail = null;
+
+    if (initial_detail_name && initial_detail_url) {
+        const addDetailQuery = `
+            INSERT INTO property_category_details(property_id, category_name, detail_name, detail_url, detail_description, created_at)
+            VALUES($1, $2, $3, $4, $5, NOW())
+            RETURNING id, detail_name;
+        `;
+        const detailResult = await client.query(addDetailQuery, [
+            property_id,
+            trimmedNewCategory, // Associate with the newly added category
+            initial_detail_name,
+            initial_detail_url,
+            initial_detail_description || null // description can be null
+        ]);
+        newDetail = detailResult.rows[0];
+        newDetailAdded = true;
+    }
+
 
     return {
       statusCode: 200,
@@ -89,10 +108,14 @@ exports.handler = async function(event, context) {
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ message: "Category added successfully!", updatedProperty: updateResult.rows[0] })
+      body: JSON.stringify({
+          message: "Category added successfully!" + (newDetailAdded ? " And initial detail added." : ""),
+          updatedProperty: updatedProperty,
+          newDetail: newDetailAdded ? newDetail : null
+      })
     };
   } catch (error) {
-    console.error("Error updating property categories in Neon DB:", error);
+    console.error("Error updating property categories or adding initial detail:", error);
     return {
       statusCode: 500,
       headers: {
@@ -100,7 +123,7 @@ exports.handler = async function(event, context) {
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ error: "Failed to update property categories", details: error.message })
+      body: JSON.stringify({ error: "Failed to update property categories or add initial detail", details: error.message })
     };
   } finally {
     await client.end();
