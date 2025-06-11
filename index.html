@@ -26,10 +26,7 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
-        /* Page specific display styles */
-        .page-hidden {
-            display: none;
-        }
+        /* Removed .page-hidden as display is now managed directly by JavaScript */
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -39,7 +36,7 @@
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Welcome!</h2>
             <p class="text-gray-600 mb-6 text-center">Please log in to continue.</p>
-            <div id="login-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md page-hidden" role="alert">
+            <div id="login-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md hidden" role="alert">
                 <p class="font-bold">Login Failed!</p>
                 <p class="text-sm">Invalid username or password. Please try again.</p>
             </div>
@@ -61,7 +58,7 @@
     </div>
 
     <!-- Property Selection Page -->
-    <div id="property-selection-page" class="page-hidden flex-grow container mx-auto p-4 md:p-8 flex flex-col items-center">
+    <div id="property-selection-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col items-center">
         <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">Select a Property</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
             <!-- Property cards will be inserted here by JavaScript -->
@@ -75,7 +72,7 @@
     </div>
 
     <!-- Add New Property Page -->
-    <div id="add-property-page" class="page-hidden flex-grow flex items-center justify-center p-4">
+    <div id="add-property-page" class="flex-grow flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Create New Property</h2>
             <form id="add-property-form" class="space-y-4">
@@ -100,7 +97,7 @@
     </div>
 
     <!-- Lender Categories Page (Original content, now conditionally displayed) -->
-    <div id="lender-categories-page" class="page-hidden flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6">
+    <div id="lender-categories-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6">
         <!-- Left Column: Lender Titles -->
         <aside class="w-full md:w-1/4 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Lender Categories</h2>
@@ -136,10 +133,10 @@
 
             const propertySelectionPage = document.getElementById('property-selection-page');
             const propertyCardsContainer = propertySelectionPage.querySelector('.grid');
-            const addPropertyButton = document.getElementById('add-property-button'); // New button
+            const addPropertyButton = document.getElementById('add-property-button');
 
-            const addPropertyPage = document.getElementById('add-property-page'); // New page
-            const addPropertyForm = document.getElementById('add-property-form'); // New form
+            const addPropertyPage = document.getElementById('add-property-page');
+            const addPropertyForm = document.getElementById('add-property-form');
             const propertyTitleInput = document.getElementById('property-title');
             const propertyImageInput = document.getElementById('property-image');
             const propertyDescriptionInput = document.getElementById('property-description');
@@ -151,7 +148,6 @@
             const buttonsContainer = document.getElementById('buttons-container');
 
             // --- Data Definitions ---
-            // Mock CSV data (simulating data loaded from a CSV file)
             const lenderData = [
                 { Name: 'PGE', URL: 'https://www.pge.com', Category: 'Utilities', Description: 'Pacific Gas and Electric Company is an American investor-owned utility providing natural gas and electricity to most of Northern and Central California.' },
                 { Name: 'Lemonade', URL: 'https://www.lemonade.com', Category: 'Insurance', Description: 'Lemonade is an insurance company that offers homeowners, renters, car, pet, and life insurance policies powered by artificial intelligence.' },
@@ -163,15 +159,12 @@
                 { Name: 'Verizon', URL: 'https://www.verizon.com', Category: 'Utilities', Description: 'Verizon is a global telecommunications company offering wireless and wireline services.' }
             ];
 
-            // Define categories for the lender page
             const categories = [
                 { id: 'utilities', name: 'Utilities', dataCategories: ['Utilities'] },
                 { id: 'insurance', name: 'Insurance Providers', dataCategories: ['Insurance'] },
                 { id: 'banking-mortgage', name: 'Banking & Mortgage', dataCategories: ['Banking', 'Mortgage'] }
             ];
 
-            // Define properties for the property selection page
-            // Using `let` because we will be adding new properties to this array
             let properties = [
                 {
                     id: 'property-1',
@@ -195,38 +188,42 @@
 
             // --- Page Navigation Functions ---
             function showPage(pageElement) {
-                // Hide all pages first
-                loginPage.classList.add('page-hidden');
-                propertySelectionPage.classList.add('page-hidden');
-                addPropertyPage.classList.add('page-hidden'); // Hide new add property page
-                lenderCategoriesPage.classList.add('page-hidden');
+                // Hide all pages explicitly
+                loginPage.style.display = 'none';
+                propertySelectionPage.style.display = 'none';
+                addPropertyPage.style.display = 'none';
+                lenderCategoriesPage.style.display = 'none';
 
-                // Show the requested page
-                pageElement.classList.remove('page-hidden');
+                // Show the requested page by setting its display to flex
+                // This ensures correct layout for flex containers
+                pageElement.style.display = 'flex';
+
+                // Handle specific hidden class for login error message
+                if (pageElement !== loginPage) {
+                    loginErrorMessage.classList.add('hidden');
+                }
             }
 
             // --- Login Logic ---
             loginForm.addEventListener('submit', (event) => {
-                event.preventDefault(); // Prevent default form submission
+                event.preventDefault();
 
                 const username = usernameInput.value.trim();
                 const password = passwordInput.value.trim();
 
-                // Simple client-side validation (for demo purposes)
                 if (username === 'user' && password === 'password') {
-                    loginErrorMessage.classList.add('page-hidden');
-                    showPage(propertySelectionPage); // Go to property selection page on success
-                    renderPropertyCards(); // Render property cards
+                    loginErrorMessage.classList.add('hidden'); // Hide error message
+                    showPage(propertySelectionPage);
+                    renderPropertyCards();
                 } else {
-                    loginErrorMessage.classList.remove('page-hidden');
-                    // Clear password field for security
+                    loginErrorMessage.classList.remove('hidden'); // Show error message
                     passwordInput.value = '';
                 }
             });
 
             // --- Property Selection Logic ---
             function renderPropertyCards() {
-                propertyCardsContainer.innerHTML = ''; // Clear existing cards
+                propertyCardsContainer.innerHTML = '';
                 properties.forEach(property => {
                     const propertyCard = document.createElement('div');
                     propertyCard.classList.add(
@@ -234,9 +231,8 @@
                         'hover:shadow-lg', 'transition-shadow', 'duration-200', 'border', 'border-gray-200',
                         'flex', 'flex-col'
                     );
-                    propertyCard.dataset.propertyId = property.id; // Store property ID
+                    propertyCard.dataset.propertyId = property.id;
 
-                    // Add an onerror handler for image placeholders
                     const imageUrl = property.image || 'https://placehold.co/400x250/CCCCCC/FFFFFF?text=No+Image';
 
                     propertyCard.innerHTML = `
@@ -251,12 +247,8 @@
                     `;
 
                     propertyCard.addEventListener('click', () => {
-                        // In a real app, you might pass property.id or property.type
-                        // to the lender categories page to filter lenders.
-                        // For this example, we just show the lender categories page.
                         showPage(lenderCategoriesPage);
-                        renderLenderCategories(); // Ensure categories are rendered
-                        // Optionally click the first category to show initial content
+                        renderLenderCategories();
                         const firstCategoryDiv = categoriesNav.querySelector('div');
                         if (firstCategoryDiv) {
                             firstCategoryDiv.click();
@@ -267,16 +259,14 @@
                 });
             }
 
-            // Event listener for the "Add New Property" button
             addPropertyButton.addEventListener('click', () => {
                 showPage(addPropertyPage);
-                // Clear the form fields when navigating to the add property page
-                addPropertyForm.reset();
+                addPropertyForm.reset(); // Clear form on navigation
             });
 
             // --- Add New Property Form Logic ---
             addPropertyForm.addEventListener('submit', (event) => {
-                event.preventDefault(); // Prevent default form submission
+                event.preventDefault();
 
                 const title = propertyTitleInput.value.trim();
                 const image = propertyImageInput.value.trim();
@@ -284,40 +274,37 @@
 
                 if (title && image && description) {
                     const newProperty = {
-                        // Generate a simple unique ID for the new property
                         id: `property-${properties.length + 1}-${Date.now()}`,
                         title: title,
                         image: image,
                         description: description
                     };
-                    properties.push(newProperty); // Add new property to the array
+                    properties.push(newProperty);
 
-                    showPage(propertySelectionPage); // Go back to property selection page
-                    renderPropertyCards(); // Re-render to show the new property
+                    showPage(propertySelectionPage);
+                    renderPropertyCards();
                 } else {
-                    // Basic client-side validation feedback
+                    // This is a browser alert and will be replaced with a modal in a real app
                     alert('Please fill in all fields to add a new property.');
                 }
             });
 
-            // Event listener for the "Cancel" button on the Add New Property form
             cancelAddPropertyButton.addEventListener('click', () => {
-                showPage(propertySelectionPage); // Go back to property selection page
+                showPage(propertySelectionPage);
             });
 
-            // --- Lender Categories Page Logic (from previous version) ---
+            // --- Lender Categories Page Logic ---
             function renderLenderCategories() {
-                categoriesNav.innerHTML = ''; // Clear previous categories
+                categoriesNav.innerHTML = '';
                 categories.forEach(category => {
                     const categoryDiv = document.createElement('div');
                     categoryDiv.classList.add(
                         'cursor-pointer', 'p-3', 'rounded-lg', 'hover:bg-blue-100', 'transition-colors', 'duration-200', 'text-gray-700', 'font-medium', 'mb-2'
                     );
                     categoryDiv.textContent = category.name;
-                    categoryDiv.dataset.categoryId = category.id; // Store category ID
+                    categoryDiv.dataset.categoryId = category.id;
                     categoryDiv.addEventListener('click', () => {
                         displayLendersForCategory(category.dataCategories);
-                        // Highlight selected category
                         document.querySelectorAll('#lender-categories-nav > div').forEach(div => {
                             div.classList.remove('bg-blue-200', 'text-blue-800');
                         });
@@ -327,11 +314,9 @@
                 });
             }
 
-            // Function to display lenders based on selected categories
             function displayLendersForCategory(selectedDataCategories) {
-                // Clear existing content in the details section except the security warning
-                detailsContent.querySelector('p')?.remove(); // Remove initial placeholder text
-                buttonsContainer.innerHTML = ''; // Clear existing buttons
+                detailsContent.querySelector('p')?.remove();
+                buttonsContainer.innerHTML = '';
 
                 const filteredLenders = lenderData.filter(lender =>
                     selectedDataCategories.includes(lender.Category)
@@ -341,7 +326,7 @@
                     const noLendersMessage = document.createElement('p');
                     noLendersMessage.classList.add('text-gray-600', 'mt-4');
                     noLendersMessage.textContent = `No lenders found for these categories.`;
-                    detailsContent.insertBefore(noLendersMessage, buttonsContainer); // Insert before buttons
+                    detailsContent.insertBefore(noLendersMessage, buttonsContainer);
                 } else {
                     filteredLenders.forEach(lender => {
                         const lenderButton = document.createElement('button');
@@ -352,7 +337,6 @@
                         );
                         lenderButton.textContent = lender.Name;
                         lenderButton.addEventListener('click', () => {
-                            // Open in new tab, as iframe pre-population is not secure/possible
                             window.open(lender.URL, '_blank');
                         });
                         buttonsContainer.appendChild(lenderButton);
@@ -361,6 +345,7 @@
             }
 
             // --- Initial Load: Show Login Page ---
+            // Ensure all pages are initially hidden, then show the login page
             showPage(loginPage);
         });
     </script>
