@@ -11,8 +11,8 @@ exports.handler = async function(event, context) {
   }
 
   // Ensure the database connection string is available
-  if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL environment variable is not set.");
+  if (!process.env.NETLIFY_DATABASE_URL) {
+    console.error("NETLIFY_DATABASE_URL environment variable is not set.");
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
@@ -21,7 +21,7 @@ exports.handler = async function(event, context) {
   }
 
   const client = new Client({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.NETLIFY_DATABASE_URL,
     ssl: {
       rejectUnauthorized: false // Required for Neon connections on Netlify
     }
