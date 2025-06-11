@@ -57,10 +57,14 @@
     <div id="login-page" class="flex-grow flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md relative">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Welcome!</h2>
-            <p class="text-gray-600 mb-6 text-center">Please log in to continue.</p>
+            <p class="text-gray-600 mb-6 text-center">Please log in or register to continue.</p>
             <div id="login-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md hidden" role="alert">
                 <p class="font-bold">Login Failed!</p>
-                <p class="text-sm">Invalid username or password. Please try again.</p>
+                <p class="text-sm" id="login-error-text"></p>
+            </div>
+            <div id="registration-status-message" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md hidden" role="alert">
+                <p class="font-bold">Registration Successful!</p>
+                <p class="text-sm">You can now log in with your new credentials.</p>
             </div>
             <form id="login-form" class="space-y-4">
                 <div>
@@ -74,8 +78,40 @@
                 <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Login</button>
             </form>
             <p class="text-center text-gray-500 text-sm mt-4">
-                For demo, use Username: <span class="font-bold">user</span>, Password: <span class="font-bold">password</span>
+                For demo, use Username: <span class="font-bold">user</span>, Password: <span class="font-bold">password</span> (pre-registered).
             </p>
+            <div class="mt-6 border-t pt-4 text-center">
+                <p class="text-gray-600 mb-2">Don't have an account?</p>
+                <button id="show-register-form-btn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-xl hover:bg-gray-300 transition-colors duration-200 font-semibold">Register</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Form (Hidden by default) -->
+    <div id="register-page" class="flex-grow flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md relative">
+             <button id="back-to-login-from-register-btn" class="back-button">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Login
+            </button>
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Register New Account</h2>
+            <div id="register-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md hidden" role="alert">
+                <p class="font-bold">Registration Failed!</p>
+                <p class="text-sm" id="register-error-text"></p>
+            </div>
+            <form id="register-form" class="space-y-4">
+                <div>
+                    <label for="reg-username" class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
+                    <input type="text" id="reg-username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Choose a username" required>
+                </div>
+                <div>
+                    <label for="reg-password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="reg-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Choose a password" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition-colors duration-200 font-semibold shadow-md">Register</button>
+            </form>
         </div>
     </div>
 
@@ -181,6 +217,18 @@
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
             const loginErrorMessage = document.getElementById('login-error-message');
+            const loginErrorText = document.getElementById('login-error-text');
+            const showRegisterFormBtn = document.getElementById('show-register-form-btn');
+            const registrationStatusMessage = document.getElementById('registration-status-message');
+
+            const registerPage = document.getElementById('register-page');
+            const registerForm = document.getElementById('register-form');
+            const regUsernameInput = document.getElementById('reg-username');
+            const regPasswordInput = document.getElementById('reg-password');
+            const registerErrorMessage = document.getElementById('register-error-message');
+            const registerErrorText = document.getElementById('register-error-text');
+            const backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn');
+
 
             const propertySelectionPage = document.getElementById('property-selection-page');
             const propertyCardsContainer = document.getElementById('property-cards-container');
@@ -195,28 +243,28 @@
             const propertyTitleInput = document.getElementById('property-title');
             const propertyImageInput = document.getElementById('property-image');
             const propertyDescriptionInput = document.getElementById('property-description');
-            const propertyCategoriesInput = document.getElementById('property-categories'); // New input for categories
+            const propertyCategoriesInput = document.getElementById('property-categories');
             const cancelAddPropertyButton = document.getElementById('cancel-add-property');
             const addPropertyStatus = document.getElementById('add-property-status');
             const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn');
 
 
-            const propertyCategoriesPage = document.getElementById('property-categories-page'); // Renamed
-            const propertyCategoriesNav = document.getElementById('property-categories-nav'); // Renamed
-            const lenderDetailsContent = document.getElementById('lender-details-content'); // Renamed for clarity
+            const propertyCategoriesPage = document.getElementById('property-categories-page');
+            const propertyCategoriesNav = document.getElementById('property-categories-nav');
+            const lenderDetailsContent = document.getElementById('lender-details-content');
             const buttonsContainer = document.getElementById('buttons-container');
             const lenderLoadingMessage = document.getElementById('lender-loading-message');
             const backToPropertiesBtn = document.getElementById('back-to-properties-btn');
 
             // --- Data Definitions ---
-            let lenderData = []; // Populated from CSV
-            let properties = []; // Populated from Neon DB via Netlify Function
+            let lenderData = []; // Populated from properties.csv (contains lender info)
+            let properties = []; // Populated from Neon DB (contains property info)
             let currentSelectedProperty = null; // To store the property whose categories are being displayed
 
             // --- Helper Function to Parse CSV ---
             function parseCSV(csvText) {
                 const lines = csvText.trim().split('\n');
-                if (lines.length <= 1) return []; // Handle empty or header-only CSV
+                if (lines.length <= 1) return [];
 
                 const headers = lines[0].split(',').map(header => header.trim());
                 const data = [];
@@ -232,20 +280,19 @@
                 return data;
             }
 
-            // --- Fetch Lender Data from CSV ---
+            // --- Fetch Lender Data from properties.csv ---
             async function fetchLenderData() {
                 try {
-                    const response = await fetch('properties.csv');
+                    const response = await fetch('properties.csv'); // Changed from lenders.csv
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     const csvText = await response.text();
                     lenderData = parseCSV(csvText);
-                    console.log('Lender data loaded:', lenderData);
-                    // Initial message in lender section
+                    console.log('Lender data loaded from properties.csv:', lenderData);
                     lenderDetailsContent.innerHTML = `<p id="lender-loading-message" class="text-gray-600">Select a property category to view lenders.</p><div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">Due to modern browser security policies (Same-Origin Policy), it is not possible to pre-populate login credentials on external websites loaded within an iframe. For your security, lender links will open in a new browser tab.</p></div>`;
                 } catch (error) {
-                    console.error('Error fetching or parsing properties CSV:', error);
+                    console.error('Error fetching or parsing properties.csv:', error);
                     lenderDetailsContent.innerHTML = `<p class="text-red-600 mt-4">Failed to load lender data from properties.csv: ${error.message}</p>`;
                 }
             }
@@ -278,31 +325,113 @@
             // --- Page Navigation Functions ---
             function showPage(pageElement) {
                 loginPage.style.display = 'none';
+                registerPage.style.display = 'none';
                 propertySelectionPage.style.display = 'none';
                 addPropertyPage.style.display = 'none';
-                propertyCategoriesPage.style.display = 'none'; // Renamed
+                propertyCategoriesPage.style.display = 'none';
 
                 pageElement.style.display = 'flex';
 
                 if (pageElement !== loginPage) {
                     loginErrorMessage.classList.add('hidden');
+                    registrationStatusMessage.classList.add('hidden');
+                }
+                if (pageElement !== registerPage) {
+                    registerErrorMessage.classList.add('hidden');
                 }
             }
 
             // --- Login Logic ---
-            loginForm.addEventListener('submit', (event) => {
+            loginForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
                 const username = usernameInput.value.trim();
                 const password = passwordInput.value.trim();
 
-                if (username === 'user' && password === 'password') {
-                    loginErrorMessage.classList.add('hidden');
-                    showPage(propertySelectionPage);
-                    fetchProperties();
-                } else {
+                loginErrorMessage.classList.add('hidden');
+                loginErrorText.textContent = '';
+
+                if (!username || !password) {
                     loginErrorMessage.classList.remove('hidden');
+                    loginErrorText.textContent = 'Please enter both username and password.';
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/.netlify/functions/loginUser', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        console.log("Login successful:", data.message);
+                        showPage(propertySelectionPage);
+                        fetchProperties();
+                    } else {
+                        loginErrorMessage.classList.remove('hidden');
+                        loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
+                        passwordInput.value = '';
+                    }
+                } catch (error) {
+                    console.error("Fetch error during login:", error);
+                    loginErrorMessage.classList.remove('hidden');
+                    loginErrorText.textContent = 'Network error or server issue. Please try again later.';
                     passwordInput.value = '';
+                }
+            });
+
+            // --- Registration Logic ---
+            showRegisterFormBtn.addEventListener('click', () => {
+                showPage(registerPage);
+                regUsernameInput.value = '';
+                regPasswordInput.value = '';
+                registerErrorMessage.classList.add('hidden');
+                registrationStatusMessage.classList.add('hidden');
+            });
+
+            registerForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const username = regUsernameInput.value.trim();
+                const password = regPasswordInput.value.trim();
+
+                registerErrorMessage.classList.add('hidden');
+                registerErrorText.textContent = '';
+
+                if (!username || !password) {
+                    registerErrorMessage.classList.remove('hidden');
+                    registerErrorText.textContent = 'Please enter both username and password.';
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/.netlify/functions/registerUser', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        console.log("Registration successful:", data.message);
+                        registrationStatusMessage.classList.remove('hidden');
+                        showPage(loginPage);
+                        usernameInput.value = username;
+                        passwordInput.value = '';
+                    } else {
+                        registerErrorMessage.classList.remove('hidden');
+                        registerErrorText.textContent = data.message || 'An unknown error occurred during registration.';
+                        regPasswordInput.value = '';
+                    }
+                } catch (error) {
+                    console.error("Fetch error during registration:", error);
+                    registerErrorMessage.classList.remove('hidden');
+                    registerErrorText.textContent = 'Network error or server issue. Please try again later.';
+                    regPasswordInput.value = '';
                 }
             });
 
@@ -336,10 +465,9 @@
                     `;
 
                     propertyCard.addEventListener('click', () => {
-                        currentSelectedProperty = property; // Set the currently selected property
-                        showPage(propertyCategoriesPage); // Renamed
-                        renderPropertyCategories(); // Renamed and now uses currentSelectedProperty
-                        // Clear existing lender buttons/messages when a new property is selected
+                        currentSelectedProperty = property;
+                        showPage(propertyCategoriesPage);
+                        renderPropertyCategories();
                         lenderDetailsContent.innerHTML = `<p id="lender-loading-message" class="text-gray-600">Select a property category to view lenders.</p><div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">Due to modern browser security policies (Same-Origin Policy), it is not possible to pre-populate login credentials on external websites loaded within an iframe. For your security, lender links will open in a new browser tab.</p></div>`;
                     });
 
@@ -421,9 +549,9 @@
                 showPage(propertySelectionPage);
             });
 
-            // --- Property Categories Page Logic (renamed and adjusted) ---
-            function renderPropertyCategories() { // Renamed from renderLenderCategories
-                propertyCategoriesNav.innerHTML = ''; // Renamed from categoriesNav
+            // --- Property Categories Page Logic ---
+            function renderPropertyCategories() {
+                propertyCategoriesNav.innerHTML = '';
                 if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
                     propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
                     return;
@@ -434,10 +562,10 @@
                     categoryDiv.classList.add(
                         'cursor-pointer', 'p-3', 'rounded-lg', 'hover:bg-blue-100', 'transition-colors', 'duration-200', 'text-gray-700', 'font-medium', 'mb-2'
                     );
-                    categoryDiv.textContent = categoryName; // Display the category name
-                    categoryDiv.dataset.categoryName = categoryName; // Store the category name for filtering lenders
+                    categoryDiv.textContent = categoryName;
+                    categoryDiv.dataset.categoryName = categoryName;
                     categoryDiv.addEventListener('click', () => {
-                        displayLendersForCategory(categoryName); // Pass the category name
+                        displayLendersForCategory(categoryName);
                         document.querySelectorAll('#property-categories-nav > div').forEach(div => {
                             div.classList.remove('bg-blue-200', 'text-blue-800');
                         });
@@ -445,13 +573,19 @@
                     });
                     propertyCategoriesNav.appendChild(categoryDiv);
                 });
+
+                if (currentSelectedProperty.categories.length > 0) {
+                    const firstCategoryDiv = propertyCategoriesNav.querySelector('div');
+                    if (firstCategoryDiv) {
+                        firstCategoryDiv.click();
+                    }
+                }
             }
 
             // --- Display Lenders for a given Category ---
-            function displayLendersForCategory(selectedCategoryName) { // Now accepts a single category name
-                // Clear existing lender buttons/messages
+            function displayLendersForCategory(selectedCategoryName) {
                 lenderDetailsContent.innerHTML = `<div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">Due to modern browser security policies (Same-Origin Policy), it is not possible to pre-populate login credentials on external websites loaded within an iframe. For your security, lender links will open in a new browser tab.</p></div>`;
-                const buttonsContainer = lenderDetailsContent.querySelector('#buttons-container'); // Re-query after clearing innerHTML
+                const buttonsContainer = lenderDetailsContent.querySelector('#buttons-container');
 
                 if (lenderData.length === 0) {
                     const noLendersMessage = document.createElement('p');
@@ -461,9 +595,8 @@
                     return;
                 }
 
-                // Filter lenders based on the selected category name (e.g., 'Utilities')
                 const filteredLenders = lenderData.filter(lender =>
-                    lender.Category === selectedCategoryName // Match exact category
+                    lender.Category === selectedCategoryName
                 );
 
                 if (filteredLenders.length === 0) {
@@ -493,6 +626,14 @@
                 showPage(loginPage);
                 usernameInput.value = '';
                 passwordInput.value = '';
+                registrationStatusMessage.classList.add('hidden');
+            });
+
+            backToLoginFromRegisterBtn.addEventListener('click', () => {
+                showPage(loginPage);
+                regUsernameInput.value = '';
+                regPasswordInput.value = '';
+                registerErrorMessage.classList.add('hidden');
             });
 
             backFromAddPropertyBtn.addEventListener('click', () => {
@@ -503,11 +644,11 @@
 
             backToPropertiesBtn.addEventListener('click', () => {
                 showPage(propertySelectionPage);
-                currentSelectedProperty = null; // Clear selected property when going back
+                currentSelectedProperty = null;
             });
 
             // --- Initial Load: Fetch data and Show Login Page ---
-            await fetchLenderData(); // Fetch static lender data (from CSV)
+            await fetchLenderData(); // Fetch static lender data from properties.csv
             showPage(loginPage); // Show the login page initially
         });
     </script>
