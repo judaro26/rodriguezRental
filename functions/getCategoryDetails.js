@@ -38,8 +38,9 @@ exports.handler = async function(event, context) {
       };
     }
 
+    // Fetch all details, now including detail_username and detail_password
     const queryText = `
-      SELECT id, detail_name, detail_url, detail_description
+      SELECT id, detail_name, detail_url, detail_description, detail_logo_url, detail_username, detail_password
       FROM property_category_details
       WHERE property_id = $1 AND category_name = $2
       ORDER BY created_at ASC;
