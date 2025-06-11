@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lender Information Hub</title>
+    <title>Property Information Hub</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -127,6 +127,10 @@
                     <label for="property-description" class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
                     <textarea id="property-description" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Describe the property..." required></textarea>
                 </div>
+                 <div>
+                    <label for="property-categories" class="block text-gray-700 text-sm font-semibold mb-2">Categories (comma-separated)</label>
+                    <input type="text" id="property-categories" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Utilities, Insurance, Banking" required>
+                </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-add-property" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
                     <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Property</button>
@@ -136,29 +140,30 @@
         </div>
     </div>
 
-    <!-- Lender Categories Page (Original content, now conditionally displayed) -->
-    <div id="lender-categories-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6 relative">
+    <!-- Property Categories Page -->
+    <div id="property-categories-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6 relative">
         <button id="back-to-properties-btn" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Back to Properties
         </button>
-        <!-- Left Column: Lender Titles -->
+        <!-- Left Column: Property Categories -->
         <aside class="w-full md:w-1/4 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Lender Categories</h2>
-            <nav id="lender-categories-nav">
-                <!-- Category titles will be inserted here by JavaScript -->
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Property Categories</h2>
+            <nav id="property-categories-nav">
+                <p class="text-gray-600">No categories for this property or still loading.</p>
+                <!-- Property category titles will be inserted here by JavaScript -->
             </nav>
         </aside>
 
         <!-- Right Section: Lender Details -->
         <main class="w-full md:w-3/4 bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Details</h2>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Lender Details</h2>
             <div id="lender-details-content" class="flex-grow overflow-y-auto pr-2">
-                <p id="lender-loading-message" class="text-gray-600">Loading lender data...</p>
+                <p id="lender-loading-message" class="text-gray-600">Select a property category to view lenders.</p>
                 <div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                    <!-- Dynamic buttons will be inserted here -->
+                    <!-- Dynamic buttons (lenders) will be inserted here -->
                 </div>
                 <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
                     <p class="font-bold">Security Notice:</p>
@@ -183,39 +188,36 @@
             const propertiesErrorMessage = document.getElementById('properties-error-message');
             const propertiesErrorText = document.getElementById('properties-error-text');
             const addPropertyButton = document.getElementById('add-property-button');
-            const backToLoginBtn = document.getElementById('back-to-login-btn'); // New back button
+            const backToLoginBtn = document.getElementById('back-to-login-btn');
 
             const addPropertyPage = document.getElementById('add-property-page');
             const addPropertyForm = document.getElementById('add-property-form');
             const propertyTitleInput = document.getElementById('property-title');
             const propertyImageInput = document.getElementById('property-image');
             const propertyDescriptionInput = document.getElementById('property-description');
+            const propertyCategoriesInput = document.getElementById('property-categories'); // New input for categories
             const cancelAddPropertyButton = document.getElementById('cancel-add-property');
             const addPropertyStatus = document.getElementById('add-property-status');
-            const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn'); // New back button
+            const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn');
 
 
-            const lenderCategoriesPage = document.getElementById('lender-categories-page');
-            const categoriesNav = document.getElementById('lender-categories-nav');
-            const detailsContent = document.getElementById('lender-details-content');
+            const propertyCategoriesPage = document.getElementById('property-categories-page'); // Renamed
+            const propertyCategoriesNav = document.getElementById('property-categories-nav'); // Renamed
+            const lenderDetailsContent = document.getElementById('lender-details-content'); // Renamed for clarity
             const buttonsContainer = document.getElementById('buttons-container');
             const lenderLoadingMessage = document.getElementById('lender-loading-message');
-            const backToPropertiesBtn = document.getElementById('back-to-properties-btn'); // New back button
-
+            const backToPropertiesBtn = document.getElementById('back-to-properties-btn');
 
             // --- Data Definitions ---
             let lenderData = []; // Populated from CSV
             let properties = []; // Populated from Neon DB via Netlify Function
-
-            const categories = [
-                { id: 'utilities', name: 'Utilities', dataCategories: ['Utilities'] },
-                { id: 'insurance', name: 'Insurance Providers', dataCategories: ['Insurance'] },
-                { id: 'banking-mortgage', name: 'Banking & Mortgage', dataCategories: ['Banking', 'Mortgage'] }
-            ];
+            let currentSelectedProperty = null; // To store the property whose categories are being displayed
 
             // --- Helper Function to Parse CSV ---
             function parseCSV(csvText) {
                 const lines = csvText.trim().split('\n');
+                if (lines.length <= 1) return []; // Handle empty or header-only CSV
+
                 const headers = lines[0].split(',').map(header => header.trim());
                 const data = [];
 
@@ -223,7 +225,6 @@
                     const values = lines[i].split(',').map(value => value.trim());
                     const row = {};
                     for (let j = 0; j < headers.length; j++) {
-                        // Remove surrounding quotes if present (common in CSV for strings with commas)
                         row[headers[j]] = values[j].replace(/^"|"$/g, '');
                     }
                     data.push(row);
@@ -241,23 +242,19 @@
                     const csvText = await response.text();
                     lenderData = parseCSV(csvText);
                     console.log('Lender data loaded:', lenderData);
-                    lenderLoadingMessage.style.display = 'none';
-                    const initialContent = detailsContent.querySelector('p');
-                    if (initialContent && initialContent.id !== 'security-warning') {
-                         initialContent.remove();
-                    }
+                    // Initial message in lender section
+                    lenderDetailsContent.innerHTML = `<p id="lender-loading-message" class="text-gray-600">Select a property category to view lenders.</p><div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">Due to modern browser security policies (Same-Origin Policy), it is not possible to pre-populate login credentials on external websites loaded within an iframe. For your security, lender links will open in a new browser tab.</p></div>`;
                 } catch (error) {
                     console.error('Error fetching or parsing lender CSV:', error);
-                    lenderLoadingMessage.textContent = 'Failed to load property data. Please check properties.csv.';
-                    lenderLoadingMessage.classList.add('text-red-600');
+                    lenderDetailsContent.innerHTML = `<p class="text-red-600 mt-4">Failed to load lender data from lenders.csv: ${error.message}</p>`;
                 }
             }
 
             // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
             async function fetchProperties() {
                 propertiesLoadingMessage.style.display = 'block';
-                propertiesErrorMessage.classList.add('hidden'); // Hide any previous error
-                propertyCardsContainer.innerHTML = ''; // Clear previous properties
+                propertiesErrorMessage.classList.add('hidden');
+                propertyCardsContainer.innerHTML = '';
 
                 try {
                     const response = await fetch('/.netlify/functions/getProperties');
@@ -267,8 +264,9 @@
                     }
                     properties = await response.json();
                     console.log('Properties loaded from Neon DB:', properties);
-                    renderPropertyCards(); // Render properties after fetching
-                } catch (error) {
+                    renderPropertyCards();
+                }
+                catch (error) {
                     console.error('Error fetching properties from Netlify Function:', error);
                     propertiesErrorMessage.classList.remove('hidden');
                     propertiesErrorText.textContent = error.message;
@@ -279,17 +277,13 @@
 
             // --- Page Navigation Functions ---
             function showPage(pageElement) {
-                // Hide all pages explicitly
                 loginPage.style.display = 'none';
                 propertySelectionPage.style.display = 'none';
                 addPropertyPage.style.display = 'none';
-                lenderCategoriesPage.style.display = 'none';
+                propertyCategoriesPage.style.display = 'none'; // Renamed
 
-                // Show the requested page by setting its display property
-                // 'flex' is used for pages designed with flexbox layout
                 pageElement.style.display = 'flex';
 
-                // Handle specific hidden class for login error message
                 if (pageElement !== loginPage) {
                     loginErrorMessage.classList.add('hidden');
                 }
@@ -305,7 +299,7 @@
                 if (username === 'user' && password === 'password') {
                     loginErrorMessage.classList.add('hidden');
                     showPage(propertySelectionPage);
-                    fetchProperties(); // Fetch properties on successful login
+                    fetchProperties();
                 } else {
                     loginErrorMessage.classList.remove('hidden');
                     passwordInput.value = '';
@@ -337,23 +331,16 @@
                             <p class="text-gray-600 text-sm">${property.description}</p>
                         </div>
                         <div class="p-4 pt-0">
-                            <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold">View Properties</button>
+                            <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold">View Property Details</button>
                         </div>
                     `;
 
                     propertyCard.addEventListener('click', () => {
-                        showPage(lenderCategoriesPage);
-                        renderLenderCategories();
-                        if (lenderData.length > 0 && categoriesNav.children.length > 0) {
-                            const firstCategoryDiv = categoriesNav.querySelector('div');
-                            if (firstCategoryDiv) {
-                                firstCategoryDiv.click();
-                            }
-                        } else if (lenderLoadingMessage.style.display !== 'none') {
-                            detailsContent.innerHTML = `<p class="text-gray-600 mt-4">Lender data is still loading or could not be retrieved. Please try again later.</p>`;
-                        } else {
-                            detailsContent.innerHTML = `<p class="text-gray-600 mt-4">No lender categories available.</p>`;
-                        }
+                        currentSelectedProperty = property; // Set the currently selected property
+                        showPage(propertyCategoriesPage); // Renamed
+                        renderPropertyCategories(); // Renamed and now uses currentSelectedProperty
+                        // Clear existing lender buttons/messages when a new property is selected
+                        lenderDetailsContent.innerHTML = `<p id="lender-loading-message" class="text-gray-600">Select a property category to view lenders.</p><div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">Due to modern browser security policies (Same-Origin Policy), it is not possible to pre-populate login credentials on external websites loaded within an iframe. For your security, lender links will open in a new browser tab.</p></div>`;
                     });
 
                     propertyCardsContainer.appendChild(propertyCard);
@@ -363,7 +350,7 @@
             addPropertyButton.addEventListener('click', () => {
                 showPage(addPropertyPage);
                 addPropertyForm.reset();
-                addPropertyStatus.classList.add('hidden'); // Hide status message
+                addPropertyStatus.classList.add('hidden');
             });
 
             // --- Add New Property Form Logic ---
@@ -375,13 +362,23 @@
                 const title = propertyTitleInput.value.trim();
                 const image = propertyImageInput.value.trim();
                 const description = propertyDescriptionInput.value.trim();
+                const categoriesString = propertyCategoriesInput.value.trim();
 
-                if (title && image && description) {
+                if (title && image && description && categoriesString) {
+                    const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
+
+                    if (parsedCategories.length === 0) {
+                        addPropertyStatus.classList.remove('hidden');
+                        addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                        addPropertyStatus.textContent = 'Please enter at least one category.';
+                        return;
+                    }
+
                     addPropertyStatus.classList.remove('hidden');
                     addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                     addPropertyStatus.textContent = 'Saving property...';
 
-                    console.log("Attempting to save property:", { title, image, description });
+                    console.log("Attempting to save property:", { title, image, description, categories: parsedCategories });
 
                     try {
                         const response = await fetch('/.netlify/functions/saveProperty', {
@@ -389,7 +386,7 @@
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ title, image, description })
+                            body: JSON.stringify({ title, image, description, categories: parsedCategories })
                         });
 
                         if (!response.ok) {
@@ -405,9 +402,8 @@
                         
                         setTimeout(async () => {
                             showPage(propertySelectionPage);
-                            await fetchProperties(); // Re-fetch all properties to update the list
+                            await fetchProperties();
                         }, 1500);
-
 
                     } catch (error) {
                         console.error('Error saving property:', error);
@@ -425,56 +421,56 @@
                 showPage(propertySelectionPage);
             });
 
-            // --- Lender Categories Page Logic ---
-            function renderLenderCategories() {
-                categoriesNav.innerHTML = '';
-                if (lenderData.length === 0) {
-                    categoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No lender categories loaded. Please check data source.</p>`;
+            // --- Property Categories Page Logic (renamed and adjusted) ---
+            function renderPropertyCategories() { // Renamed from renderLenderCategories
+                propertyCategoriesNav.innerHTML = ''; // Renamed from categoriesNav
+                if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
+                    propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
                     return;
                 }
 
-                categories.forEach(category => {
+                currentSelectedProperty.categories.forEach(categoryName => {
                     const categoryDiv = document.createElement('div');
                     categoryDiv.classList.add(
                         'cursor-pointer', 'p-3', 'rounded-lg', 'hover:bg-blue-100', 'transition-colors', 'duration-200', 'text-gray-700', 'font-medium', 'mb-2'
                     );
-                    categoryDiv.textContent = category.name;
-                    categoryDiv.dataset.categoryId = category.id;
+                    categoryDiv.textContent = categoryName; // Display the category name
+                    categoryDiv.dataset.categoryName = categoryName; // Store the category name for filtering lenders
                     categoryDiv.addEventListener('click', () => {
-                        displayLendersForCategory(category.dataCategories);
-                        document.querySelectorAll('#lender-categories-nav > div').forEach(div => {
+                        displayLendersForCategory(categoryName); // Pass the category name
+                        document.querySelectorAll('#property-categories-nav > div').forEach(div => {
                             div.classList.remove('bg-blue-200', 'text-blue-800');
                         });
                         categoryDiv.classList.add('bg-blue-200', 'text-blue-800');
                     });
-                    categoriesNav.appendChild(categoryDiv);
+                    propertyCategoriesNav.appendChild(categoryDiv);
                 });
             }
 
-            function displayLendersForCategory(selectedDataCategories) {
-                const initialContent = detailsContent.querySelector('p');
-                if (initialContent && initialContent.id !== 'security-warning') {
-                     initialContent.remove();
-                }
-                buttonsContainer.innerHTML = '';
+            // --- Display Lenders for a given Category ---
+            function displayLendersForCategory(selectedCategoryName) { // Now accepts a single category name
+                // Clear existing lender buttons/messages
+                lenderDetailsContent.innerHTML = `<div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">Due to modern browser security policies (Same-Origin Policy), it is not possible to pre-populate login credentials on external websites loaded within an iframe. For your security, lender links will open in a new browser tab.</p></div>`;
+                const buttonsContainer = lenderDetailsContent.querySelector('#buttons-container'); // Re-query after clearing innerHTML
 
                 if (lenderData.length === 0) {
                     const noLendersMessage = document.createElement('p');
                     noLendersMessage.classList.add('text-gray-600', 'mt-4');
                     noLendersMessage.textContent = `Lender data could not be loaded or is empty.`;
-                    detailsContent.insertBefore(noLendersMessage, buttonsContainer);
+                    lenderDetailsContent.insertBefore(noLendersMessage, buttonsContainer);
                     return;
                 }
 
+                // Filter lenders based on the selected category name (e.g., 'Utilities')
                 const filteredLenders = lenderData.filter(lender =>
-                    selectedDataCategories.includes(lender.Category)
+                    lender.Category === selectedCategoryName // Match exact category
                 );
 
                 if (filteredLenders.length === 0) {
                     const noLendersMessage = document.createElement('p');
                     noLendersMessage.classList.add('text-gray-600', 'mt-4');
-                    noLendersMessage.textContent = `No lenders found for these categories.`;
-                    detailsContent.insertBefore(noLendersMessage, buttonsContainer);
+                    noLendersMessage.textContent = `No lenders found for category: "${selectedCategoryName}".`;
+                    lenderDetailsContent.insertBefore(noLendersMessage, buttonsContainer);
                 } else {
                     filteredLenders.forEach(lender => {
                         const lenderButton = document.createElement('button');
@@ -495,22 +491,23 @@
             // --- Back Button Event Listeners ---
             backToLoginBtn.addEventListener('click', () => {
                 showPage(loginPage);
-                usernameInput.value = ''; // Clear login fields
+                usernameInput.value = '';
                 passwordInput.value = '';
             });
 
             backFromAddPropertyBtn.addEventListener('click', () => {
                 showPage(propertySelectionPage);
-                addPropertyForm.reset(); // Clear form
-                addPropertyStatus.classList.add('hidden'); // Hide status
+                addPropertyForm.reset();
+                addPropertyStatus.classList.add('hidden');
             });
 
             backToPropertiesBtn.addEventListener('click', () => {
                 showPage(propertySelectionPage);
+                currentSelectedProperty = null; // Clear selected property when going back
             });
 
             // --- Initial Load: Fetch data and Show Login Page ---
-            await fetchLenderData(); // Fetch static lender data
+            await fetchLenderData(); // Fetch static lender data (from CSV)
             showPage(loginPage); // Show the login page initially
         });
     </script>
