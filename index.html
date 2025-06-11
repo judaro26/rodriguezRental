@@ -586,6 +586,11 @@
             const propertiesErrorText = document.getElementById('properties-error-text');
             const addPropertyButton = document.getElementById('add-property-button');
             const backToLoginBtn = document.getElementById('back-to-login-btn');
+            const filterAllPropertiesBtn = document.getElementById('filter-all-properties'); // Filter button
+            const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties'); // Filter button
+            const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties'); // Filter button
+            const propertyIsForeignInput = document.getElementById('property-is-foreign'); // New checkbox for Add Property Form
+
 
             const addPropertyPage = document.getElementById('add-property-page');
             const addPropertyForm = document.getElementById('add-property-form');
@@ -1027,6 +1032,7 @@
             addPropertyButton.addEventListener('click', () => {
                 showPage(addPropertyPage);
                 addPropertyForm.reset();
+                propertyIsForeignInput.checked = false; // Reset checkbox
                 addPropertyStatus.classList.add('hidden');
             });
 
@@ -1238,7 +1244,7 @@
                                 const targetInput = document.getElementById(e.target.dataset.target);
                                 if (targetInput.type === 'password') {
                                     targetInput.type = 'text';
-                                    e.target.textContent = '🙈';
+                                    e.target.textContent = '�';
                                 } else {
                                     targetInput.type = 'password';
                                     e.target.textContent = '👁️';
@@ -1596,7 +1602,7 @@
 
                             if (response.ok) {
                                 verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                                verificationStatus.textContent = 'Category deleted successfully!';
+                                verificationStatus.textContent = data.message;
                                 
                                 currentSelectedProperty.categories = data.updatedProperty.categories;
 
@@ -1697,3 +1703,4 @@
     </script>
 </body>
 </html>
+�
