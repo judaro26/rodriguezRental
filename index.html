@@ -29,7 +29,7 @@
         /* Base styling for back buttons */
         .back-button {
             position: absolute;
-            top: 1rem;
+            top: 1rem; /* Adjust this if more padding is needed in the future */
             left: 1rem;
             background-color: #e5e7eb; /* Light gray */
             color: #4b5563; /* Dark gray text */
@@ -195,9 +195,6 @@
             <button id="add-new-category-button" class="mt-4 bg-yellow-600 text-white py-2 px-4 rounded-xl hover:bg-yellow-700 transition-colors duration-200 font-semibold w-full">
                 Add New Category
             </button>
-            <button id="add-category-detail-button" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
-                Add Category Detail
-            </button>
         </aside>
 
         <!-- Right Section: Category Details / Dynamic Buttons -->
@@ -208,6 +205,9 @@
                 <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                     <!-- Dynamic buttons related to the selected category will be inserted here -->
                 </div>
+                <button id="add-category-detail-button" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
+                    Add Category Detail
+                </button>
                 <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
                     <p class="font-bold">Security Notice:</p>
                     <p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p>
@@ -617,7 +617,7 @@
                     // Hide "Add Category Detail" button if no categories
                     addCategoryDetailButton.style.display = 'none';
                     // Hide "Add New Category" button if no property selected (shouldn't happen here, but for safety)
-                    addNewCategoryButton.style.display = 'none';
+                    addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
                     return;
                 }
 
@@ -657,9 +657,19 @@
                 // Clear existing buttons/messages, but preserve the security warning
                 const securityWarningDiv = document.getElementById('security-warning');
                 categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
+                // Re-append the security warning
                 categoryDetailsContent.appendChild(securityWarningDiv);
                 const buttonsContainer = categoryDetailsContent.querySelector('#dynamic-category-buttons-container');
                 const loadingMessage = categoryDetailsContent.querySelector('#category-loading-message');
+
+                // Make the "Add Category Detail" button visible and place it AFTER the dynamic buttons container
+                addCategoryDetailButton.style.display = 'block';
+                // Remove previous button if it exists before re-appending
+                if (addCategoryDetailButton.parentNode) {
+                    addCategoryDetailButton.parentNode.removeChild(addCategoryDetailButton);
+                }
+                categoryDetailsContent.appendChild(addCategoryDetailButton);
+
 
                 try {
                     const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=${currentSelectedProperty.id}&category_name=${encodeURIComponent(selectedCategoryName)}`);
@@ -718,7 +728,7 @@
                     addDetailForm.reset();
                     addDetailStatus.classList.add('hidden');
                 } else {
-                    // Provide a more informative alert if no category is selected
+                    // This alert should ideally not be hit if the button is correctly hidden/shown
                     alert('Please select a property category first to add details to it.');
                 }
             });
