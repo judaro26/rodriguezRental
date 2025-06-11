@@ -55,7 +55,8 @@ exports.handler = async function(event, context) {
     const hashedPassword = hashPassword(password); // Hash the provided password
     console.log(`Hashed password (client input): "${hashedPassword}"`);
 
-    const queryText = 'SELECT id, username, password_hash FROM users WHERE username = $1';
+    // Modified query to also select the 'confirmed' status
+    const queryText = 'SELECT id, username, password_hash, confirmed FROM users WHERE username = $1';
     console.log(`Executing query: "${queryText}" with username: "${username}"`);
     const result = await client.query(queryText, [username]);
     console.log(`Query result rows: ${JSON.stringify(result.rows)}`);
@@ -64,14 +65,24 @@ exports.handler = async function(event, context) {
       const user = result.rows[0];
       console.log(`User found: ${JSON.stringify(user)}`);
       console.log(`Stored password hash from DB: "${user.password_hash}"`);
+      console.log(`User confirmed status from DB: "${user.confirmed}"`); // Log confirmed status
 
       if (user.password_hash === hashedPassword) { // Compare hashed passwords
-        console.log("Password hashes MATCH. Login successful.");
-        return {
-          statusCode: 200,
-          headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-          body: JSON.stringify({ message: "Login successful!", username: user.username })
-        };
+        if (user.confirmed === true) { // Check if user is confirmed
+          console.log("Password hashes MATCH and user is CONFIRMED. Login successful.");
+          return {
+            statusCode: 200,
+            headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+            body: JSON.stringify({ message: "Login successful!", username: user.username })
+          };
+        } else {
+          console.log("User found, password matches, but user is NOT confirmed.");
+          return {
+            statusCode: 403, // Forbidden
+            headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+            body: JSON.stringify({ message: "Account not confirmed. Please contact support." })
+          };
+        }
       } else {
         console.log("Password hashes DO NOT match. Invalid credentials.");
         return {
