@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lender Information Hub</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Page specific display styles */
+        .page-hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Login Page -->
+    <div id="login-page" class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Welcome!</h2>
+            <p class="text-gray-600 mb-6 text-center">Please log in to continue.</p>
+            <div id="login-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md page-hidden" role="alert">
+                <p class="font-bold">Login Failed!</p>
+                <p class="text-sm">Invalid username or password. Please try again.</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
+                    <input type="text" id="username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your username">
+                </div>
+                <div>
+                    <label for="password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your password">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Login</button>
+            </form>
+            <p class="text-center text-gray-500 text-sm mt-4">
+                For demo, use Username: <span class="font-bold">user</span>, Password: <span class="font-bold">password</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Property Selection Page -->
+    <div id="property-selection-page" class="page-hidden flex-grow container mx-auto p-4 md:p-8 flex flex-col items-center">
+        <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">Select a Property</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+            <!-- Property cards will be inserted here by JavaScript -->
+        </div>
+        <button id="add-property-button" class="mt-8 bg-green-600 text-white py-3 px-6 rounded-xl hover:bg-green-700 transition-colors duration-200 font-semibold shadow-md flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add New Property
+        </button>
+    </div>
+
+    <!-- Add New Property Page -->
+    <div id="add-property-page" class="page-hidden flex-grow flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Create New Property</h2>
+            <form id="add-property-form" class="space-y-4">
+                <div>
+                    <label for="property-title" class="block text-gray-700 text-sm font-semibold mb-2">Property Title</label>
+                    <input type="text" id="property-title" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Modern City Apartment" required>
+                </div>
+                <div>
+                    <label for="property-image" class="block text-gray-700 text-sm font-semibold mb-2">Image URL</label>
+                    <input type="url" id="property-image" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., https://placehold.co/400x250" required>
+                </div>
+                <div>
+                    <label for="property-description" class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
+                    <textarea id="property-description" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Describe the property..." required></textarea>
+                </div>
+                <div class="flex justify-between gap-4">
+                    <button type="button" id="cancel-add-property" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
+                    <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Property</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lender Categories Page (Original content, now conditionally displayed) -->
+    <div id="lender-categories-page" class="page-hidden flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6">
+        <!-- Left Column: Lender Titles -->
+        <aside class="w-full md:w-1/4 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Lender Categories</h2>
+            <nav id="lender-categories-nav">
+                <!-- Category titles will be inserted here by JavaScript -->
+            </nav>
+        </aside>
+
+        <!-- Right Section: Lender Details -->
+        <main class="w-full md:w-3/4 bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Details</h2>
+            <div id="lender-details-content" class="flex-grow overflow-y-auto pr-2">
+                <p class="text-gray-600">Select a category from the left to view associated lenders.</p>
+                <div id="buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                    <!-- Dynamic buttons will be inserted here -->
+                </div>
+                <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
+                    <p class="font-bold">Security Notice:</p>
+                    <p class="text-sm">Due to modern browser security policies (Same-Origin Policy), it is not possible to pre-populate login credentials on external websites loaded within an iframe. For your security, lender links will open in a new browser tab.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const loginPage = document.getElementById('login-page');
+            const loginForm = document.getElementById('login-form');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const loginErrorMessage = document.getElementById('login-error-message');
+
+            const propertySelectionPage = document.getElementById('property-selection-page');
+            const propertyCardsContainer = propertySelectionPage.querySelector('.grid');
+            const addPropertyButton = document.getElementById('add-property-button'); // New button
+
+            const addPropertyPage = document.getElementById('add-property-page'); // New page
+            const addPropertyForm = document.getElementById('add-property-form'); // New form
+            const propertyTitleInput = document.getElementById('property-title');
+            const propertyImageInput = document.getElementById('property-image');
+            const propertyDescriptionInput = document.getElementById('property-description');
+            const cancelAddPropertyButton = document.getElementById('cancel-add-property');
+
+            const lenderCategoriesPage = document.getElementById('lender-categories-page');
+            const categoriesNav = document.getElementById('lender-categories-nav');
+            const detailsContent = document.getElementById('lender-details-content');
+            const buttonsContainer = document.getElementById('buttons-container');
+
+            // --- Data Definitions ---
+            // Mock CSV data (simulating data loaded from a CSV file)
+            const lenderData = [
+                { Name: 'PGE', URL: 'https://www.pge.com', Category: 'Utilities', Description: 'Pacific Gas and Electric Company is an American investor-owned utility providing natural gas and electricity to most of Northern and Central California.' },
+                { Name: 'Lemonade', URL: 'https://www.lemonade.com', Category: 'Insurance', Description: 'Lemonade is an insurance company that offers homeowners, renters, car, pet, and life insurance policies powered by artificial intelligence.' },
+                { Name: 'Bank of America', URL: 'https://www.bankofamerica.com', Category: 'Banking', Description: 'Bank of America is a multinational investment bank and financial services holding company.' },
+                { Name: 'Wells Fargo', URL: 'https://www.wellsfargo.com', Category: 'Banking', Description: 'Wells Fargo & Company is an American multinational financial services company.' },
+                { Name: 'Zillow Home Loans', URL: 'https://www.zillowhomeloans.com', Category: 'Mortgage', Description: 'Zillow Home Loans provides mortgage financing solutions for homebuyers.' },
+                { Name: 'Rocket Mortgage', URL: 'https://www.rocketmortgage.com', Category: 'Mortgage', Description: 'Rocket Mortgage is an online mortgage lender providing home financing options.' },
+                { Name: 'State Farm', URL: 'https://www.statefarm.com', Category: 'Insurance', Description: 'State Farm is a large group of insurance and financial services companies in the United States.' },
+                { Name: 'Verizon', URL: 'https://www.verizon.com', Category: 'Utilities', Description: 'Verizon is a global telecommunications company offering wireless and wireline services.' }
+            ];
+
+            // Define categories for the lender page
+            const categories = [
+                { id: 'utilities', name: 'Utilities', dataCategories: ['Utilities'] },
+                { id: 'insurance', name: 'Insurance Providers', dataCategories: ['Insurance'] },
+                { id: 'banking-mortgage', name: 'Banking & Mortgage', dataCategories: ['Banking', 'Mortgage'] }
+            ];
+
+            // Define properties for the property selection page
+            // Using `let` because we will be adding new properties to this array
+            let properties = [
+                {
+                    id: 'property-1',
+                    title: 'Cozy Family Home',
+                    image: 'https://placehold.co/400x250/AEC6CF/FFFFFF?text=Property+1',
+                    description: 'A charming 3-bedroom house perfect for a growing family. Located in a quiet, suburban neighborhood.'
+                },
+                {
+                    id: 'property-2',
+                    title: 'Modern City Apartment',
+                    image: 'https://placehold.co/400x250/FFDDC1/FFFFFF?text=Property+2',
+                    description: 'Sleek 1-bedroom apartment in the heart of downtown. Ideal for young professionals.'
+                },
+                {
+                    id: 'property-3',
+                    title: 'Spacious Country Estate',
+                    image: 'https://placehold.co/400x250/B5EAD7/FFFFFF?text=Property+3',
+                    description: 'Expansive estate with acres of land, perfect for privacy and outdoor activities.'
+                }
+            ];
+
+            // --- Page Navigation Functions ---
+            function showPage(pageElement) {
+                // Hide all pages first
+                loginPage.classList.add('page-hidden');
+                propertySelectionPage.classList.add('page-hidden');
+                addPropertyPage.classList.add('page-hidden'); // Hide new add property page
+                lenderCategoriesPage.classList.add('page-hidden');
+
+                // Show the requested page
+                pageElement.classList.remove('page-hidden');
+            }
+
+            // --- Login Logic ---
+            loginForm.addEventListener('submit', (event) => {
+                event.preventDefault(); // Prevent default form submission
+
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                // Simple client-side validation (for demo purposes)
+                if (username === 'user' && password === 'password') {
+                    loginErrorMessage.classList.add('page-hidden');
+                    showPage(propertySelectionPage); // Go to property selection page on success
+                    renderPropertyCards(); // Render property cards
+                } else {
+                    loginErrorMessage.classList.remove('page-hidden');
+                    // Clear password field for security
+                    passwordInput.value = '';
+                }
+            });
+
+            // --- Property Selection Logic ---
+            function renderPropertyCards() {
+                propertyCardsContainer.innerHTML = ''; // Clear existing cards
+                properties.forEach(property => {
+                    const propertyCard = document.createElement('div');
+                    propertyCard.classList.add(
+                        'bg-white', 'rounded-xl', 'shadow-md', 'overflow-hidden', 'cursor-pointer',
+                        'hover:shadow-lg', 'transition-shadow', 'duration-200', 'border', 'border-gray-200',
+                        'flex', 'flex-col'
+                    );
+                    propertyCard.dataset.propertyId = property.id; // Store property ID
+
+                    // Add an onerror handler for image placeholders
+                    const imageUrl = property.image || 'https://placehold.co/400x250/CCCCCC/FFFFFF?text=No+Image';
+
+                    propertyCard.innerHTML = `
+                        <img src="${imageUrl}" alt="${property.title}" class="w-full h-40 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x250/CCCCCC/FFFFFF?text=Image+Load+Error';">
+                        <div class="p-4 flex-grow">
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">${property.title}</h3>
+                            <p class="text-gray-600 text-sm">${property.description}</p>
+                        </div>
+                        <div class="p-4 pt-0">
+                            <button class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold">View Lenders</button>
+                        </div>
+                    `;
+
+                    propertyCard.addEventListener('click', () => {
+                        // In a real app, you might pass property.id or property.type
+                        // to the lender categories page to filter lenders.
+                        // For this example, we just show the lender categories page.
+                        showPage(lenderCategoriesPage);
+                        renderLenderCategories(); // Ensure categories are rendered
+                        // Optionally click the first category to show initial content
+                        const firstCategoryDiv = categoriesNav.querySelector('div');
+                        if (firstCategoryDiv) {
+                            firstCategoryDiv.click();
+                        }
+                    });
+
+                    propertyCardsContainer.appendChild(propertyCard);
+                });
+            }
+
+            // Event listener for the "Add New Property" button
+            addPropertyButton.addEventListener('click', () => {
+                showPage(addPropertyPage);
+                // Clear the form fields when navigating to the add property page
+                addPropertyForm.reset();
+            });
+
+            // --- Add New Property Form Logic ---
+            addPropertyForm.addEventListener('submit', (event) => {
+                event.preventDefault(); // Prevent default form submission
+
+                const title = propertyTitleInput.value.trim();
+                const image = propertyImageInput.value.trim();
+                const description = propertyDescriptionInput.value.trim();
+
+                if (title && image && description) {
+                    const newProperty = {
+                        // Generate a simple unique ID for the new property
+                        id: `property-${properties.length + 1}-${Date.now()}`,
+                        title: title,
+                        image: image,
+                        description: description
+                    };
+                    properties.push(newProperty); // Add new property to the array
+
+                    showPage(propertySelectionPage); // Go back to property selection page
+                    renderPropertyCards(); // Re-render to show the new property
+                } else {
+                    // Basic client-side validation feedback
+                    alert('Please fill in all fields to add a new property.');
+                }
+            });
+
+            // Event listener for the "Cancel" button on the Add New Property form
+            cancelAddPropertyButton.addEventListener('click', () => {
+                showPage(propertySelectionPage); // Go back to property selection page
+            });
+
+            // --- Lender Categories Page Logic (from previous version) ---
+            function renderLenderCategories() {
+                categoriesNav.innerHTML = ''; // Clear previous categories
+                categories.forEach(category => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.classList.add(
+                        'cursor-pointer', 'p-3', 'rounded-lg', 'hover:bg-blue-100', 'transition-colors', 'duration-200', 'text-gray-700', 'font-medium', 'mb-2'
+                    );
+                    categoryDiv.textContent = category.name;
+                    categoryDiv.dataset.categoryId = category.id; // Store category ID
+                    categoryDiv.addEventListener('click', () => {
+                        displayLendersForCategory(category.dataCategories);
+                        // Highlight selected category
+                        document.querySelectorAll('#lender-categories-nav > div').forEach(div => {
+                            div.classList.remove('bg-blue-200', 'text-blue-800');
+                        });
+                        categoryDiv.classList.add('bg-blue-200', 'text-blue-800');
+                    });
+                    categoriesNav.appendChild(categoryDiv);
+                });
+            }
+
+            // Function to display lenders based on selected categories
+            function displayLendersForCategory(selectedDataCategories) {
+                // Clear existing content in the details section except the security warning
+                detailsContent.querySelector('p')?.remove(); // Remove initial placeholder text
+                buttonsContainer.innerHTML = ''; // Clear existing buttons
+
+                const filteredLenders = lenderData.filter(lender =>
+                    selectedDataCategories.includes(lender.Category)
+                );
+
+                if (filteredLenders.length === 0) {
+                    const noLendersMessage = document.createElement('p');
+                    noLendersMessage.classList.add('text-gray-600', 'mt-4');
+                    noLendersMessage.textContent = `No lenders found for these categories.`;
+                    detailsContent.insertBefore(noLendersMessage, buttonsContainer); // Insert before buttons
+                } else {
+                    filteredLenders.forEach(lender => {
+                        const lenderButton = document.createElement('button');
+                        lenderButton.classList.add(
+                            'bg-blue-600', 'text-white', 'py-3', 'px-5', 'rounded-xl', 'hover:bg-blue-700',
+                            'transition-transform', 'transform', 'hover:scale-105', 'shadow-md', 'font-semibold',
+                            'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-500', 'focus:ring-opacity-50'
+                        );
+                        lenderButton.textContent = lender.Name;
+                        lenderButton.addEventListener('click', () => {
+                            // Open in new tab, as iframe pre-population is not secure/possible
+                            window.open(lender.URL, '_blank');
+                        });
+                        buttonsContainer.appendChild(lenderButton);
+                    });
+                }
+            }
+
+            // --- Initial Load: Show Login Page ---
+            showPage(loginPage);
+        });
+    </script>
+</body>
+</html>
