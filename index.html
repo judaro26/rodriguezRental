@@ -311,7 +311,9 @@
                         throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
                     }
                     properties = await response.json();
-                    console.log('Properties loaded from Neon DB:', properties);
+                    // Sort properties by ID
+                    properties.sort((a, b) => a.id - b.id);
+                    console.log('Properties loaded from Neon DB (sorted by ID):', properties);
                     renderPropertyCards();
                 }
                 catch (error) {
