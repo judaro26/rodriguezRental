@@ -393,7 +393,7 @@
                     <!-- Dynamic buttons related to the selected category will be inserted here -->
                 </div>
                 <button id="add-category-detail-button" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
-                    Add Category Detail
+                    Add Vendor's Details
                 </button>
                 <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
                     <p class="font-bold">Security Notice:</p>
@@ -597,7 +597,7 @@
             const addCategoryDetailButton = document.getElementById('add-category-detail-button');
             const addNewCategoryButton = document.getElementById('add-new-category-button');
             const deleteCategoryButton = document.getElementById('delete-category-button');
-            const refreshCategoriesButton = document.getElementById('refresh-categories-button'); // New refresh button
+            const refreshCategoriesButton = document.getElementById('refresh-categories-button');
 
 
             // New elements for Add Category Detail Page
@@ -652,6 +652,10 @@
             const detailPasswordAddInput = document.getElementById('detail-password-add'); // For Add form
             const updateDetailUsernameInput = document.getElementById('update-detail-username'); // For Update form
             const updateDetailPasswordInput = document.getElementById('update-detail-password'); // For Update form
+
+            // --- Global variable to hold the callback for the verification modal ---
+            let currentVerificationCallback = null;
+            let currentDetailIdToDelete = null; // Store ID for detail deletion
 
 
             // --- Data Definitions ---
@@ -810,12 +814,20 @@
             }
 
             // --- Show/Hide Modal Function ---
-            function showModal(modalElement) {
+            // Now accepts a callback function and a message for the modal
+            function showModal(modalElement, confirmationMessage, callback) {
                 modalElement.classList.remove('hidden');
+                modalCategoryNameSpan.textContent = confirmationMessage; // Update modal message dynamically
+                currentVerificationCallback = callback; // Store the callback
+                modalUsernameInput.value = '';
+                modalPasswordInput.value = '';
+                verificationStatus.classList.add('hidden'); // Clear status from previous attempts
+                verificationStatus.textContent = '';
             }
 
             function hideModal(modalElement) {
                 modalElement.classList.add('hidden');
+                currentVerificationCallback = null; // Clear the callback
             }
 
             // --- Login Logic ---
@@ -1037,7 +1049,7 @@
                     addCategoryDetailButton.style.display = 'none'; // Hide if no categories
                     deleteCategoryButton.style.display = 'none'; // Hide if no categories
                     addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
-                    refreshCategoriesButton.style.display = 'none'; // Hide refresh button
+                    refreshCategoriesButton.style.display = 'block'; // Show refresh button
                     return;
                 }
 
@@ -1158,6 +1170,7 @@
                                 <div class="detail-tile-actions">
                                     <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View Site</button>
                                     <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="${detail.id}" data-name="${detail.detail_name}" data-url="${detail.detail_url}" data-description="${detail.detail_description || ''}" data-logo="${detail.detail_logo_url || ''}" data-username="${detail.detail_username || ''}" data-password="${detail.detail_password || ''}">Edit</button>
+                                    <button class="bg-red-500 text-white hover:bg-red-600" data-action="delete-detail" data-id="${detail.id}" data-name="${detail.detail_name}">Delete</button>
                                 </div>
                             `;
 
@@ -1209,8 +1222,55 @@
                                 updateDetailPasswordInput.value = detail.detail_password || '';
 
                                 renderPresetLogosForUpdate(detail.detail_logo_url); // Render presets with current one selected
-                                updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+                                updateDetailCategoryNameNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
                                 updateDetailStatus.classList.add('hidden'); // Clear status
+                            });
+
+                            // New: Event listener for delete detail button
+                            detailTile.querySelector('[data-action="delete-detail"]').addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const detailIdToDelete = e.target.dataset.id;
+                                const detailNameToDelete = e.target.dataset.name;
+
+                                showModal(
+                                    verificationModal,
+                                    `vendor detail: "${detailNameToDelete}"`, // Specific message for deleting detail
+                                    async (username, password) => {
+                                        // This is the callback that runs if verification is successful
+                                        verificationStatus.classList.remove('hidden');
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                        verificationStatus.textContent = 'Deleting vendor detail...';
+                                        try {
+                                            const response = await fetch('/.netlify/functions/deleteCategoryDetail', { // Call new function
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    username: username,
+                                                    password: password,
+                                                    detail_id_to_delete: detailIdToDelete // Pass detail ID to delete
+                                                })
+                                            });
+
+                                            const data = await response.json();
+
+                                            if (response.ok) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                                verificationStatus.textContent = data.message;
+                                                setTimeout(() => {
+                                                    hideModal(verificationModal);
+                                                    displayCategoryDetails(currentSelectedCategoryName); // Refresh the details list for the current category
+                                                }, 1500);
+                                            } else {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                            }
+                                        } catch (error) {
+                                            console.error('Error during vendor detail deletion:', error);
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                            verificationStatus.textContent = `Network error: ${error.message}`;
+                                        }
+                                    }
+                                );
                             });
 
                             buttonsContainer.appendChild(detailTile);
@@ -1231,9 +1291,8 @@
                     addDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
                     showPage(addCategoryDetailPage);
                     addDetailForm.reset();
-                    // Clear username/password fields for new entry
-                    detailUsernameAddInput.value = '';
-                    detailPasswordAddInput.value = '';
+                    detailUsernameAddInput.value = ''; // Clear for new entry
+                    detailPasswordAddInput.value = ''; // Clear for new entry
                     addDetailStatus.classList.add('hidden');
                     renderPresetLogos(); // Render preset logos for adding
                     selectedPresetLogoUrl = null; // Reset selected preset
@@ -1250,7 +1309,6 @@
                 const detailUrl = detailUrlInput.value.trim();
                 const detailDescription = detailDescriptionInput.value.trim();
                 const logoUrlToSend = selectedPresetLogoUrl || (customLogoUrlInput.value.trim() !== '' ? customLogoUrlInput.value.trim() : null);
-                // Get username and password for new entry
                 const usernameToSave = detailUsernameAddInput.value.trim();
                 const passwordToSave = detailPasswordAddInput.value.trim();
 
@@ -1417,8 +1475,8 @@
                             detail_url: detailUrl,
                             detail_description: detailDescription,
                             detail_logo_url: logoUrlToSend,
-                            detail_username: usernameToSave, // Send username
-                            detail_password: passwordToSave  // Send password
+                            detail_username: usernameToSave,
+                            detail_password: passwordToSave
                         })
                     });
 
@@ -1457,82 +1515,80 @@
                     return;
                 }
                 modalCategoryNameSpan.textContent = `"${currentSelectedCategoryName}"`;
-                showModal(verificationModal);
-                modalUsernameInput.value = '';
-                modalPasswordInput.value = '';
-                verificationStatus.classList.add('hidden');
+                showModal(
+                    verificationModal,
+                    `category: "${currentSelectedCategoryName}"`, // Specific message for deleting category
+                    async (username, password) => { // Callback for delete category
+                        verificationStatus.classList.remove('hidden');
+                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        verificationStatus.textContent = 'Verifying and deleting category...';
+                        try {
+                            const response = await fetch('/.netlify/functions/deletePropertyCategory', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    username: username,
+                                    password: password,
+                                    property_id: currentSelectedProperty.id,
+                                    category_to_delete: currentSelectedCategoryName
+                                })
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok) {
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                verificationStatus.textContent = 'Category deleted successfully!';
+                                
+                                currentSelectedProperty.categories = data.updatedProperty.categories;
+
+                                setTimeout(() => {
+                                    hideModal(verificationModal);
+                                    showPage(propertyCategoriesPage);
+                                    renderPropertyCategories();
+                                    if (!currentSelectedProperty.categories.includes(currentSelectedCategoryName)) {
+                                        currentSelectedCategoryName = null;
+                                        categoryDetailsHeading.textContent = 'Category Details';
+                                        categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
+                                    }
+                                }, 1500);
+
+                            } else {
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                modalPasswordInput.value = '';
+                            }
+                        } catch (error) {
+                            console.error('Error during delete verification:', error);
+                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            verificationStatus.textContent = `Network error: ${error.message}`;
+                            modalPasswordInput.value = '';
+                        }
+                    }
+                );
             });
 
+            // --- Manual Refresh Categories Button Logic ---
+            refreshCategoriesButton.addEventListener('click', () => {
+                if (currentSelectedProperty) {
+                    renderPropertyCategories(); // Re-render categories for the currently selected property
+                } else {
+                    alert('Please select a property first.');
+                }
+            });
+
+
+            // --- Verification Modal Form Submission Handler ---
             verificationForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
-
-                const username = modalUsernameInput.value.trim();
-                const password = modalPasswordInput.value.trim();
-
-                verificationStatus.classList.add('hidden');
-                verificationStatus.textContent = '';
-                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center';
-
-                if (!username || !password) {
-                    verificationStatus.classList.remove('hidden');
-                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
-                    verificationStatus.textContent = 'Please enter both username and password.';
-                    return;
-                }
-
-                verificationStatus.classList.remove('hidden');
-                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                verificationStatus.textContent = 'Verifying and deleting...';
-
-                try {
-                    const response = await fetch('/.netlify/functions/deletePropertyCategory', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: username,
-                            password: password,
-                            property_id: currentSelectedProperty.id,
-                            category_to_delete: currentSelectedCategoryName
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                        verificationStatus.textContent = 'Category deleted successfully!';
-                        
-                        currentSelectedProperty.categories = data.updatedProperty.categories;
-
-                        setTimeout(() => {
-                            hideModal(verificationModal);
-                            showPage(propertyCategoriesPage);
-                            renderPropertyCategories();
-                            if (!currentSelectedProperty.categories.includes(currentSelectedCategoryName)) {
-                                currentSelectedCategoryName = null;
-                                categoryDetailsHeading.textContent = 'Category Details';
-                                categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
-                            }
-                        }, 1500);
-
-                    } else {
-                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                        verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
-                        modalPasswordInput.value = '';
-                    }
-                } catch (error) {
-                    console.error('Error during delete verification:', error);
-                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                    verificationStatus.textContent = `Network error: ${error.message}`;
-                    modalPasswordInput.value = '';
+                // Execute the stored callback with modal credentials
+                if (currentVerificationCallback) {
+                    await currentVerificationCallback(modalUsernameInput.value.trim(), modalPasswordInput.value.trim());
                 }
             });
 
             cancelVerificationBtn.addEventListener('click', () => {
                 hideModal(verificationModal);
-                modalUsernameInput.value = '';
-                modalPasswordInput.value = '';
-                verificationStatus.classList.add('hidden');
             });
 
 
