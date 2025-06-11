@@ -170,6 +170,43 @@
             font-size: 0.875rem;
             font-weight: 500;
         }
+
+        /* Specific styles for credential fields within tiles */
+        .credential-container {
+            width: 100%;
+            margin-top: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .credential-field {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .credential-field label {
+            min-width: 60px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        .credential-field input {
+            flex-grow: 1;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.25rem;
+            background-color: #ffffff;
+            font-family: monospace; /* For password visibility */
+        }
+        .credential-field button {
+            margin-left: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #e5e7eb;
+            color: #4b5563;
+            transition: background-color 0.2s;
+        }
+        .credential-field button:hover {
+            background-color: #d1d5db;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -1027,23 +1064,61 @@
                             detailTile.classList.add('detail-tile'); // Apply tile styling
                             detailTile.dataset.detailId = detail.id; // Store detail ID for potential updates
 
-                            // --- CRITICAL PART FOR LOGO DISPLAY ---
-                            // This checks if detail_logo_url exists. If it fails to load, the onerror kicks in.
                             const logoHtml = detail.detail_logo_url
-                                ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
-                                : `<div class="logo-placeholder">${detail.detail_name.substring(0,3)}</div>`;
+                                ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain w-16 h-16 mb-2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
+                                : `<div class="logo-placeholder w-16 h-16 mb-2">${detail.detail_name.substring(0,3)}</div>`;
+
+                            // Add unique IDs for username/password inputs and their toggles
+                            const usernameInputId = `username-${detail.id}`;
+                            const passwordInputId = `password-${detail.id}`;
+                            const passwordToggleId = `password-toggle-${detail.id}`;
 
                             detailTile.innerHTML = `
                                 ${logoHtml}
                                 <h3>${detail.detail_name}</h3>
                                 ${detail.detail_description ? `<p>${detail.detail_description}</p>` : ''}
+                                <div class="credential-container">
+                                    <div class="credential-field">
+                                        <label for="${usernameInputId}">User:</label>
+                                        <input type="text" id="${usernameInputId}" placeholder="Enter username">
+                                        <button class="copy-btn" data-target="${usernameInputId}">Copy</button>
+                                    </div>
+                                    <div class="credential-field">
+                                        <label for="${passwordInputId}">Pass:</label>
+                                        <input type="password" id="${passwordInputId}" placeholder="Enter password">
+                                        <button class="password-toggle-btn" data-target="${passwordInputId}" data-toggle-id="${passwordToggleId}">👁️</button>
+                                        <button class="copy-btn" data-target="${passwordInputId}">Copy</button>
+                                    </div>
+                                </div>
                                 <div class="detail-tile-actions">
-                                    <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View</button>
+                                    <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View Site</button>
                                     <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="${detail.id}" data-name="${detail.detail_name}" data-url="${detail.detail_url}" data-description="${detail.detail_description || ''}" data-logo="${detail.detail_logo_url || ''}">Edit</button>
                                 </div>
                             `;
 
-                            // Event delegation for buttons inside the tile
+                            // Add event listeners for new elements within the tile
+                            detailTile.querySelector(`[data-target="${passwordInputId}"]`).addEventListener('click', (e) => {
+                                const targetInput = document.getElementById(e.target.dataset.target);
+                                if (targetInput.type === 'password') {
+                                    targetInput.type = 'text';
+                                    e.target.textContent = '🙈';
+                                } else {
+                                    targetInput.type = 'password';
+                                    e.target.textContent = '👁️';
+                                }
+                            });
+
+                            detailTile.querySelectorAll('.copy-btn').forEach(button => {
+                                button.addEventListener('click', (e) => {
+                                    const targetInput = document.getElementById(e.target.dataset.target);
+                                    targetInput.select();
+                                    document.execCommand('copy'); // Fallback for navigator.clipboard.writeText
+                                    alert('Copied to clipboard!');
+                                });
+                            });
+
+
+                            // Event delegation for general action buttons inside the tile
                             detailTile.querySelector('[data-action="view"]').addEventListener('click', (e) => {
                                 e.stopPropagation(); // Prevent tile click from firing
                                 const url = e.target.dataset.url;
@@ -1080,6 +1155,7 @@
                     buttonsContainer.innerHTML = ''; // Clear any partial content
                 }
             }
+
             // --- Add Category Detail Button & Form Logic ---
             addCategoryDetailButton.addEventListener('click', () => {
                 if (currentSelectedProperty && currentSelectedCategoryName) {
@@ -1248,7 +1324,7 @@
                 updateDetailStatus.textContent = 'Updating detail...';
 
                 try {
-                    const response = await fetch('/.netlify/functions/updateCategoryDetail', { // Call the new update function
+                    const response = await fetch('/.netlify/functions/updateCategoryDetail', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1272,8 +1348,8 @@
                     updateDetailStatus.textContent = 'Detail updated successfully!';
 
                     setTimeout(() => {
-                        showPage(propertyCategoriesPage); // Go back to property categories
-                        displayCategoryDetails(currentSelectedCategoryName); // Re-fetch and display current category details
+                        showPage(propertyCategoriesPage);
+                        displayCategoryDetails(currentSelectedCategoryName);
                     }, 1500);
 
                 } catch (error) {
