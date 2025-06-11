@@ -1225,6 +1225,68 @@
             });
 
 
+            // --- Update Category Detail Logic ---
+            updateDetailForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const detailId = updateDetailIdInput.value;
+                const detailName = updateDetailNameInput.value.trim();
+                const detailUrl = updateDetailUrlInput.value.trim();
+                const detailDescription = updateDetailDescriptionInput.value.trim();
+                const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput.value.trim() !== '' ? updateCustomLogoUrlInput.value.trim() : null);
+
+                if (!detailName || !detailUrl) {
+                    updateDetailStatus.classList.remove('hidden');
+                    updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                    updateDetailStatus.textContent = 'Detail Name and URL are required.';
+                    return;
+                }
+
+                updateDetailStatus.classList.remove('hidden');
+                updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                updateDetailStatus.textContent = 'Updating detail...';
+
+                try {
+                    const response = await fetch('/.netlify/functions/updateCategoryDetail', { // Call the new update function
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: detailId,
+                            detail_name: detailName,
+                            detail_url: detailUrl,
+                            detail_description: detailDescription,
+                            detail_logo_url: logoUrlToSend
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                    }
+
+                    const updatedDetail = await response.json();
+                    console.log('Category detail updated:', updatedDetail);
+
+                    updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                    updateDetailStatus.textContent = 'Detail updated successfully!';
+
+                    setTimeout(() => {
+                        showPage(propertyCategoriesPage); // Go back to property categories
+                        displayCategoryDetails(currentSelectedCategoryName); // Re-fetch and display current category details
+                    }, 1500);
+
+                } catch (error) {
+                    console.error('Error updating detail:', error);
+                    updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                    updateDetailStatus.textContent = `Error updating detail: ${error.message}`;
+                }
+            });
+
+            cancelUpdateDetailButton.addEventListener('click', () => {
+                showPage(propertyCategoriesPage);
+            });
+
+
             // --- Delete Category Logic ---
             deleteCategoryButton.addEventListener('click', () => {
                 if (!currentSelectedProperty || !currentSelectedCategoryName) {
@@ -1344,6 +1406,10 @@
             });
 
             backFromAddNewCategoryBtn.addEventListener('click', () => {
+                showPage(propertyCategoriesPage);
+            });
+
+            backFromUpdateDetailBtn.addEventListener('click', () => { // New back button listener
                 showPage(propertyCategoriesPage);
             });
 
