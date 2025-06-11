@@ -687,9 +687,9 @@
                 propertyCategoriesNav.innerHTML = '';
                 if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
                     propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
-                    addCategoryDetailButton.style.display = 'none';
-                    deleteCategoryButton.style.display = 'none';
-                    addNewCategoryButton.style.display = 'block';
+                    addCategoryDetailButton.style.display = 'none'; // Hide if no categories
+                    deleteCategoryButton.style.display = 'none'; // Hide if no categories
+                    addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
                     return;
                 }
 
