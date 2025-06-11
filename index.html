@@ -325,6 +325,9 @@
             </svg>
             Add New Property
         </button>
+        <button id="refresh-properties-button" class="mt-2 bg-gray-600 text-white py-2 px-4 rounded-xl hover:bg-gray-700 transition-colors duration-200 font-semibold w-full max-w-sm">
+            Refresh Properties
+        </button>
     </div>
 
     <!-- Add New Property Page -->
@@ -852,6 +855,7 @@
                 propertyCategoriesPage.style.display = 'none';
                 addCategoryDetailPage.style.display = 'none';
                 addNewCategoryPage.style.display = 'none';
+                updatePropertyPage.style.display = 'none'; // Ensure update property page is hidden
                 updateCategoryDetailPage.style.display = 'none'; // Hide update page
                 verificationModal.classList.add('hidden'); // Ensure modal is hidden
 
@@ -1597,7 +1601,6 @@
                     alert('Please select a property and a category to delete.');
                     return;
                 }
-                // Prepare modal for category deletion
                 showModal(
                     verificationModal,
                     `category: "${currentSelectedCategoryName}"`, // Specific message for deleting category
