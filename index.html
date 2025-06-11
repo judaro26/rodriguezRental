@@ -379,6 +379,9 @@
             <button id="delete-category-button" class="mt-2 bg-red-600 text-white py-2 px-4 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold w-full">
                 Delete Selected Category
             </button>
+            <button id="refresh-categories-button" class="mt-2 bg-gray-600 text-white py-2 px-4 rounded-xl hover:bg-gray-700 transition-colors duration-200 font-semibold w-full">
+                Refresh Categories
+            </button>
         </aside>
 
         <!-- Right Section: Category Details / Dynamic Buttons -->
@@ -594,6 +597,7 @@
             const addCategoryDetailButton = document.getElementById('add-category-detail-button');
             const addNewCategoryButton = document.getElementById('add-new-category-button');
             const deleteCategoryButton = document.getElementById('delete-category-button');
+            const refreshCategoriesButton = document.getElementById('refresh-categories-button'); // New refresh button
 
 
             // New elements for Add Category Detail Page
@@ -680,7 +684,7 @@
             ];
 
 
-            // --- Helper Function to Render Preset Logos (for Add form) ---
+            // --- Helper Function to Render Preset Logoss (for Add form) ---
             function renderPresetLogos(initialSelectionUrl = null) {
                 presetLogoPicker.innerHTML = ''; // Clear existing
                 presetLogos.forEach(logo => {
@@ -1033,12 +1037,14 @@
                     addCategoryDetailButton.style.display = 'none'; // Hide if no categories
                     deleteCategoryButton.style.display = 'none'; // Hide if no categories
                     addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
+                    refreshCategoriesButton.style.display = 'none'; // Hide refresh button
                     return;
                 }
 
                 addCategoryDetailButton.style.display = 'none'; // Initially hide "Add Category Detail" on category list load
                 deleteCategoryButton.style.display = 'block'; // Show delete button if categories exist
                 addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
+                refreshCategoriesButton.style.display = 'block'; // Show refresh button
 
                 currentSelectedProperty.categories.forEach(categoryName => {
                     const categoryDiv = document.createElement('div');
@@ -1062,9 +1068,19 @@
                 });
 
                 if (currentSelectedProperty.categories.length > 0) {
-                    const firstCategoryDiv = propertyCategoriesNav.querySelector('div');
-                    if (firstCategoryDiv) {
-                        firstCategoryDiv.click();
+                    // Try to re-select the previously selected category if it still exists
+                    const previouslySelectedDiv = currentSelectedCategoryName
+                        ? propertyCategoriesNav.querySelector(`[data-category-name="${currentSelectedCategoryName}"]`)
+                        : null;
+
+                    if (previouslySelectedDiv) {
+                        previouslySelectedDiv.click();
+                    } else {
+                        // Otherwise, click the first category
+                        const firstCategoryDiv = propertyCategoriesNav.querySelector('div');
+                        if (firstCategoryDiv) {
+                            firstCategoryDiv.click();
+                        }
                     }
                 }
             }
@@ -1343,10 +1359,12 @@
                     addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                     addNewCategoryStatus.textContent = 'Category added successfully!';
                     
-                    setTimeout(() => {
-                        showPage(propertyCategoriesPage);
-                        renderPropertyCategories();
-                    }, 1500);
+                    // Directly update currentSelectedProperty for immediate UI refresh
+                    currentSelectedProperty.categories = result.updatedProperty.categories;
+
+                    // Navigate back and render categories immediately
+                    showPage(propertyCategoriesPage);
+                    renderPropertyCategories(); // Re-render categories for the current property
 
                 } catch (error) {
                     console.error('Error adding new category:', error);
