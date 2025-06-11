@@ -26,14 +26,36 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+        .back-button {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background-color: #e5e7eb; /* Light gray */
+            color: #4b5563; /* Dark gray text */
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s ease-in-out;
+            cursor: pointer;
+            z-index: 10; /* Ensure it's above other content */
+        }
+        .back-button:hover {
+            background-color: #d1d5db; /* Slightly darker gray on hover */
+        }
+        .back-button svg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
     </style>
-    <!-- Removed Firebase SDKs, as property data is now managed by Netlify Functions + Neon DB -->
 </head>
 <body class="flex flex-col min-h-screen">
 
     <!-- Login Page -->
     <div id="login-page" class="flex-grow flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md relative">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Welcome!</h2>
             <p class="text-gray-600 mb-6 text-center">Please log in to continue.</p>
             <div id="login-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md hidden" role="alert">
@@ -58,7 +80,13 @@
     </div>
 
     <!-- Property Selection Page -->
-    <div id="property-selection-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col items-center">
+    <div id="property-selection-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col items-center relative">
+        <button id="back-to-login-btn" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Login
+        </button>
         <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">Select a Property</h2>
         <div id="properties-loading-message" class="text-gray-600 text-lg my-4">Loading properties...</div>
         <div id="properties-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4 rounded-md hidden" role="alert">
@@ -77,7 +105,13 @@
     </div>
 
     <!-- Add New Property Page -->
-    <div id="add-property-page" class="flex-grow flex items-center justify-center p-4">
+    <div id="add-property-page" class="flex-grow flex items-center justify-center p-4 relative">
+        <button id="back-from-add-property-btn" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back
+        </button>
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Create New Property</h2>
             <form id="add-property-form" class="space-y-4">
@@ -103,7 +137,13 @@
     </div>
 
     <!-- Lender Categories Page (Original content, now conditionally displayed) -->
-    <div id="lender-categories-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6">
+    <div id="lender-categories-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6 relative">
+        <button id="back-to-properties-btn" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Properties
+        </button>
         <!-- Left Column: Lender Titles -->
         <aside class="w-full md:w-1/4 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Lender Categories</h2>
@@ -143,6 +183,7 @@
             const propertiesErrorMessage = document.getElementById('properties-error-message');
             const propertiesErrorText = document.getElementById('properties-error-text');
             const addPropertyButton = document.getElementById('add-property-button');
+            const backToLoginBtn = document.getElementById('back-to-login-btn'); // New back button
 
             const addPropertyPage = document.getElementById('add-property-page');
             const addPropertyForm = document.getElementById('add-property-form');
@@ -151,6 +192,7 @@
             const propertyDescriptionInput = document.getElementById('property-description');
             const cancelAddPropertyButton = document.getElementById('cancel-add-property');
             const addPropertyStatus = document.getElementById('add-property-status');
+            const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn'); // New back button
 
 
             const lenderCategoriesPage = document.getElementById('lender-categories-page');
@@ -158,6 +200,8 @@
             const detailsContent = document.getElementById('lender-details-content');
             const buttonsContainer = document.getElementById('buttons-container');
             const lenderLoadingMessage = document.getElementById('lender-loading-message');
+            const backToPropertiesBtn = document.getElementById('back-to-properties-btn'); // New back button
+
 
             // --- Data Definitions ---
             let lenderData = []; // Populated from CSV
@@ -190,7 +234,7 @@
             // --- Fetch Lender Data from CSV ---
             async function fetchLenderData() {
                 try {
-                    const response = await fetch('properties.csv');
+                    const response = await fetch('lenders.csv');
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -204,7 +248,7 @@
                     }
                 } catch (error) {
                     console.error('Error fetching or parsing lender CSV:', error);
-                    lenderLoadingMessage.textContent = 'Failed to load lender data. Please check properties.csv.';
+                    lenderLoadingMessage.textContent = 'Failed to load property data. Please check properties.csv.';
                     lenderLoadingMessage.classList.add('text-red-600');
                 }
             }
@@ -284,9 +328,6 @@
                     );
                     propertyCard.dataset.propertyId = property.id;
 
-                    // Ensure 'id' from database is used if available, otherwise fallback
-                    const displayId = property.id || `temp-${Math.random().toString(36).substr(2, 9)}`;
-
                     const imageUrl = property.image || 'https://placehold.co/400x250/CCCCCC/FFFFFF?text=No+Image';
 
                     propertyCard.innerHTML = `
@@ -327,9 +368,9 @@
 
             // --- Add New Property Form Logic ---
             addPropertyForm.addEventListener('submit', async (event) => {
-                event.preventDefault(); // <--- CRITICAL: Prevents default form submission
+                event.preventDefault();
 
-                console.log("Add Property form submitted!"); // Debugging log
+                console.log("Add Property form submitted!");
 
                 const title = propertyTitleInput.value.trim();
                 const image = propertyImageInput.value.trim();
@@ -340,7 +381,7 @@
                     addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                     addPropertyStatus.textContent = 'Saving property...';
 
-                    console.log("Attempting to save property:", { title, image, description }); // Debugging log
+                    console.log("Attempting to save property:", { title, image, description });
 
                     try {
                         const response = await fetch('/.netlify/functions/saveProperty', {
@@ -357,25 +398,23 @@
                         }
 
                         const savedProperty = await response.json();
-                        console.log('Property saved successfully:', savedProperty); // Debugging log
+                        console.log('Property saved successfully:', savedProperty);
 
                         addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         addPropertyStatus.textContent = 'Property saved successfully!';
                         
-                        // Give user a moment to see success message before navigating
                         setTimeout(async () => {
                             showPage(propertySelectionPage);
                             await fetchProperties(); // Re-fetch all properties to update the list
-                        }, 1500); // Wait 1.5 seconds
+                        }, 1500);
 
 
                     } catch (error) {
-                        console.error('Error saving property:', error); // Debugging log
+                        console.error('Error saving property:', error);
                         addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                         addPropertyStatus.textContent = `Error saving property: ${error.message}`;
                     }
                 } else {
-                    // Use a message box for missing fields (instead of alert)
                     addPropertyStatus.classList.remove('hidden');
                     addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
                     addPropertyStatus.textContent = 'Please fill in all fields to add a new property.';
@@ -413,14 +452,12 @@
             }
 
             function displayLendersForCategory(selectedDataCategories) {
-                // Ensure the initial placeholder or loading message is removed
                 const initialContent = detailsContent.querySelector('p');
                 if (initialContent && initialContent.id !== 'security-warning') {
                      initialContent.remove();
                 }
-                buttonsContainer.innerHTML = ''; // Clear existing buttons
+                buttonsContainer.innerHTML = '';
 
-                // If lenderData is empty, show a message
                 if (lenderData.length === 0) {
                     const noLendersMessage = document.createElement('p');
                     noLendersMessage.classList.add('text-gray-600', 'mt-4');
@@ -454,6 +491,23 @@
                     });
                 }
             }
+
+            // --- Back Button Event Listeners ---
+            backToLoginBtn.addEventListener('click', () => {
+                showPage(loginPage);
+                usernameInput.value = ''; // Clear login fields
+                passwordInput.value = '';
+            });
+
+            backFromAddPropertyBtn.addEventListener('click', () => {
+                showPage(propertySelectionPage);
+                addPropertyForm.reset(); // Clear form
+                addPropertyStatus.classList.add('hidden'); // Hide status
+            });
+
+            backToPropertiesBtn.addEventListener('click', () => {
+                showPage(propertySelectionPage);
+            });
 
             // --- Initial Load: Fetch data and Show Login Page ---
             await fetchLenderData(); // Fetch static lender data
