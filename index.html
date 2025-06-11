@@ -135,6 +135,7 @@
             min-width: 200px; /* Ensure a reasonable minimum width for tiles */
             max-width: 100%; /* Prevent tile from overflowing grid */
             box-sizing: border-box;
+            overflow: hidden; /* Important for containing children */
         }
         .detail-tile:hover {
             transform: translateY(-3px) scale(1.02);
@@ -195,6 +196,7 @@
             flex-wrap: nowrap; /* Prevent wrapping to keep elements on one line */
             gap: 0.25rem; /* Small gap between elements */
             overflow: hidden; /* Hide overflowing content */
+            width: 100%; /* Ensure it takes full width of parent */
         }
         .credential-field label {
             min-width: 45px; /* Adjusted min-width for labels */
