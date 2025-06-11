@@ -25,22 +25,30 @@ exports.handler = async function(event, context) {
 
   try {
     await client.connect();
-    const { property_id, category_name, detail_name, detail_url, detail_description } = JSON.parse(event.body);
+    // Destructure new field: detail_logo_url
+    const { property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url } = JSON.parse(event.body);
 
     if (!property_id || !category_name || !detail_name || !detail_url) {
       return {
         statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+        headers: { "Access-Control-Allow-Origin": "*" , "Content-Type": "application/json"},
         body: JSON.stringify({ message: "property_id, category_name, detail_name, and detail_url are required." })
       };
     }
 
     const queryText = `
-      INSERT INTO property_category_details(property_id, category_name, detail_name, detail_url, detail_description, created_at)
-      VALUES($1, $2, $3, $4, $5, NOW())
-      RETURNING id, property_id, category_name, detail_name, detail_url, detail_description, created_at;
+      INSERT INTO property_category_details(property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url, created_at)
+      VALUES($1, $2, $3, $4, $5, $6, NOW())
+      RETURNING id, property_id, category_name, detail_name, detail_url, detail_description, detail_logo_url, created_at;
     `;
-    const result = await client.query(queryText, [property_id, category_name, detail_name, detail_url, detail_description]);
+    const result = await client.query(queryText, [
+        property_id,
+        category_name,
+        detail_name,
+        detail_url,
+        detail_description || null, // description can be null
+        detail_logo_url || null     // new: detail_logo_url can be null
+    ]);
     const newDetail = result.rows[0];
 
     return {
