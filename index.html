@@ -419,7 +419,7 @@
                 </div>
                 <div id="verification-status" class="mt-4 p-3 rounded-md text-sm text-center hidden"></div>
                 <div class="flex justify-between gap-4 mt-6">
-                    <button type="button" id="cancel-verification-btn" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold">Cancel</button>
+                    <button type="button" id="cancel-verification-btn" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
                     <button type="submit" id="confirm-delete-btn" class="w-1/2 bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold">Confirm Delete</button>
                 </div>
             </form>
@@ -511,6 +511,21 @@
             const modalCategoryNameSpan = document.getElementById('modal-category-name');
             const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
 
+            // New elements for Update Category Detail Page (for editing existing details)
+            const updateCategoryDetailPage = document.getElementById('update-category-detail-page'); // New page
+            const updateDetailForm = document.getElementById('update-detail-form'); // New form
+            const updateDetailIdInput = document.getElementById('update-detail-id'); // Hidden input for detail ID
+            const updateDetailNameInput = document.getElementById('update-detail-name');
+            const updateDetailUrlInput = document.getElementById('update-detail-url');
+            const updateDetailDescriptionInput = document.getElementById('update-detail-description');
+            const updatePresetLogoPicker = document.getElementById('update-preset-logo-picker'); // New preset logo picker for update
+            const updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url'); // New custom logo URL input for update
+            let selectedUpdatePresetLogoUrl = null; // To store the selected preset logo URL for update
+            const cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
+            const updateDetailStatus = document.getElementById('update-detail-status');
+            const backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn');
+            const updateDetailCategoryNameSpan = document.getElementById('update-detail-category-name');
+
 
             // --- Data Definitions ---
             let properties = []; // Populated from Neon DB (contains property info and its categories)
@@ -542,13 +557,18 @@
             ];
 
 
-            // --- Helper Function to Render Preset Logos ---
-            function renderPresetLogos() {
+            // --- Helper Function to Render Preset Logos (for Add form) ---
+            function renderPresetLogos(initialSelectionUrl = null) {
                 presetLogoPicker.innerHTML = ''; // Clear existing
                 presetLogos.forEach(logo => {
                     const logoItem = document.createElement('div');
                     logoItem.classList.add('logo-picker-item');
                     logoItem.dataset.logoUrl = logo.url;
+
+                    if (initialSelectionUrl === logo.url) {
+                        logoItem.classList.add('selected');
+                        selectedPresetLogoUrl = logo.url; // Pre-select for add form
+                    }
 
                     const img = document.createElement('img');
                     img.src = logo.url;
@@ -564,16 +584,50 @@
 
                     logoItem.addEventListener('click', () => {
                         // Deselect all others
-                        document.querySelectorAll('.logo-picker-item').forEach(item => item.classList.remove('selected'));
+                        document.querySelectorAll('#preset-logo-picker .logo-picker-item').forEach(item => item.classList.remove('selected'));
                         // Select this one
                         logoItem.classList.add('selected');
-                        // Set the hidden input value
-                        selectedPresetLogoUrl = logo.url;
+                        selectedPresetLogoUrl = logo.url; // Set the selected preset URL
                         customLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
                     });
                     presetLogoPicker.appendChild(logoItem);
                 });
             }
+
+            // --- Helper Function to Render Preset Logos (for Update form) ---
+            function renderPresetLogosForUpdate(initialSelectionUrl = null) {
+                updatePresetLogoPicker.innerHTML = ''; // Clear existing
+                presetLogos.forEach(logo => {
+                    const logoItem = document.createElement('div');
+                    logoItem.classList.add('logo-picker-item');
+                    logoItem.dataset.logoUrl = logo.url;
+
+                    if (initialSelectionUrl === logo.url) {
+                        logoItem.classList.add('selected');
+                        selectedUpdatePresetLogoUrl = logo.url; // Pre-select for update form
+                    }
+
+                    const img = document.createElement('img');
+                    img.src = logo.url;
+                    img.alt = logo.name;
+                    img.onerror = function() {
+                        const placeholder = document.createElement('div');
+                        placeholder.classList.add('logo-placeholder');
+                        placeholder.textContent = logo.name.substring(0, 3);
+                        logoItem.replaceChild(placeholder, img);
+                    };
+                    logoItem.appendChild(img);
+
+                    logoItem.addEventListener('click', () => {
+                        document.querySelectorAll('#update-preset-logo-picker .logo-picker-item').forEach(item => item.classList.remove('selected'));
+                        logoItem.classList.add('selected');
+                        selectedUpdatePresetLogoUrl = logo.url;
+                        updateCustomLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
+                    });
+                    updatePresetLogoPicker.appendChild(logoItem);
+                });
+            }
+
 
             // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
             async function fetchProperties() {
@@ -612,6 +666,7 @@
                 propertyCategoriesPage.style.display = 'none';
                 addCategoryDetailPage.style.display = 'none';
                 addNewCategoryPage.style.display = 'none';
+                updateCategoryDetailPage.style.display = 'none'; // Hide update page
                 verificationModal.classList.add('hidden'); // Ensure modal is hidden
 
                 // Show the requested main page
@@ -960,7 +1015,6 @@
                             detailTile.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
                                 e.stopPropagation(); // Prevent tile click from firing
                                 // Pre-populate form for editing
-                                // This assumes a new 'update-category-detail-page' or a modal for editing
                                 showPage(updateCategoryDetailPage); // Navigate to the new update detail page
                                 updateDetailIdInput.value = detail.id; // Set ID
                                 updateDetailNameInput.value = detail.detail_name;
@@ -1110,9 +1164,6 @@
                     addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                     addNewCategoryStatus.textContent = 'Category added successfully!';
                     
-                    // Update currentSelectedProperty's categories immediately in client-side state
-                    currentSelectedProperty.categories = result.updatedProperty.categories;
-
                     setTimeout(() => {
                         showPage(propertyCategoriesPage);
                         renderPropertyCategories();
