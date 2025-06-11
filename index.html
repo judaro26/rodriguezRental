@@ -72,6 +72,53 @@
             width: 90%;
             position: relative;
         }
+        /* Logo picker styles */
+        .logo-picker {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #f8fafc;
+            max-height: 150px; /* Limit height and make it scrollable */
+            overflow-y: auto;
+        }
+        .logo-picker-item {
+            width: 50px;
+            height: 50px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .logo-picker-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Ensure logo fits within the box */
+        }
+        .logo-picker-item.selected {
+            border-color: #3b82f6; /* Blue border for selected */
+            box-shadow: 0 0 0 2px #bfdbfe; /* Light blue glow */
+        }
+        .logo-placeholder {
+            width: 40px;
+            height: 40px;
+            background-color: #cbd5e0; /* Gray background for text/icon placeholders */
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #64748b;
+            font-size: 0.75rem;
+            text-align: center;
+            line-height: 1;
+            padding: 2px;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -289,6 +336,13 @@
                     <label for="detail-description" class="block text-gray-700 text-sm font-semibold mb-2">Detail Description (Optional)</label>
                     <textarea id="detail-description" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="A short description of this detail..."></textarea>
                 </div>
+                <div class="mt-4 mb-4">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Choose a Logo (Optional)</label>
+                    <div id="preset-logo-picker" class="logo-picker">
+                        <!-- Preset logos will be rendered here by JS -->
+                    </div>
+                    <input type="url" id="custom-logo-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mt-2" placeholder="Or enter a custom logo URL">
+                </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-add-detail" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
                     <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Detail</button>
@@ -380,6 +434,9 @@
             const detailNameInput = document.getElementById('detail-name');
             const detailUrlInput = document.getElementById('detail-url');
             const detailDescriptionInput = document.getElementById('detail-description');
+            const presetLogoPicker = document.getElementById('preset-logo-picker'); // New preset logo picker
+            const customLogoUrlInput = document.getElementById('custom-logo-url'); // New custom logo URL input
+            let selectedPresetLogoUrl = null; // To store the selected preset logo URL
             const cancelAddDetailButton = document.getElementById('cancel-add-detail');
             const addDetailStatus = document.getElementById('add-detail-status');
             const backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn');
@@ -409,6 +466,63 @@
             let currentSelectedProperty = null; // Stores the property object whose categories are being displayed
             let currentSelectedCategoryName = null; // Stores the category name selected within the property
 
+            // Preset logos for common house expenses
+            // Using icons from a free source. Remember to check licensing if deploying commercially.
+            // These are simple placeholder SVGs or well-known public domain/free use icons
+            const presetLogos = [
+                // Utilities
+                { name: 'Water', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/drop-fill.svg' },
+                { name: 'Electricity', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/lightning-fill.svg' },
+                { name: 'Gas', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/fire-fill.svg' },
+                { name: 'Internet', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/wifi-high-fill.svg' },
+                { name: 'Trash', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/trash-fill.svg' },
+                // Housing/Rent/Mortgage
+                { name: 'Rent', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/house-fill.svg' },
+                { name: 'Mortgage', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/bank-fill.svg' },
+                { name: 'HOA', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/users-three-fill.svg' }, // Community icon
+                // Insurance
+                { name: 'Insurance', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/shield-check-fill.svg' },
+                // Services/Maintenance
+                { name: 'Repair', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/wrench-fill.svg' },
+                { name: 'Cleaning', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/broom-fill.svg' },
+                // Other
+                { name: 'Phone', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/phone-call-fill.svg' },
+                { name: 'Streaming', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/television-fill.svg' }
+            ];
+
+
+            // --- Helper Function to Render Preset Logos ---
+            function renderPresetLogos() {
+                presetLogoPicker.innerHTML = ''; // Clear existing
+                presetLogos.forEach(logo => {
+                    const logoItem = document.createElement('div');
+                    logoItem.classList.add('logo-picker-item');
+                    logoItem.dataset.logoUrl = logo.url;
+
+                    const img = document.createElement('img');
+                    img.src = logo.url;
+                    img.alt = logo.name;
+                    // Add onerror for images, though these CDN links should be stable
+                    img.onerror = function() {
+                        const placeholder = document.createElement('div');
+                        placeholder.classList.add('logo-placeholder');
+                        placeholder.textContent = logo.name.substring(0, 3); // Fallback to first 3 letters
+                        logoItem.replaceChild(placeholder, img);
+                    };
+                    logoItem.appendChild(img);
+
+                    logoItem.addEventListener('click', () => {
+                        // Deselect all others
+                        document.querySelectorAll('.logo-picker-item').forEach(item => item.classList.remove('selected'));
+                        // Select this one
+                        logoItem.classList.add('selected');
+                        // Set the hidden input value
+                        selectedPresetLogoUrl = logo.url;
+                        customLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
+                    });
+                    presetLogoPicker.appendChild(logoItem);
+                });
+            }
 
             // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
             async function fetchProperties() {
@@ -771,6 +885,7 @@
                                 'flex', 'flex-col', 'items-center', 'justify-center', 'text-center'
                             );
                             detailButton.innerHTML = `
+                                ${detail.detail_logo_url ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="w-10 h-10 mb-2 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/50x50/CCCCCC/FFFFFF?text=Logo';">` : `<div class="logo-placeholder w-10 h-10 mb-2">${detail.detail_name.substring(0,3)}</div>`}
                                 <span>${detail.detail_name}</span>
                                 ${detail.detail_description ? `<span class="text-xs opacity-75 mt-1">${detail.detail_description}</span>` : ''}
                             `;
@@ -800,6 +915,10 @@
                     showPage(addCategoryDetailPage);
                     addDetailForm.reset();
                     addDetailStatus.classList.add('hidden');
+                    // Render preset logos when showing the add detail page
+                    renderPresetLogos();
+                    selectedPresetLogoUrl = null; // Reset selected preset
+                    customLogoUrlInput.value = ''; // Clear custom URL
                 } else {
                     alert('Please select a property category first to add details to it.');
                 }
@@ -811,6 +930,9 @@
                 const detailName = detailNameInput.value.trim();
                 const detailUrl = detailUrlInput.value.trim();
                 const detailDescription = detailDescriptionInput.value.trim();
+                // Determine the logo URL to send
+                const logoUrlToSend = selectedPresetLogoUrl || (customLogoUrlInput.value.trim() !== '' ? customLogoUrlInput.value.trim() : null);
+
 
                 if (!detailName || !detailUrl) {
                     addDetailStatus.classList.remove('hidden');
@@ -832,7 +954,8 @@
                             category_name: currentSelectedCategoryName,
                             detail_name: detailName,
                             detail_url: detailUrl,
-                            detail_description: detailDescription
+                            detail_description: detailDescription,
+                            detail_logo_url: logoUrlToSend // Send the selected or custom logo URL
                         })
                     });
 
