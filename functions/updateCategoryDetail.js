@@ -1,4 +1,10 @@
 const { Client } = require('pg');
+const crypto = require('crypto'); // Node.js built-in module for hashing
+
+// Helper to hash passwords (must match loginUser.js and deleteFile.js)
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
 
 exports.handler = async function(event, context) {
   if (event.httpMethod !== "POST") {
@@ -25,17 +31,31 @@ exports.handler = async function(event, context) {
 
   try {
     await client.connect();
-    // Destructure all updatable fields, including 'id' for the specific detail
-    const { id, detail_name, detail_url, detail_description, detail_logo_url } = JSON.parse(event.body);
+    // Destructure all updatable fields, now including username and password for authentication
+    const { id, detail_name, detail_url, detail_description, detail_logo_url, detail_username, detail_password, username, password } = JSON.parse(event.body);
 
-    if (!id || !detail_name || !detail_url) {
+    if (!id || !detail_name || !detail_url || !username || !password) {
       return {
         statusCode: 400,
         headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "Detail ID, name, and URL are required for update." })
+        body: JSON.stringify({ message: "Property ID, detail name, URL, username, and password are required for update." })
       };
     }
 
+    // 1. Authenticate the user trying to perform the update
+    const hashedPassword = hashPassword(password);
+    const authQuery = 'SELECT id, password_hash FROM users WHERE username = $1';
+    const authResult = await client.query(authQuery, [username]);
+
+    if (authResult.rows.length === 0 || authResult.rows[0].password_hash !== hashedPassword) {
+      return {
+        statusCode: 401,
+        headers: { "Access-Control-Allow-Origin": "*" , "Content-Type": "application/json"},
+        body: JSON.stringify({ message: "Authentication failed. Invalid username or password." })
+      };
+    }
+
+    // 2. Perform the update if authentication is successful
     const queryText = `
       UPDATE property_category_details
       SET
@@ -43,15 +63,19 @@ exports.handler = async function(event, context) {
         detail_url = $2,
         detail_description = $3,
         detail_logo_url = $4,
-        created_at = NOW() -- Update timestamp to reflect modification
-      WHERE id = $5
-      RETURNING id, detail_name, detail_url, detail_description, detail_logo_url, created_at;
+        detail_username = $5,
+        detail_password = $6,
+        created_at = NOW()       -- Update timestamp to reflect modification
+      WHERE id = $7
+      RETURNING id, detail_name, detail_url, detail_description, detail_logo_url, detail_username, detail_password, created_at;
     `;
     const result = await client.query(queryText, [
         detail_name,
         detail_url,
-        detail_description || null, // Allow null for description
-        detail_logo_url || null,    // Allow null for logo URL
+        detail_description || null,
+        detail_logo_url || null,
+        detail_username || null,
+        detail_password || null,
         id
     ]);
 
@@ -86,6 +110,8 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ error: "Failed to update category detail", details: error.message })
     };
   } finally {
-    await client.end();
+    if (client) {
+      await client.end();
+    }
   }
 };
