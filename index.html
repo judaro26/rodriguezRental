@@ -710,7 +710,7 @@
             const modalPromptActionSpan = document.getElementById('modal-prompt-action');
             // New element for the action button itself, to change its text and color
             const confirmActionButton = document.getElementById('confirm-action-button');
-            const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
+            const cancelVerificationBtn = document.getElementById('cancel-verification-btn'); // Ensure this is defined here
 
 
             // New elements for Update Category Detail Page (for editing existing details)
@@ -1824,7 +1824,7 @@
                     const detailId = updateDetailIdInput.value;
                     const detailName = updateDetailNameInput.value.trim();
                     const detailUrl = updateDetailUrlInput.value.trim();
-                    const detailDescription = updateDetailDescriptionInput.value.trim();
+                    const detailDescription = detailDescriptionInput.value.trim();
                     const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput ? updateCustomLogoUrlInput.value.trim() : null); // Null check
                     const usernameToSave = updateDetailUsernameInput ? updateDetailUsernameInput.value.trim() : ''; // Null check
                     const passwordToSave = updateDetailPasswordInput ? updateDetailPasswordInput.value.trim() : ''; // Null check
