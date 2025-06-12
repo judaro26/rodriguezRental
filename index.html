@@ -734,6 +734,7 @@
             // --- Global variables ---
             let currentVerificationCallback = null;
             let currentUserForeignApprovedStatus = false; // Tracks if the logged-in user can view foreign properties
+            let currentUserDomesticApprovedStatus = false; // NEW: Tracks if the logged-in user can view domestic properties
 
 
             // --- Data Definitions ---
@@ -878,15 +879,36 @@
                     if (currentUserForeignApprovedStatus) {
                         displayedProperties = properties.filter(p => p.is_foreign === true);
                     } else {
-                        alert('You are not approved to view foreign properties.');
+                        alert('You are not approved to view foreign properties. Please contact an administrator.');
                         displayedProperties = properties.filter(p => p.is_foreign === false); // Fallback to domestic
                         currentPropertyFilter = false; // Reset filter to domestic
                     }
                 } else if (filter === false) {
-                    displayedProperties = properties.filter(p => p.is_foreign === false);
+                    // Only show domestic properties if user is approved
+                    if (currentUserDomesticApprovedStatus) {
+                        displayedProperties = properties.filter(p => p.is_foreign === false);
+                    } else {
+                        alert('You are not approved to view domestic properties. Please contact an administrator.');
+                        displayedProperties = properties.filter(p => p.is_foreign === true); // Fallback to foreign
+                        currentPropertyFilter = true; // Reset filter to foreign
+                    }
                 } else {
-                    // Show all properties
-                    displayedProperties = [...properties];
+                    // Show all properties if user is approved for both, otherwise filter accordingly
+                    if (currentUserDomesticApprovedStatus && currentUserForeignApprovedStatus) {
+                        displayedProperties = [...properties];
+                    } else if (currentUserDomesticApprovedStatus) {
+                        displayedProperties = properties.filter(p => p.is_foreign === false);
+                        alert('You are not approved to view foreign properties. Displaying domestic only.');
+                        currentPropertyFilter = false; // Update filter state to reflect actual display
+                    } else if (currentUserForeignApprovedStatus) {
+                        displayedProperties = properties.filter(p => p.is_foreign === true);
+                        alert('You are not approved to view domestic properties. Displaying foreign only.');
+                        currentPropertyFilter = true; // Update filter state to reflect actual display
+                    } else {
+                         // User not approved for either, show empty list
+                        displayedProperties = [];
+                        alert('You are not approved to view any properties. Please contact an administrator.');
+                    }
                 }
                 renderPropertyCards(); // Render the filtered list
                 updateFilterButtonsHighlight(); // Update button highlights
@@ -920,6 +942,27 @@
                     document.getElementById('filter-foreign-properties').disabled = false;
                     document.getElementById('filter-foreign-properties').classList.add('hover:bg-gray-300', 'cursor-pointer');
                     document.getElementById('filter-foreign-properties').classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                 // Disable domestic button if user is not approved
+                if (!currentUserDomesticApprovedStatus) {
+                    document.getElementById('filter-domestic-properties').disabled = true;
+                    document.getElementById('filter-domestic-properties').classList.remove('hover:bg-gray-300', 'cursor-pointer');
+                    document.getElementById('filter-domestic-properties').classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    document.getElementById('filter-domestic-properties').disabled = false;
+                    document.getElementById('filter-domestic-properties').classList.add('hover:bg-gray-300', 'cursor-pointer');
+                    document.getElementById('filter-domestic-properties').classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+
+                // If user is neither domestic nor foreign approved, disable "All Properties" too
+                if (!currentUserDomesticApprovedStatus && !currentUserForeignApprovedStatus) {
+                     document.getElementById('filter-all-properties').disabled = true;
+                     document.getElementById('filter-all-properties').classList.remove('hover:bg-blue-600', 'cursor-pointer');
+                     document.getElementById('filter-all-properties').classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    document.getElementById('filter-all-properties').disabled = false;
+                    document.getElementById('filter-all-properties').classList.add('hover:bg-blue-600', 'cursor-pointer');
+                    document.getElementById('filter-all-properties').classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             }
 
@@ -996,10 +1039,12 @@
                     if (response.ok) {
                         console.log("Login successful:", data.message);
                         currentUserForeignApprovedStatus = data.foreign_approved; // Store user's foreign approval status
+                        currentUserDomesticApprovedStatus = data.domestic_approved; // Store user's domestic approval status
+
                         showPage(propertySelectionPage);
                         // Fetch properties after successful login, applying default filter (all)
                         await fetchProperties(null);
-                        updateFilterButtonsHighlight(); // Highlight "All Properties" and manage foreign button state
+                        updateFilterButtonsHighlight(); // Highlight "All Properties" and manage foreign/domestic button state
                     } else {
                         loginErrorMessage.classList.remove('hidden');
                         loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
@@ -1136,7 +1181,7 @@
                 } else {
                     alert('You are not approved to view foreign properties. Please contact an administrator.');
                     // Optionally, reset filter to 'Domestic' if user clicks 'Foreign' but isn't approved
-                    applyPropertyFilter(false);
+                    applyPropertyFilter(false); // Default to domestic if not approved for foreign
                 }
             });
 
@@ -1339,7 +1384,7 @@
                                         <button class="copy-btn" data-target="${passwordInputId}">Copy</button>
                                     </div>
                                     <p class="text-xs text-red-500 mt-1">
-                                        Note: Credentials are stored directly in your database. **This is a HIGH SECURITY RISK.**
+                                        Note: Credentials areored directly in your database. **This is a HIGH SECURITY RISK.**
                                         Consider using a dedicated password manager for sensitive data.
                                     </p>
                                 </div>
