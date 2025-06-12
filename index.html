@@ -381,7 +381,7 @@
                 </div>
                 <div>
                     <label for="property-image" class="block text-gray-700 text-sm font-semibold mb-2">Image URL</label>
-                    <input type="url" id="property-image" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    <input type="url" id="property-image" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., https://placehold.co/400x250" required>
                 </div>
                 <div>
                     <label for="property-description" class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
@@ -448,10 +448,7 @@
                 <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                     <!-- Dynamic buttons related to the selected category will be inserted here -->
                 </div>
-                <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
-                    <p class="font-bold">Security Notice:</p>
-                    <p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p>
-                </div>
+                <!-- The security warning is also appended dynamically by JS -->
             </div>
              <!-- Property Files Section (Initially hidden) -->
             <div id="property-files-content" class="flex-grow flex flex-col p-4 hidden">
@@ -477,11 +474,11 @@
                     <p class="text-sm" id="files-error-text"></p>
                 </div>
             </div>
-            <!-- "Add Vendor's Details" button moved here, inside main but outside category-details-content -->
-            <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
-                Add Vendor's Details
-            </button>
         </main>
+        <!-- The "Add Vendor's Details" button has been moved here -->
+        <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
+            Add Vendor's Details
+        </button>
     </div>
 
     <!-- Add New Category Page (New Page) -->
@@ -729,7 +726,6 @@
             const deleteCategoryButton = document.getElementById('delete-category-button');
             // Corrected ID for categories refresh button
             const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
-            const viewFilesButton = document.getElementById('view-files-button'); // New: View Files button
 
 
             // Property details header elements
@@ -1828,4 +1824,608 @@
                             if (error.message.includes('Category already exists')) {
                                 addNewCategoryStatus.textContent = 'Category already exists for this property.';
                             } else {
-                                addNewCateg
+                                addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (cancelNewCategoryButton) { // Null check
+                cancelNewCategoryButton.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                });
+            }
+
+
+            // --- Update Property Logic ---
+            if (updatePropertyForm) { // Null check
+                updatePropertyForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    const propertyId = updatePropertyIdInput.value;
+                    const title = updatePropertyTitleInput.value.trim();
+                    const image = updatePropertyImageInput.value.trim();
+                    const description = updatePropertyDescriptionInput.value.trim();
+                    const categoriesString = updatePropertyCategoriesInput.value.trim();
+                    const isForeign = updatePropertyIsForeignInput.checked;
+
+                    if (!title || !image || !description || !categoriesString) {
+                        if (updatePropertyStatus) { // Null check
+                            updatePropertyStatus.classList.remove('hidden');
+                            updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                            updatePropertyStatus.textContent = 'All fields except Username/Password are required.';
+                        }
+                        return;
+                    }
+
+                    const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
+
+                    if (updatePropertyStatus) { // Null check
+                        updatePropertyStatus.classList.remove('hidden');
+                        updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        updatePropertyStatus.textContent = 'Updating property...';
+                    }
+
+                    try {
+                        const response = await fetch('/.netlify/functions/updateProperty', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: propertyId,
+                                title: title,
+                                image: image,
+                                description: description,
+                                categories: parsedCategories,
+                                is_foreign: isForeign
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errorBody = await response.json();
+                            throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                        }
+
+                        const result = await response.json();
+                        console.log('Property updated successfully:', result.message);
+
+                        if (updatePropertyStatus) { // Null check
+                            updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                            updatePropertyStatus.textContent = 'Property updated successfully!';
+                        }
+
+                        setTimeout(async () => {
+                            showPage(propertySelectionPage);
+                            await fetchProperties(currentPropertyFilter);
+                        }, 1500);
+
+                    } catch (error) {
+                        console.error('Error updating property:', error);
+                        if (updatePropertyStatus) { // Null check
+                            updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            updatePropertyStatus.textContent = `Error updating property: ${error.message}`;
+                        }
+                    }
+                });
+            }
+
+            if (cancelUpdatePropertyButton) { // Null check
+                cancelUpdatePropertyButton.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                });
+            }
+
+
+            // --- Update Category Detail Logic ---
+            if (updateDetailForm) { // Null check
+                updateDetailForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    const detailId = updateDetailIdInput.value;
+                    const detailName = updateDetailNameInput.value.trim();
+                    const detailUrl = updateDetailUrlInput.value.trim();
+                    const detailDescription = updateDetailDescriptionInput.value.trim();
+                    const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput ? updateCustomLogoUrlInput.value.trim() : null); // Null check
+                    const usernameToSave = updateDetailUsernameInput ? updateDetailUsernameInput.value.trim() : ''; // Null check
+                    const passwordToSave = updateDetailPasswordInput ? updateDetailPasswordInput.value.trim() : ''; // Null check
+
+
+                    if (!detailName || !detailUrl) {
+                        if (updateDetailStatus) { // Null check
+                            updateDetailStatus.classList.remove('hidden');
+                            updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                            updateDetailStatus.textContent = 'Detail Name and URL are required.';
+                        }
+                        return;
+                    }
+
+                    if (updateDetailStatus) { // Null check
+                        updateDetailStatus.classList.remove('hidden');
+                        updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        updateDetailStatus.textContent = 'Updating detail...';
+                    }
+
+                    try {
+                        const response = await fetch('/.netlify/functions/updateCategoryDetail', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: detailId,
+                                detail_name: detailName,
+                                detail_url: detailUrl,
+                                detail_description: detailDescription,
+                                detail_logo_url: logoUrlToSend,
+                                detail_username: usernameToSave,
+                                detail_password: passwordToSave,
+                                username: currentLoggedInUsername, // Pass current logged-in username
+                                password: currentLoggedInPassword  // Pass current logged-in password
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errorBody = await response.json();
+                            throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                        }
+
+                        const updatedDetail = await response.json();
+                        console.log('Category detail updated:', updatedDetail);
+
+                        if (updateDetailStatus) { // Null check
+                            updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                            updateDetailStatus.textContent = 'Detail updated successfully!';
+                        }
+
+                        setTimeout(() => {
+                            showPage(propertyCategoriesPage);
+                            displayCategoryDetails(currentSelectedCategoryName);
+                        }, 1500);
+
+                    } catch (error) {
+                        console.error('Error updating detail:', error);
+                        if (updateDetailStatus) { // Null check
+                            updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            updateDetailStatus.textContent = `Error updating detail: ${error.message}`;
+                        }
+                    }
+                });
+            }
+
+            if (cancelUpdateDetailButton) { // Null check
+                cancelUpdateDetailButton.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                });
+            }
+
+
+            // --- Delete Category Logic ---
+            if (deleteCategoryButton) { // Null check
+                deleteCategoryButton.addEventListener('click', () => {
+                    if (!currentSelectedProperty || !currentSelectedCategoryName) {
+                        alert('Please select a property and a category to delete.');
+                        return;
+                    }
+                    showModal(
+                        verificationModal,
+                        `category: "${currentSelectedCategoryName}"`, // Item name
+                        `deleting`, // Action type for prompt
+                        async (username, password) => { // Callback for delete category
+                            if (verificationStatus) { // Null check
+                                verificationStatus.classList.remove('hidden');
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                verificationStatus.textContent = 'Verifying and deleting category...';
+                            }
+                            try {
+                                const response = await fetch('/.netlify/functions/deletePropertyCategory', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        username: username,
+                                        password: password,
+                                        property_id: currentSelectedProperty.id,
+                                        category_to_delete: currentSelectedCategoryName
+                                    })
+                                });
+
+                                const data = await response.json();
+
+                                if (response.ok) {
+                                    if (verificationStatus) { // Null check
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                        verificationStatus.textContent = data.message;
+                                    }
+                                    
+                                    currentSelectedProperty.categories = data.updatedProperty.categories;
+
+                                    setTimeout(() => {
+                                        hideModal(verificationModal);
+                                        showPage(propertyCategoriesPage);
+                                        renderPropertyCategories();
+                                        if (!currentSelectedProperty.categories.includes(currentSelectedCategoryName)) {
+                                            currentSelectedCategoryName = null;
+                                            if (categoryDetailsHeading) categoryDetailsHeading.textContent = 'Category Details';
+                                            if (categoryDetailsContent) categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
+                                        }
+                                    }, 1500);
+
+                                } else {
+                                    if (verificationStatus) { // Null check
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                        verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                        if (modalPasswordInput) modalPasswordInput.value = '';
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error during delete verification:', error);
+                                if (verificationStatus) { // Null check
+                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                    verificationStatus.textContent = `Network error: ${error.message}`;
+                                }
+                            }
+                        }
+                    );
+                });
+            }
+
+            // --- Manual Refresh Categories Button Logic ---
+            if (refreshCategoriesButtonOnCategoriesPage) { // Null check
+                refreshCategoriesButtonOnCategoriesPage.addEventListener('click', () => {
+                    if (currentSelectedProperty) {
+                        renderPropertyCategories(); // Re-render categories for the currently selected property
+                    } else {
+                        alert('Please select a property first.');
+                    }
+                });
+            }
+
+            if (refreshPropertiesButton) { // Null check
+                refreshPropertiesButton.addEventListener('click', async () => {
+                    await fetchProperties(currentPropertyFilter);
+                });
+            }
+
+
+            // --- Verification Modal Form Submission Handler ---
+            if (verificationForm) { // Null check
+                verificationForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    if (currentVerificationCallback) {
+                        await currentVerificationCallback(modalUsernameInput.value.trim(), modalPasswordInput.value.trim());
+                    }
+                });
+            }
+
+            if (cancelVerificationBtn) { // Null check
+                cancelVerificationBtn.addEventListener('click', () => {
+                    hideModal(verificationModal);
+                });
+            }
+
+
+            // --- Back Button Event Listeners ---
+            if (backToLoginBtn) { // Null check
+                backToLoginBtn.addEventListener('click', () => {
+                    showPage(loginPage);
+                    if (usernameInput) usernameInput.value = '';
+                    if (passwordInput) passwordInput.value = '';
+                    if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
+                });
+            }
+
+            if (backToLoginFromRegisterBtn) { // Null check
+                backToLoginFromRegisterBtn.addEventListener('click', () => {
+                    showPage(loginPage);
+                    if (regUsernameInput) regUsernameInput.value = '';
+                    if (regPasswordInput) regPasswordInput.value = '';
+                    if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
+                });
+            }
+
+            if (backFromAddPropertyBtn) { // Null check
+                backFromAddPropertyBtn.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                    if (addPropertyForm) addPropertyForm.reset();
+                    if (addPropertyStatus) addPropertyStatus.classList.add('hidden');
+                });
+            }
+
+            if (backToPropertiesBtn) { // Null check
+                backToPropertiesBtn.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                    currentSelectedProperty = null;
+                    currentSelectedCategoryName = null;
+                    if (categoryDetailsHeading) categoryDetailsHeading.textContent = 'Category Details';
+                    // Also reset property header when going back to properties list
+                    if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details'; // Default text
+                    if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // Default placeholder
+                });
+            }
+
+            if (backFromAddDetailBtn) { // Null check
+                backFromAddDetailBtn.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                    // Ensure only category content is visible when returning from Add Detail
+                    if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                    if (propertyFilesPage) propertyFilesPage.style.display = 'none';
+                    // Ensure "Add Vendor's Details" button is shown
+                    const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                    if (addVendorButton) addVendorButton.style.display = 'block';
+                });
+            }
+
+            if (backFromAddNewCategoryBtn) { // Null check
+                backFromAddNewCategoryBtn.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                    // Ensure only category content is visible when returning from Add New Category
+                    if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                    if (propertyFilesPage) propertyFilesPage.style.display = 'none';
+                    // Ensure "Add Vendor's Details" button is shown
+                    const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                    if (addVendorButton) addVendorButton.style.display = 'block';
+                });
+            }
+
+            if (backFromUpdateDetailBtn) { // Null check
+                backFromUpdateDetailBtn.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                    // Ensure only category content is visible when returning from Update Detail
+                    if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                    if (propertyFilesPage) propertyFilesPage.style.display = 'none';
+                    // Ensure "Add Vendor's Details" button is shown
+                    const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                    if (addVendorButton) addVendorButton.style.display = 'block';
+                });
+            }
+
+            if (backFromUpdatePropertyBtn) { // Null check
+                backFromUpdatePropertyBtn.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                    fetchProperties(currentPropertyFilter);
+                });
+            }
+
+            // New: View Files button functionality
+            const viewFilesButton = document.getElementById('view-files-button'); // Declare viewFilesButton here
+            if (viewFilesButton) {
+                viewFilesButton.addEventListener('click', () => {
+                    if (currentSelectedProperty) {
+                        showPage(propertyCategoriesPage); // Stay on categories page, but toggle internal divs
+                        if (categoryDetailsContent) categoryDetailsContent.style.display = 'none';
+                        if (propertyFilesPage) propertyFilesPage.style.display = 'flex'; // Ensure flex for its children
+                        if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
+                        // Also update the thumbnail on the files page
+                        const filesPropertyThumbnail = document.getElementById('files-property-thumbnail');
+                        if (filesPropertyThumbnail) filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                        
+                        // Hide "Add Vendor's Details" button when viewing files
+                        const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                        if (addVendorButton) addVendorButton.style.display = 'none';
+
+                        displayPropertyFiles(); // Load files for the current property
+                    } else {
+                        alert('Please select a property to view files.');
+                    }
+                });
+            }
+
+            // New: Back from Files button functionality
+            if (backFromFilesButton) {
+                backFromFilesButton.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage); // Stay on current page, but toggle internal divs
+                    if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                    if (propertyFilesPage) propertyFilesPage.style.display = 'none';
+                    // Re-render categories to ensure correct state if any files were added/deleted
+                    renderPropertyCategories();
+                    // Ensure "Add Vendor's Details" button is shown
+                    const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                    if (addVendorButton) addVendorButton.style.display = 'block';
+                });
+            }
+
+            // New: Upload File button functionality
+            if (uploadFileButton) {
+                uploadFileButton.addEventListener('click', async () => {
+                    if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
+                        if (fileUploadStatus) {
+                            fileUploadStatus.classList.remove('hidden');
+                            fileUploadStatus.className = 'mt-3 text-center text-sm bg-yellow-100 text-yellow-700';
+                            fileUploadStatus.textContent = 'Please select a file to upload.';
+                        }
+                        return;
+                    }
+
+                    const file = fileUploadInput.files[0];
+                    const reader = new FileReader();
+
+                    reader.onloadend = async () => {
+                        const base64data = reader.result.split(',')[1]; // Get only the Base64 part
+
+                        if (!currentSelectedProperty || !currentLoggedInUsername || !currentLoggedInPassword) {
+                            if (fileUploadStatus) {
+                                fileUploadStatus.classList.remove('hidden');
+                                fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
+                                fileUploadStatus.textContent = 'Error: Property not selected or user not logged in.';
+                            }
+                            return;
+                        }
+
+                        if (fileUploadStatus) {
+                            fileUploadStatus.classList.remove('hidden');
+                            fileUploadStatus.className = 'mt-3 text-center text-sm bg-blue-100 text-blue-700';
+                            fileUploadStatus.textContent = 'Uploading file...';
+                        }
+
+                        try {
+                            const response = await fetch('/.netlify/functions/uploadFile', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    property_id: currentSelectedProperty.id,
+                                    filename: file.name,
+                                    file_data_base64: base64data,
+                                    uploaded_by_username: currentLoggedInUsername,
+                                    username: currentLoggedInUsername,
+                                    password: currentLoggedInPassword
+                                })
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok) {
+                                if (fileUploadStatus) {
+                                    fileUploadStatus.className = 'mt-3 text-center text-sm bg-green-100 text-green-700';
+                                    fileUploadStatus.textContent = 'File uploaded successfully!';
+                                }
+                                if (fileUploadInput) fileUploadInput.value = ''; // Clear file input
+                                displayPropertyFiles(); // Refresh file list
+                            } else {
+                                if (fileUploadStatus) {
+                                    fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
+                                    fileUploadStatus.textContent = `Upload failed: ${data.details || data.message}`;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('File upload error:', error);
+                            if (fileUploadStatus) {
+                                fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
+                                fileUploadStatus.textContent = `Network error during upload: ${error.message}`;
+                            }
+                        }
+                    };
+                    // Ensure the file is not empty before reading
+                    if (file) {
+                        reader.readAsDataURL(file); // Read file as Base64
+                    }
+                });
+            }
+
+            // New: Display Property Files function
+            async function displayPropertyFiles() {
+                if (!currentSelectedProperty || !filesListContainer) {
+                    if (filesListContainer) filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">Select a property to view files.</p>`;
+                    return;
+                }
+
+                filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
+
+                try {
+                    const response = await fetch(`/.netlify/functions/getFiles?property_id=${currentSelectedProperty.id}`);
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                    }
+                    const files = await response.json();
+                    console.log(`Files for property ${currentSelectedProperty.id}:`, files);
+
+                    filesListContainer.innerHTML = ''; // Clear loading message
+
+                    if (files.length === 0) {
+                        filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files uploaded yet.</p>`;
+                        return;
+                    }
+
+                    files.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.classList.add('file-item');
+                        fileItem.dataset.fileId = file.id; // Store file ID for deletion
+
+                        const fileExtension = file.filename.split('.').pop().toLowerCase();
+                        let filePreviewHtml = '';
+                        let isEmbeddable = false;
+
+                        // Simple heuristic for file preview/icon and embeddability
+                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
+                            filePreviewHtml = `<img src="${file.file_url}" alt="${file.filename}" class="object-cover rounded-sm mr-3">`;
+                            isEmbeddable = true; // Images are directly embeddable
+                        } else if (fileExtension === 'pdf') {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-red-500 mr-3"><path d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25z" /><path fill-rule="evenodd" d="M12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zm0 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V4.5a.75.75 0 01.75-.75zM12 9a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V9.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // PDF icon
+                            isEmbeddable = true; // PDFs are often embeddable in iframes
+                        } else if (['doc', 'docx'].includes(fileExtension)) {
+                             filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-blue-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zM12 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V2.25a.75.75 0 01.75-.75zM12 6.75a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V7.5a.75.75 0 01.75-.75zM12 13.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0v-3.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // Document icon
+                        } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-green-500 mr-3"><path fill-rule="evenodd" d="M3.75 12a.75.75 0 01.75-.75h14.25a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75zM3.75 6.75a.75.75 0 01.75-.75h14.25a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75zM4.5 18a.75.75 0 000 1.5h14.25a.75.75 0 000-1.5H4.5z" clip-rule="evenodd" /></svg>`; // Spreadsheet icon
+                        } else if (['txt'].includes(fileExtension)) {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-gray-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25a.75.75 0 01.75-.75h6a.75.75 0 01.75.75v6a.75.75 0 01-.75.75h-6a.75.75 0 01-.75-.75v-6zM5.25 11.25a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5H5.25zM5.25 16.5a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5H5.25z" clip-rule="evenodd" /></svg>`; // Text file icon
+                        } else {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-gray-400 mr-3"><path fill-rule="evenodd" d="M1.5 8.25a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM1.5 12a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM1.5 15.75a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>`; // Generic file icon
+                        }
+
+
+                        fileItem.innerHTML = `
+                            <div class="flex items-center flex-grow">
+                                ${filePreviewHtml}
+                                <div class="file-info">
+                                    <a href="${file.file_url}" target="_blank" rel="noopener noreferrer">${file.filename}</a>
+                                    <span>Uploaded by ${file.uploaded_by_username} on ${new Date(file.uploaded_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <button class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors delete-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Delete</button>
+                        `;
+
+                        fileItem.querySelector('.delete-file-btn').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const fileIdToDelete = e.target.dataset.fileId;
+                            const fileNameToDelete = e.target.dataset.fileName;
+
+                            showModal(
+                                verificationModal,
+                                `file: "${fileNameToDelete}"`,
+                                `deleting`,
+                                async (username, password) => {
+                                    if (verificationStatus) {
+                                        verificationStatus.classList.remove('hidden');
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                        verificationStatus.textContent = 'Verifying and deleting file...';
+                                    }
+                                    try {
+                                        const response = await fetch('/.netlify/functions/deleteFile', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                username: username,
+                                                password: password,
+                                                file_id_to_delete: fileIdToDelete
+                                            })
+                                        });
+
+                                        const data = await response.json();
+
+                                        if (response.ok) {
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                                verificationStatus.textContent = 'File deleted successfully!';
+                                            }
+                                            setTimeout(() => {
+                                                hideModal(verificationModal);
+                                                displayPropertyFiles(); // Refresh file list
+                                            }, 1500);
+                                        } else {
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error('Error during file deletion:', error);
+                                        if (verificationStatus) {
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                            verificationStatus.textContent = `Network error: ${error.message}`;
+                                        }
+                                    }
+                                }
+                            );
+                        });
+                        filesListContainer.appendChild(fileItem);
+                    });
+                } catch (error) {
+                    console.error('Error fetching files:', error);
+                    if (filesListContainer) filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Failed to load files: ${error.message}</p>`;
+                }
+            }
+
+
+            // --- Initial Load: Show Login Page ---
+            showPage(loginPage);
+        });
+    </script>
+</body>
+</html>
