@@ -530,7 +530,7 @@
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-update-detail" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
-                    <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Update Detail</button>
+                    <button type="submit" id="confirm-update-detail-button" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Update Detail</button>
                 </div>
             </form>
             <div id="update-detail-status" class="mt-4 hidden"></div>
@@ -573,7 +573,7 @@
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-update-property" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
-                    <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Update Property</button>
+                    <button type="submit" id="confirm-update-property-button" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold">Update Property</button>
                 </div>
             </form>
             <div id="update-property-status" class="mt-4 hidden"></div>
@@ -584,7 +584,7 @@
     <div id="verification-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Confirm Action</h3>
-            <p class="text-gray-600 mb-4 text-center">Please enter your credentials to confirm deleting <span id="modal-item-to-delete-name" class="font-bold text-red-600"></span></p>
+            <p class="text-gray-600 mb-4 text-center"><span id="modal-prompt-action">Please enter your credentials to confirm</span> <span id="modal-item-to-delete-name" class="font-bold text-red-600"></span></p>
             <form id="verification-form" class="space-y-4">
                 <div>
                     <label for="modal-username" class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
@@ -597,7 +597,7 @@
                 <div id="verification-status" class="mt-4 p-3 rounded-md text-sm text-center hidden"></div>
                 <div class="flex justify-between gap-4 mt-6">
                     <button type="button" id="cancel-verification-btn" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
-                    <button type="submit" id="confirm-delete-btn" class="w-1/2 bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold">Confirm Delete</button>
+                    <button type="submit" id="confirm-action-button" class="w-1/2 bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold">Confirm Delete</button>
                 </div>
             </form>
         </div>
@@ -660,7 +660,8 @@
             const addCategoryDetailButton = document.getElementById('add-category-detail-button');
             const addNewCategoryButton = document.getElementById('add-new-category-button');
             const deleteCategoryButton = document.getElementById('delete-category-button');
-            const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-button'); // Renamed for clarity
+            // Corrected ID for categories refresh button
+            const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
 
 
             // Property details header elements
@@ -689,7 +690,7 @@
 
 
             // New elements for Add New Category Page
-            const addNewCategoryPage = document.getElementById('add-new-category-page'); // Corrected ID in JS, still corresponds to HTML ID
+            const addNewCategoryPage = document.getElementById('add-new-category-page');
             const addNewCategoryForm = document.getElementById('add-new-category-form');
             const newCategoryNameInput = document.getElementById('new-category-name');
             const categoryPropertyTitleSpan = document.getElementById('category-property-title');
@@ -705,7 +706,13 @@
             const verificationStatus = document.getElementById('verification-status');
             // Renamed from modalCategoryNameSpan to modalItemToDeleteNameSpan to be more generic
             const modalItemToDeleteNameSpan = document.getElementById('modal-item-to-delete-name');
+            // New element to dynamically set the action prompt (e.g., "please enter your credentials to confirm deleting")
+            const modalPromptActionSpan = document.getElementById('modal-prompt-action');
+            // New element for the action button itself, to change its text and color
+            const confirmActionButton = document.getElementById('confirm-action-button');
+            // Referencing this variable here, it will be assigned later in the DOMContentLoaded
             const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
+
 
             // New elements for Update Category Detail Page (for editing existing details)
             const updateCategoryDetailPage = document.getElementById('update-category-detail-page');
@@ -941,6 +948,8 @@
                 } else if (currentPropertyFilter === true) {
                     if (filterForeignPropertiesBtn) {
                         filterForeignPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
+                        filterForeignPropertiesBtn.classList.add('opacity-50', 'cursor-not-allowed'); // Ensure disabled state for unapproved
+                        filterForeignPropertiesBtn.classList.remove('hover:bg-gray-300', 'cursor-pointer');
                         filterForeignPropertiesBtn.classList.add('bg-blue-500', 'text-white');
                     }
                 }
@@ -1012,9 +1021,24 @@
 
             // --- Show/Hide Modal Function ---
             // Now accepts a callback function and a message for the modal
-            function showModal(modalElement, confirmationMessage, callback) {
+            function showModal(modalElement, itemName, actionType, callback) { // Renamed confirmationMessage to itemName for clarity
                 modalElement.classList.remove('hidden');
-                if (modalItemToDeleteNameSpan) modalItemToDeleteNameSpan.textContent = confirmationMessage; // Update modal message dynamically
+                if (modalItemToDeleteNameSpan) modalItemToDeleteNameSpan.textContent = itemName; // Update modal message dynamically
+                if (modalPromptActionSpan) {
+                    modalPromptActionSpan.textContent = `Please enter your credentials to confirm ${actionType} `; // Dynamic prompt text
+                }
+
+                if (confirmActionButton) { // Null check
+                    confirmActionButton.textContent = `Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`; // Dynamic button text
+                    // Reset button classes and apply new ones based on actionType
+                    confirmActionButton.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
+                    if (actionType === 'deleting') {
+                        confirmActionButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                    } else if (actionType === 'updating') {
+                        confirmActionButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    }
+                }
+
                 currentVerificationCallback = callback; // Store the callback
                 if (modalUsernameInput) modalUsernameInput.value = '';
                 if (modalPasswordInput) modalPasswordInput.value = '';
@@ -1245,8 +1269,6 @@
                         addPropertyStatus.textContent = 'Saving property...';
                     }
 
-                    console.log("Attempting to save property:", { title, image, description, categories: parsedCategories, isForeign });
-
                     try {
                         const response = await fetch('/.netlify/functions/saveProperty', {
                             method: 'POST',
@@ -1471,8 +1493,9 @@
 
                                 showModal(
                                     verificationModal,
-                                    `edit details for "${detailName}"`,
-                                    async (username, password) => {
+                                    `"${detailName}"`, // Item name
+                                    `updating`, // Action type for prompt
+                                    async (username, password) => { // Callback for edit detail
                                         if (verificationStatus) { // Null check
                                             verificationStatus.classList.remove('hidden');
                                             verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
@@ -1884,7 +1907,8 @@
                     }
                     showModal(
                         verificationModal,
-                        `category: "${currentSelectedCategoryName}"`, // Specific message for deleting category
+                        `category: "${currentSelectedCategoryName}"`, // Item name
+                        `deleting`, // Action type for prompt
                         async (username, password) => { // Callback for delete category
                             if (verificationStatus) { // Null check
                                 verificationStatus.classList.remove('hidden');
