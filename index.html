@@ -455,11 +455,11 @@
             <form id="add-detail-form" class="space-y-4">
                 <div>
                     <label for="detail-name" class="block text-gray-700 text-sm font-semibold mb-2">Detail Name (Button Label)</label>
-                    <input type="text" id="detail-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Water Bill Login" required>
+                    <input type="text" id="detail-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
                 <div>
                     <label for="detail-url" class="block text-gray-700 text-sm font-semibold mb-2">Detail URL (Link)</label>
-                    <input type="url" id="detail-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., https://watercompany.com/login" required>
+                    <input type="url" id="detail-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
                 <div>
                     <label for="detail-description" class="block text-gray-700 text-sm font-semibold mb-2">Detail Description (Optional)</label>
@@ -482,7 +482,7 @@
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-add-detail" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
-                    <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Detail</button>
+                    <button type="submit" id="confirm-add-detail-button" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Detail</button>
                 </div>
             </form>
             <div id="add-detail-status" class="mt-4 hidden"></div>
@@ -530,7 +530,7 @@
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-update-detail" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
-                    <button type="submit" id="confirm-update-detail-button" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Update Detail</button>
+                    <button type="submit" id="confirm-update-detail-button" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold">Update Detail</button>
                 </div>
             </form>
             <div id="update-detail-status" class="mt-4 hidden"></div>
@@ -710,7 +710,6 @@
             const modalPromptActionSpan = document.getElementById('modal-prompt-action');
             // New element for the action button itself, to change its text and color
             const confirmActionButton = document.getElementById('confirm-action-button');
-            // Referencing this variable here, it will be assigned later in the DOMContentLoaded
             const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
 
 
