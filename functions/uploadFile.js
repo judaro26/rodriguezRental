@@ -477,18 +477,18 @@
                 </div>
             </div> <!-- End of flex-grow relative container -->
 
-            <!-- The security warning should be here, after the dynamic content container -->
             <!-- The "Add Vendor's Details" button has been moved here -->
             <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
                 Add Vendor's Details
             </button>
+
+            <!-- The security warning should be here, after the dynamic content container and the button -->
             <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
                 <p class="font-bold">Security Notice:</p>
                 <p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p>
             </div>
         </main>
     </div>
-
     <!-- Add New Category Page (New Page) -->
     <div id="add-new-category-page" class="flex-grow flex items-center justify-center p-4 relative pt-16 hidden">
         <button id="back-from-add-new-category-btn" class="back-button">
