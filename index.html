@@ -1853,6 +1853,9 @@
                 currentSelectedProperty = null;
                 currentSelectedCategoryName = null;
                 categoryDetailsHeading.textContent = 'Category Details';
+                // Also reset property header when going back to properties list
+                currentPropertyTitle.textContent = 'Category Details'; // Default text
+                currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // Default placeholder
             });
 
             backFromAddDetailBtn.addEventListener('click', () => {
