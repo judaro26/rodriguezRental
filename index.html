@@ -1151,8 +1151,14 @@
                         currentSelectedProperty = properties.find(p => p.id == e.target.dataset.propertyId);
                         showPage(propertyCategoriesPage);
                         renderPropertyCategories();
+                        // The property-header elements are outside category-details-content now, so access them directly
+                        if (currentPropertyTitle && currentSelectedProperty) {
+                            currentPropertyTitle.textContent = currentSelectedProperty.title;
+                            currentPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                            currentPropertyThumbnail.alt = currentSelectedProperty.title;
+                        }
+                        categoryDetailsHeading.textContent = 'Category Details'; // Reset detail heading to default
                         categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
-                        categoryDetailsHeading.textContent = 'Category Details';
                     });
 
                     propertyCard.querySelector('[data-action="edit-property"]').addEventListener('click', (e) => {
@@ -1271,15 +1277,21 @@
             function renderPropertyCategories() {
                 propertyCategoriesNav.innerHTML = '';
                 // Update the property header details
-                if (currentSelectedProperty) {
-                    currentPropertyTitle.textContent = currentSelectedProperty.title;
-                    currentPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-                    currentPropertyThumbnail.alt = currentSelectedProperty.title;
-                } else {
-                    currentPropertyTitle.textContent = 'Category Details'; // Fallback
-                    currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // Fallback
-                    currentPropertyThumbnail.alt = 'Property Thumbnail';
+                // Ensure elements are available before attempting to set their properties
+                const currentPropertyTitleElement = document.getElementById('current-property-title');
+                const currentPropertyThumbnailElement = document.getElementById('current-property-thumbnail');
+
+                if (currentPropertyTitleElement && currentPropertyThumbnailElement && currentSelectedProperty) {
+                    currentPropertyTitleElement.textContent = currentSelectedProperty.title;
+                    currentPropertyThumbnailElement.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                    currentPropertyThumbnailElement.alt = currentSelectedProperty.title;
+                } else if (currentPropertyTitleElement && currentPropertyThumbnailElement) {
+                    // Fallback if no property is selected
+                    currentPropertyTitleElement.textContent = 'Category Details';
+                    currentPropertyThumbnailElement.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                    currentPropertyThumbnailElement.alt = 'Property Thumbnail';
                 }
+
 
                 if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
                     propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
@@ -1416,7 +1428,7 @@
                                 const targetInput = document.getElementById(e.target.dataset.target);
                                 if (targetInput.type === 'password') {
                                     targetInput.type = 'text';
-                                    e.target.textContent = '�';
+                                    e.target.textContent = '🙈';
                                 } else {
                                     targetInput.type = 'password';
                                     e.target.textContent = '👁️';
@@ -1854,8 +1866,8 @@
                 currentSelectedCategoryName = null;
                 categoryDetailsHeading.textContent = 'Category Details';
                 // Also reset property header when going back to properties list
-                currentPropertyTitle.textContent = 'Category Details'; // Default text
-                currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // Default placeholder
+                if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details'; // Default text
+                if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // Default placeholder
             });
 
             backFromAddDetailBtn.addEventListener('click', () => {
@@ -1883,4 +1895,3 @@
     </script>
 </body>
 </html>
-�
