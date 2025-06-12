@@ -55,8 +55,8 @@ exports.handler = async function(event, context) {
     const hashedPassword = hashPassword(password); // Hash the provided password
     console.log(`Hashed password (client input): "${hashedPassword}"`);
 
-    // Modified query to also select the 'confirmed' status
-    const queryText = 'SELECT id, username, password_hash, confirmed, foreign_approved FROM users WHERE username = $1';
+    // Modified query to also select the 'confirmed' and 'domestic_approved' status
+    const queryText = 'SELECT id, username, password_hash, confirmed, foreign_approved, domestic_approved FROM users WHERE username = $1';
     console.log(`Executing query: "${queryText}" with username: "${username}"`);
     const result = await client.query(queryText, [username]);
     console.log(`Query result rows: ${JSON.stringify(result.rows)}`);
@@ -66,7 +66,8 @@ exports.handler = async function(event, context) {
       console.log(`User found: ${JSON.stringify(user)}`);
       console.log(`Stored password hash from DB: "${user.password_hash}"`);
       console.log(`User confirmed status from DB: "${user.confirmed}"`);
-      console.log(`User foreign_approved status from DB: "${user.foreign_approved}"`); // Log foreign_approved status
+      console.log(`User foreign_approved status from DB: "${user.foreign_approved}"`);
+      console.log(`User domestic_approved status from DB: "${user.domestic_approved}"`); // Log new domestic_approved status
 
       if (user.password_hash === hashedPassword) { // Compare hashed passwords
         if (user.confirmed === true) { // Check if user is confirmed
@@ -74,7 +75,12 @@ exports.handler = async function(event, context) {
           return {
             statusCode: 200,
             headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-            body: JSON.stringify({ message: "Login successful!", username: user.username, foreign_approved: user.foreign_approved }) // Return foreign_approved
+            body: JSON.stringify({
+                message: "Login successful!",
+                username: user.username,
+                foreign_approved: user.foreign_approved,
+                domestic_approved: user.domestic_approved // Return domestic_approved status
+            })
           };
         } else {
           console.log("User found, password matches, but user is NOT confirmed.");
