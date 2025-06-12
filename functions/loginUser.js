@@ -56,7 +56,7 @@ exports.handler = async function(event, context) {
     console.log(`Hashed password (client input): "${hashedPassword}"`);
 
     // Modified query to also select the 'confirmed' status
-    const queryText = 'SELECT id, username, password_hash, confirmed FROM users WHERE username = $1';
+    const queryText = 'SELECT id, username, password_hash, confirmed, foreign_approved FROM users WHERE username = $1';
     console.log(`Executing query: "${queryText}" with username: "${username}"`);
     const result = await client.query(queryText, [username]);
     console.log(`Query result rows: ${JSON.stringify(result.rows)}`);
@@ -65,7 +65,8 @@ exports.handler = async function(event, context) {
       const user = result.rows[0];
       console.log(`User found: ${JSON.stringify(user)}`);
       console.log(`Stored password hash from DB: "${user.password_hash}"`);
-      console.log(`User confirmed status from DB: "${user.confirmed}"`); // Log confirmed status
+      console.log(`User confirmed status from DB: "${user.confirmed}"`);
+      console.log(`User foreign_approved status from DB: "${user.foreign_approved}"`); // Log foreign_approved status
 
       if (user.password_hash === hashedPassword) { // Compare hashed passwords
         if (user.confirmed === true) { // Check if user is confirmed
@@ -73,7 +74,7 @@ exports.handler = async function(event, context) {
           return {
             statusCode: 200,
             headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-            body: JSON.stringify({ message: "Login successful!", username: user.username })
+            body: JSON.stringify({ message: "Login successful!", username: user.username, foreign_approved: user.foreign_approved }) // Return foreign_approved
           };
         } else {
           console.log("User found, password matches, but user is NOT confirmed.");
