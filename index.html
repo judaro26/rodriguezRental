@@ -663,7 +663,8 @@
             const refreshCategoriesButton = document.getElementById('refresh-categories-button');
 
             // Property details header elements
-            // These should be directly accessible on the page, not inside categoryDetailsContent
+            // IMPORTANT: These are now accessed directly, not nested inside categoryDetailsContent.
+            // Ensure these elements are present in the HTML outside of any dynamic content area.
             const propertyHeader = document.getElementById('property-header');
             const currentPropertyTitle = document.getElementById('current-property-title');
             const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
@@ -741,6 +742,8 @@
             let currentVerificationCallback = null;
             let currentUserForeignApprovedStatus = false; // Tracks if the logged-in user can view foreign properties
             let currentUserDomesticApprovedStatus = false; // NEW: Tracks if the logged-in user can view domestic properties
+            let currentLoggedInUsername = ''; // NEW: Stores the username of the currently logged-in user
+            let currentLoggedInPassword = ''; // NEW: Stores the password of the currently logged-in user (WARNING: insecure if not handled carefully, for demo only)
 
 
             // --- Data Definitions ---
@@ -1046,6 +1049,8 @@
                         console.log("Login successful:", data.message);
                         currentUserForeignApprovedStatus = data.foreign_approved; // Store user's foreign approval status
                         currentUserDomesticApprovedStatus = data.domestic_approved; // Store user's domestic approval status
+                        currentLoggedInUsername = username; // Store username
+                        currentLoggedInPassword = password; // Store password (WARNING: For demo purposes only)
 
                         showPage(propertySelectionPage);
                         // Fetch properties after successful login, applying default filter (all)
@@ -1279,18 +1284,15 @@
                 propertyCategoriesNav.innerHTML = '';
                 // Update the property header details
                 // Ensure elements are available before attempting to set their properties
-                const currentPropertyTitleElement = document.getElementById('current-property-title');
-                const currentPropertyThumbnailElement = document.getElementById('current-property-thumbnail');
-
-                if (currentPropertyTitleElement && currentPropertyThumbnailElement && currentSelectedProperty) {
-                    currentPropertyTitleElement.textContent = currentSelectedProperty.title;
-                    currentPropertyThumbnailElement.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-                    currentPropertyThumbnailElement.alt = currentSelectedProperty.title;
-                } else if (currentPropertyTitleElement && currentPropertyThumbnailElement) {
+                if (currentPropertyTitle && currentPropertyThumbnail && currentSelectedProperty) {
+                    currentPropertyTitle.textContent = currentSelectedProperty.title;
+                    currentPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                    currentPropertyThumbnail.alt = currentSelectedProperty.title;
+                } else if (currentPropertyTitle && currentPropertyThumbnail) {
                     // Fallback if no property is selected (e.g., initially or after deleting last property)
-                    currentPropertyTitleElement.textContent = 'Category Details';
-                    currentPropertyThumbnailElement.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-                    currentPropertyThumbnailElement.alt = 'Property Thumbnail';
+                    currentPropertyTitle.textContent = 'Category Details';
+                    currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                    currentPropertyThumbnail.alt = 'Property Thumbnail';
                 }
 
 
