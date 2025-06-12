@@ -1,7 +1,7 @@
 {
-  "name": "netlify-functions",
+  "name": "your-project-name",
   "version": "1.0.0",
-  "description": "Serverless functions for lender app with Neon DB",
+  "description": "Property Information Hub",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "pg": "^8.11.3"
+    "cloudinary": "^1.x.x", // Use the latest stable version
+    "pg": "^8.x.x" // Assuming you already have pg for Neon DB
   }
 }
