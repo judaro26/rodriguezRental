@@ -315,8 +315,8 @@
             <!-- Property cards will be inserted here by JavaScript -->
         </div>
         <button id="add-property-button" class="mt-8 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors duration-200 font-semibold shadow-md flex items-center justify-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6">
+                <path fill-rule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clip-rule="evenodd" />
             </svg>
             Add New Property
         </button>
@@ -631,12 +631,11 @@
             const propertiesErrorMessage = document.getElementById('properties-error-message');
             const propertiesErrorText = document.getElementById('properties-error-text');
             const addPropertyButton = document.getElementById('add-property-button');
-            const backToLoginBtn = document.getElementById('back-to-login-btn');
+            const refreshPropertiesButton = document.getElementById('refresh-properties-button'); // New refresh properties button
+            const backToLoginBtn = document.getElementById('back-to-login-btn'); // Moved up for visibility
             const filterAllPropertiesBtn = document.getElementById('filter-all-properties'); // Filter button
             const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties'); // Filter button
             const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties'); // Filter button
-            const propertyIsForeignInput = document.getElementById('property-is-foreign'); // New checkbox for Add Property Form
-            const refreshPropertiesButton = document.getElementById('refresh-properties-button'); // New refresh properties button
 
 
             const addPropertyPage = document.getElementById('add-property-page');
@@ -648,6 +647,7 @@
             const cancelAddPropertyButton = document.getElementById('cancel-add-property');
             const addPropertyStatus = document.getElementById('add-property-status');
             const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn');
+            const propertyIsForeignInput = document.getElementById('property-is-foreign'); // New checkbox for Add Property Form
 
 
             const propertyCategoriesPage = document.getElementById('property-categories-page');
@@ -660,11 +660,10 @@
             const addCategoryDetailButton = document.getElementById('add-category-detail-button');
             const addNewCategoryButton = document.getElementById('add-new-category-button');
             const deleteCategoryButton = document.getElementById('delete-category-button');
-            const refreshCategoriesButton = document.getElementById('refresh-categories-button');
+            const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-button'); // Renamed for clarity
 
-            // Property details header elements
-            // IMPORTANT: These are now accessed directly, not nested inside categoryDetailsContent.
-            // Ensure these elements are present in the HTML outside of any dynamic content area.
+
+            // Property details header elements (accessed directly in renderPropertyCategories)
             const propertyHeader = document.getElementById('property-header');
             const currentPropertyTitle = document.getElementById('current-property-title');
             const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
@@ -676,16 +675,19 @@
             const detailNameInput = document.getElementById('detail-name');
             const detailUrlInput = document.getElementById('detail-url');
             const detailDescriptionInput = document.getElementById('detail-description');
-            const presetLogoPicker = document.getElementById('preset-logo-picker'); // New preset logo picker
-            const customLogoUrlInput = document.getElementById('custom-logo-url'); // New custom logo URL input
-            let selectedPresetLogoUrl = null; // To store the selected preset logo URL
+            const presetLogoPicker = document.getElementById('preset-logo-picker');
+            const customLogoUrlInput = document.getElementById('custom-logo-url');
+            let selectedPresetLogoUrl = null;
             const cancelAddDetailButton = document.getElementById('cancel-add-detail');
             const addDetailStatus = document.getElementById('add-detail-status');
             const backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn');
             const addDetailCategoryNameSpan = document.getElementById('add-detail-category-name');
+            const detailUsernameAddInput = document.getElementById('detail-username-add');
+            const detailPasswordAddInput = document.getElementById('detail-password-add');
+
 
             // New elements for Add New Category Page
-            const addNewCategoryPage = document.getElementById('add-new-category-page');
+            const addNewCategoryPage = document.getElementById('add-new-category-page'); // Corrected ID
             const addNewCategoryForm = document.getElementById('add-new-category-form');
             const newCategoryNameInput = document.getElementById('new-category-name');
             const categoryPropertyTitleSpan = document.getElementById('category-property-title');
@@ -699,78 +701,66 @@
             const modalUsernameInput = document.getElementById('modal-username');
             const modalPasswordInput = document.getElementById('modal-password');
             const verificationStatus = document.getElementById('verification-status');
-            // Renamed from modalCategoryNameSpan to modalItemToDeleteNameSpan to be more generic
             const modalItemToDeleteNameSpan = document.getElementById('modal-item-to-delete-name');
             const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
 
             // New elements for Update Category Detail Page (for editing existing details)
-            const updateCategoryDetailPage = document.getElementById('update-category-detail-page'); // New page
-            const updateDetailForm = document.getElementById('update-detail-form'); // New form
-            const updateDetailIdInput = document.getElementById('update-detail-id'); // Hidden input for detail ID
+            const updateCategoryDetailPage = document.getElementById('update-category-detail-page');
+            const updateDetailForm = document.getElementById('update-detail-form');
+            const updateDetailIdInput = document.getElementById('update-detail-id');
             const updateDetailNameInput = document.getElementById('update-detail-name');
             const updateDetailUrlInput = document.getElementById('update-detail-url');
             const updateDetailDescriptionInput = document.getElementById('update-detail-description');
-            const updatePresetLogoPicker = document.getElementById('update-preset-logo-picker'); // New preset logo picker for update
-            const updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url'); // New custom logo URL input for update
-            let selectedUpdatePresetLogoUrl = null; // To store the selected preset logo URL for update
+            const updatePresetLogoPicker = document.getElementById('update-preset-logo-picker');
+            const updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url');
+            let selectedUpdatePresetLogoUrl = null;
             const cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
             const updateDetailStatus = document.getElementById('update-detail-status');
             const backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn');
             const updateDetailCategoryNameSpan = document.getElementById('update-detail-category-name');
+            const updateDetailUsernameInput = document.getElementById('update-detail-username');
+            const updateDetailPasswordInput = document.getElementById('update-detail-password');
 
-            // New elements for Username/Password on add/update forms
-            const detailUsernameAddInput = document.getElementById('detail-username-add'); // For Add form
-            const detailPasswordAddInput = document.getElementById('detail-password-add'); // For Add form
-            const updateDetailUsernameInput = document.getElementById('update-detail-username'); // For Update form
-            const updateDetailPasswordInput = document.getElementById('update-detail-password'); // For Update form
 
             // New elements for Update Property Page
-            const updatePropertyPage = document.getElementById('update-property-page'); // NEW: Update Property page
-            const updatePropertyForm = document.getElementById('update-property-form'); // NEW: Update Property form
-            const updatePropertyIdInput = document.getElementById('update-property-id'); // NEW: Hidden ID for update
-            const updatePropertyTitleInput = document.getElementById('update-property-title'); // NEW
-            const updatePropertyImageInput = document.getElementById('update-property-image'); // NEW
-            const updatePropertyDescriptionInput = document.getElementById('update-property-description'); // NEW
-            const updatePropertyCategoriesInput = document.getElementById('update-property-categories'); // NEW
-            const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign'); // NEW checkbox
-            const cancelUpdatePropertyButton = document.getElementById('cancel-update-property'); // NEW
-            const updatePropertyStatus = document.getElementById('update-property-status'); // NEW
-            const backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn'); // NEW
+            const updatePropertyPage = document.getElementById('update-property-page');
+            const updatePropertyForm = document.getElementById('update-property-form');
+            const updatePropertyIdInput = document.getElementById('update-property-id');
+            const updatePropertyTitleInput = document.getElementById('update-property-title');
+            const updatePropertyImageInput = document.getElementById('update-property-image');
+            const updatePropertyDescriptionInput = document.getElementById('update-property-description');
+            const updatePropertyCategoriesInput = document.getElementById('update-property-categories');
+            const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
+            const cancelUpdatePropertyButton = document.getElementById('cancel-update-property');
+            const updatePropertyStatus = document.getElementById('update-property-status');
+            const backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn');
 
 
             // --- Global variables ---
             let currentVerificationCallback = null;
-            let currentUserForeignApprovedStatus = false; // Tracks if the logged-in user can view foreign properties
-            let currentUserDomesticApprovedStatus = false; // NEW: Tracks if the logged-in user can view domestic properties
-            let currentLoggedInUsername = ''; // NEW: Stores the username of the currently logged-in user
-            let currentLoggedInPassword = ''; // NEW: Stores the password of the currently logged-in user (WARNING: insecure if not handled carefully, for demo only)
+            let currentUserForeignApprovedStatus = false;
+            let currentUserDomesticApprovedStatus = false;
+            let currentLoggedInUsername = '';
+            let currentLoggedInPassword = '';
 
 
             // --- Data Definitions ---
-            let properties = []; // Populated from Neon DB (contains property info and its categories)
-            let currentSelectedProperty = null; // Stores the property object whose categories are being displayed
-            let currentSelectedCategoryName = null; // Stores the category name selected within the property
+            let properties = [];
+            let currentSelectedProperty = null;
+            let currentSelectedCategoryName = null;
 
-            // Preset logos for common house expenses
-            // Using icons from a free source. Remember to check licensing if deploying commercially.
-            // These are simple placeholder SVGs or well-known public domain/free use icons
             const presetLogos = [
-                // Utilities
                 { name: 'Water', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/drop-fill.svg' },
                 { name: 'Electricity', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/lightning-fill.svg' },
                 { name: 'Gas', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/fire-fill.svg' },
                 { name: 'Internet', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/wifi-high-fill.svg' },
                 { name: 'Trash', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/trash-fill.svg' },
-                // Housing/Rent/Mortgage
                 { name: 'Rent', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/house-fill.svg' },
                 { name: 'Mortgage', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/bank-fill.svg' },
-                { name: 'HOA', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/users-three-fill.svg' }, // Community icon
-                // Insurance
+                { name: 'HOA', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/users-three-fill.svg' },
                 { name: 'Insurance', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/shield-check-fill.svg' },
-                // Services/Maintenance
                 { name: 'Repair', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/wrench-fill.svg' },
                 { name: 'Cleaning', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/broom-fill.svg' },
-                // Other
                 { name: 'Phone', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/phone-call-fill.svg' },
                 { name: 'Streaming', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/television-fill.svg' }
             ];
@@ -991,7 +981,9 @@
                 verificationModal.classList.add('hidden'); // Ensure modal is hidden
 
                 // Show the requested main page
-                pageElement.style.display = 'flex';
+                if (pageElement) { // Add null check here
+                    pageElement.style.display = 'flex';
+                }
 
                 // Handle specific messages/errors
                 if (pageElement !== loginPage) {
@@ -1460,64 +1452,53 @@
                                 }
                             });
 
-                            detailTile.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+                            detailTile.querySelector('[data-action="edit"]').addEventListener('click', async (e) => { // Made async to await modal
                                 e.stopPropagation(); // Prevent tile click from firing
-                                // Pre-populate form for editing
-                                showPage(updateCategoryDetailPage); // Navigate to the new update detail page
-                                updateDetailIdInput.value = detail.id; // Set ID
-                                updateDetailNameInput.value = detail.detail_name;
-                                updateDetailUrlInput.value = detail.detail_url;
-                                updateDetailDescriptionInput.value = detail.detail_description || '';
-                                updateCustomLogoUrlInput.value = detail.detail_logo_url || ''; // Set custom logo input
-                                // Populate username and password for update form
-                                updateDetailUsernameInput.value = detail.detail_username || '';
-                                updateDetailPasswordInput.value = detail.detail_password || '';
+                                const detailId = e.target.dataset.id;
+                                const detailName = e.target.dataset.name;
 
-                                renderPresetLogosForUpdate(detail.detail_logo_url); // Render presets with current one selected
-                                updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
-                                updateDetailStatus.classList.add('hidden'); // Clear status
-                            });
-
-                            // New: Event listener for delete detail button
-                            detailTile.querySelector('[data-action="delete-detail"]').addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                const detailIdToDelete = e.target.dataset.id;
-                                const detailNameToDelete = e.target.dataset.name;
-
+                                // Show confirmation modal before opening edit page
                                 showModal(
                                     verificationModal,
-                                    `vendor detail: "${detailNameToDelete}"`, // Specific message for deleting detail
+                                    `edit details for "${detailName}"`, // Specific message for editing
                                     async (username, password) => {
-                                        // This is the callback that runs if verification is successful
                                         verificationStatus.classList.remove('hidden');
                                         verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                                        verificationStatus.textContent = 'Verifying and deleting vendor detail...';
+                                        verificationStatus.textContent = 'Verifying credentials...';
+
                                         try {
-                                            const response = await fetch('/.netlify/functions/deleteCategoryDetail', { // Call new function
+                                            // Make an authentication request to a Netlify Function
+                                            const authResponse = await fetch('/.netlify/functions/loginUser', { // Use loginUser for auth check
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    username: username,
-                                                    password: password,
-                                                    detail_id_to_delete: detailIdToDelete // Pass detail ID to delete
-                                                })
+                                                body: JSON.stringify({ username, password })
                                             });
+                                            const authData = await authResponse.json();
 
-                                            const data = await response.json();
+                                            if (authResponse.ok) {
+                                                // If authentication is successful, proceed with pre-populating form
+                                                hideModal(verificationModal);
+                                                
+                                                // Pre-populate form for editing
+                                                showPage(updateCategoryDetailPage); // Navigate to the new update detail page
+                                                updateDetailIdInput.value = detail.id; // Set ID
+                                                updateDetailNameInput.value = detail.detail_name;
+                                                updateDetailUrlInput.value = detail.detail_url;
+                                                updateDetailDescriptionInput.value = detail.detail_description || '';
+                                                updateCustomLogoUrlInput.value = detail.detail_logo_url || ''; // Set custom logo input
+                                                updateDetailUsernameInput.value = detail.detail_username || '';
+                                                updateDetailPasswordInput.value = detail.detail_password || '';
 
-                                            if (response.ok) {
-                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                                                verificationStatus.textContent = data.message;
-                                                setTimeout(() => {
-                                                    hideModal(verificationModal);
-                                                    displayCategoryDetails(currentSelectedCategoryName); // Refresh the details list for the current category
-                                                }, 1500);
+                                                renderPresetLogosForUpdate(detail.detail_logo_url); // Render presets with current one selected
+                                                updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+                                                updateDetailStatus.classList.add('hidden'); // Clear status
+
                                             } else {
                                                 verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials.';
+                                                verificationStatus.textContent = authData.message || 'Authentication failed. Please check credentials.';
                                             }
                                         } catch (error) {
-                                            console.error('Error during vendor detail deletion:', error);
+                                            console.error('Error during authentication for edit:', error);
                                             verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                                             verificationStatus.textContent = `Network error: ${error.message}`;
                                         }
