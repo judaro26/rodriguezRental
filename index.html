@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-M-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Property Information Hub</title>
     <!-- Tailwind CSS CDN -->
@@ -519,7 +519,7 @@
                 </div>
                 <div>
                     <label for="detail-url" class="block text-gray-700 text-sm font-semibold mb-2">Detail URL (Link)</label>
-                    <input type="url" id="detail-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., https://watercompany.com/login" required>
+                    <input type="url" id="detail-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
                 <div>
                     <label for="detail-description" class="block text-gray-700 text-sm font-semibold mb-2">Detail Description (Optional)</label>
@@ -1536,7 +1536,7 @@
                                 if (targetInput) { // Null check
                                     if (targetInput.type === 'password') {
                                         targetInput.type = 'text';
-                                        e.target.textContent = '�';
+                                        e.target.textContent = '🙈';
                                     } else {
                                         targetInput.type = 'password';
                                         e.target.textContent = '👁️';
@@ -2040,7 +2040,6 @@
                                 if (verificationStatus) { // Null check
                                     verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                                     verificationStatus.textContent = `Network error: ${error.message}`;
-                                    if (modalPasswordInput) modalPasswordInput.value = '';
                                 }
                             }
                         }
@@ -2125,18 +2124,27 @@
             if (backFromAddDetailBtn) { // Null check
                 backFromAddDetailBtn.addEventListener('click', () => {
                     showPage(propertyCategoriesPage);
+                    // Ensure only category content is visible when returning from Add Detail
+                    if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                    if (propertyFilesPage) propertyFilesPage.style.display = 'none';
                 });
             }
 
             if (backFromAddNewCategoryBtn) { // Null check
                 backFromAddNewCategoryBtn.addEventListener('click', () => {
                     showPage(propertyCategoriesPage);
+                    // Ensure only category content is visible when returning from Add New Category
+                    if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                    if (propertyFilesPage) propertyFilesPage.style.display = 'none';
                 });
             }
 
             if (backFromUpdateDetailBtn) { // Null check
                 backFromUpdateDetailBtn.addEventListener('click', () => {
                     showPage(propertyCategoriesPage);
+                    // Ensure only category content is visible when returning from Update Detail
+                    if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                    if (propertyFilesPage) propertyFilesPage.style.display = 'none';
                 });
             }
 
@@ -2151,9 +2159,11 @@
             if (viewFilesButton) {
                 viewFilesButton.addEventListener('click', () => {
                     if (currentSelectedProperty) {
-                        showPage(propertyFilesPage);
+                        showPage(propertyCategoriesPage); // Stay on current page, but toggle internal divs
+                        if (categoryDetailsContent) categoryDetailsContent.style.display = 'none';
+                        if (propertyFilesPage) propertyFilesPage.style.display = 'flex'; // Ensure flex for its children
                         if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
-                        displayPropertyFiles();
+                        displayPropertyFiles(); // Load files for the current property
                     } else {
                         alert('Please select a property to view files.');
                     }
@@ -2163,7 +2173,9 @@
             // New: Back from Files button functionality
             if (backFromFilesButton) {
                 backFromFilesButton.addEventListener('click', () => {
-                    showPage(propertyCategoriesPage);
+                    showPage(propertyCategoriesPage); // Stay on current page, but toggle internal divs
+                    if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                    if (propertyFilesPage) propertyFilesPage.style.display = 'none';
                     // Re-render categories to ensure correct state if any files were added/deleted
                     renderPropertyCategories();
                 });
@@ -2239,7 +2251,10 @@
                             }
                         }
                     };
-                    reader.readAsDataURL(file); // Read file as Base64
+                    // Ensure the file is not empty before reading
+                    if (file) {
+                        reader.readAsDataURL(file); // Read file as Base64
+                    }
                 });
             }
 
@@ -2275,12 +2290,15 @@
 
                         const fileExtension = file.filename.split('.').pop().toLowerCase();
                         let filePreviewHtml = '';
+                        let isEmbeddable = false;
 
-                        // Simple heuristic for file preview/icon
+                        // Simple heuristic for file preview/icon and embeddability
                         if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
                             filePreviewHtml = `<img src="${file.file_url}" alt="${file.filename}" class="object-cover rounded-sm mr-3">`;
+                            isEmbeddable = true; // Images are directly embeddable
                         } else if (fileExtension === 'pdf') {
                             filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-red-500 mr-3"><path d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25z" /><path fill-rule="evenodd" d="M12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zm0 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V4.5a.75.75 0 01.75-.75zM12 9a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V9.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // PDF icon
+                            isEmbeddable = true; // PDFs are often embeddable in iframes
                         } else if (['doc', 'docx'].includes(fileExtension)) {
                              filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-blue-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zM12 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V2.25a.75.75 0 01.75-.75zM12 6.75a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V7.5a.75.75 0 01.75-.75zM12 13.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0v-3.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // Document icon
                         } else if (['xls', 'xlsx'].includes(fileExtension)) {
@@ -2371,4 +2389,3 @@
     </script>
 </body>
 </html>
-�
