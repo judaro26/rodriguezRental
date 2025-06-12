@@ -443,46 +443,51 @@
                 <h2 id="current-property-title" class="text-3xl font-bold text-gray-800">Category Details</h2>
             </div>
 
-            <div id="category-details-content" class="flex-grow overflow-y-auto pr-2">
-                <p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p>
-                <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                    <!-- Dynamic buttons related to the selected category will be inserted here -->
+            <!-- This is the container for dynamically toggled content -->
+            <div class="flex-grow relative">
+                <div id="category-details-content" class="absolute inset-0 flex-grow overflow-y-auto pr-2">
+                    <p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p>
+                    <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                        <!-- Dynamic buttons related to the selected category will be inserted here -->
+                    </div>
                 </div>
-            </div>
-             <!-- Property Files Section (Initially hidden) -->
-            <div id="property-files-content" class="flex-grow flex flex-col p-4 hidden">
-                <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
+                
+                <div id="property-files-content" class="absolute inset-0 flex-grow flex flex-col p-4 hidden">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
 
-                <div class="bg-gray-100 p-4 rounded-lg mb-6">
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Upload New File</h4>
-                    <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-md mb-3">
-                    <button type="submit" id="upload-file-button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-semibold w-full">
-                        Upload File
-                    </button>
-                    <div id="file-upload-status" class="mt-3 text-center text-sm hidden"></div>
-                </div>
+                    <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                        <h4 class="text-lg font-semibold text-gray-700 mb-3">Upload New File</h4>
+                        <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-md mb-3">
+                        <button type="submit" id="upload-file-button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-semibold w-full">
+                            Upload File
+                        </button>
+                        <div id="file-upload-status" class="mt-3 text-center text-sm hidden"></div>
+                    </div>
 
-                <h4 class="text-lg font-semibold text-gray-700 mb-3">Existing Files</h4>
-                <div id="files-list-container" class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-                    <p class="text-gray-500 p-4 text-center">No files uploaded yet for this property.</p>
-                    <!-- Existing files will be dynamically loaded here -->
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Existing Files</h4>
+                    <div id="files-list-container" class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                        <p class="text-gray-500 p-4 text-center">No files uploaded yet for this property.</p>
+                        <!-- Existing files will be dynamically loaded here -->
+                    </div>
+                    <div id="files-loading-message" class="text-gray-600 text-lg my-4 hidden">Loading files...</div>
+                    <div id="files-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4 rounded-md hidden" role="alert">
+                        <p class="font-bold">Error loading files:</p>
+                        <p class="text-sm" id="files-error-text"></p>
+                    </div>
                 </div>
-                <div id="files-loading-message" class="text-gray-600 text-lg my-4 hidden">Loading files...</div>
-                <div id="files-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4 rounded-md hidden" role="alert">
-                    <p class="font-bold">Error loading files:</p>
-                    <p class="text-sm" id="files-error-text"></p>
-                </div>
-            </div>
-            <!-- The security warning should be here, always visible within main when category content is displayed -->
+            </div> <!-- End of flex-grow relative container -->
+
+            <!-- The "Add Vendor's Details" button has been moved here -->
+            <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
+                Add Vendor's Details
+            </button>
+
+            <!-- The security warning should be here, after the dynamic content container and the button -->
             <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
                 <p class="font-bold">Security Notice:</p>
                 <p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p>
             </div>
         </main>
-        <!-- The "Add Vendor's Details" button has been moved here -->
-        <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
-            Add Vendor's Details
-        </button>
     </div>
 
     <!-- Add New Category Page (New Page) -->
@@ -498,7 +503,7 @@
             <form id="add-new-category-form" class="space-y-4">
                 <div>
                     <label for="new-category-name" class="block text-gray-700 text-sm font-semibold mb-2">Category Name</label>
-                    <input type="text" id="new-category-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    <input type="text" id="new-category-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Utilities, Insurance" required>
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-new-category" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
@@ -728,7 +733,6 @@
             // addCategoryDetailButton will be accessed directly via its new ID
             const addNewCategoryButton = document.getElementById('add-new-category-button');
             const deleteCategoryButton = document.getElementById('delete-category-button');
-            // Corrected ID for categories refresh button
             const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
             const viewFilesButton = document.getElementById('view-files-button');
 
@@ -800,7 +804,7 @@
             const updatePropertyForm = document.getElementById('update-property-form');
             const updatePropertyIdInput = document.getElementById('update-property-id');
             const updatePropertyTitleInput = document.getElementById('update-property-title');
-            const updatePropertyImageInput = document.getElementById('property-image'); // Re-using propertyImageInput's element for update
+            const updatePropertyImageInput = document.getElementById('update-property-image');
             const updatePropertyDescriptionInput = document.getElementById('update-property-description');
             const updatePropertyCategoriesInput = document.getElementById('update-property-categories');
             const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
@@ -999,6 +1003,7 @@
                 renderPropertyCards(); // Render the filtered list
                 updateFilterButtonsHighlight(); // Update button highlights
             }
+
 
             function updateFilterButtonsHighlight() {
                 // Remove highlight from all filter buttons
@@ -1481,8 +1486,7 @@
                 const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom'); // Get the new button reference
                 const mainTag = document.querySelector('main'); // Get reference to the main tag
                 if (addCategoryDetailButtonAtBottom && mainTag) { // Ensure button and mainTag exist
-                    // If it's already a child of mainTag, removing and re-appending doesn't hurt.
-                    // If it was somewhere else, this correctly moves it.
+                    // Remove from its potential old parent (categoryDetailsContent) if it was appended there
                     if (addCategoryDetailButtonAtBottom.parentNode && addCategoryDetailButtonAtBottom.parentNode !== mainTag) {
                         addCategoryDetailButtonAtBottom.parentNode.removeChild(addCategoryDetailButtonAtBottom);
                     }
@@ -1656,9 +1660,12 @@
             }
 
             // --- Add Category Detail Button & Form Logic ---
-            // The click listener is now on the moved button at the bottom of the main tag
             const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom'); // Get the new button reference
-            if (addCategoryDetailButtonAtBottom) { // Null check
+            const mainTag = document.querySelector('main'); // Get reference to the main tag
+            if (addCategoryDetailButtonAtBottom && mainTag) { // Ensure button and mainTag exist
+                // Initially hide this button until a category is selected (handled in renderPropertyCategories/displayCategoryDetails)
+                addCategoryDetailButtonAtBottom.style.display = 'none';
+
                 addCategoryDetailButtonAtBottom.addEventListener('click', () => {
                     if (currentSelectedProperty && currentSelectedCategoryName) {
                         if (addDetailCategoryNameSpan) addDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
