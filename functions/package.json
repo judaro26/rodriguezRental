@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cloudinary": "^1.x.x", // Use the latest stable version
-    "pg": "^8.x.x" // Assuming you already have pg for Neon DB
+    "cloudinary": "^1.x.x",
+    "pg": "^8.x.x"
   }
 }
