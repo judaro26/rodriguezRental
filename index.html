@@ -973,9 +973,9 @@
                 // If user is neither domestic nor foreign approved, disable "All Properties" too
                 if (filterAllPropertiesBtn) { // Null check
                     if (!currentUserDomesticApprovedStatus && !currentUserForeignApprovedStatus) {
-                        filterAllPropertiesBtn.disabled = true;
-                        filterAllPropertiesBtn.classList.remove('hover:bg-blue-600', 'cursor-pointer');
-                        filterAllPropertiesBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                         filterAllPropertiesBtn.disabled = true;
+                         filterAllPropertiesBtn.classList.remove('hover:bg-blue-600', 'cursor-pointer');
+                         filterAllPropertiesBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     } else {
                         filterAllPropertiesBtn.disabled = false;
                         filterAllPropertiesBtn.classList.add('hover:bg-blue-600', 'cursor-pointer');
@@ -1357,6 +1357,7 @@
 
             // --- Display Category Details / Dynamic Buttons (now tiles) ---
             async function displayCategoryDetails(selectedCategoryName) {
+                const securityWarningDiv = document.getElementById('security-warning'); // Get reference locally
                 if (categoryDetailsContent) categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
                 if (categoryDetailsContent && securityWarningDiv) categoryDetailsContent.appendChild(securityWarningDiv); // Re-append
                 const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
