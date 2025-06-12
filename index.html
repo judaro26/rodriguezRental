@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-M-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Property Information Hub</title>
     <!-- Tailwind CSS CDN -->
@@ -226,6 +226,45 @@
         .credential-field button:hover {
             background-color: #d1d5db;
         }
+        /* File List Styling */
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-item a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            word-break: break-all;
+            flex-grow: 1;
+            margin-right: 1rem;
+        }
+        .file-item a:hover {
+            text-decoration: underline;
+        }
+        .file-item img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-right: 0.75rem;
+        }
+        .file-item .file-info {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .file-item .file-info span {
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -360,7 +399,7 @@
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-add-property" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
-                    <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Property</button>
+                    <button type="submit" id="confirm-add-property-button" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Property</button>
                 </div>
             </form>
             <div id="add-property-status" class="mt-4 hidden"></div>
@@ -417,6 +456,24 @@
                     <p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p>
                 </div>
             </div>
+             <!-- Property Files Section (Initially hidden) -->
+            <div id="property-files-content" class="flex-grow flex flex-col p-4 hidden">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
+
+                <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Upload New File</h4>
+                    <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-md mb-3">
+                    <button id="upload-file-button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-semibold w-full">
+                        Upload File
+                    </button>
+                    <div id="file-upload-status" class="mt-3 text-center text-sm hidden"></div>
+                </div>
+
+                <h4 class="text-lg font-semibold text-gray-700 mb-3">Existing Files</h4>
+                <div id="files-list-container" class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                    <p class="text-gray-500 p-4 text-center">No files uploaded yet.</p>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -437,7 +494,7 @@
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-new-category" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
-                    <button type="submit" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Category</button>
+                    <button type="submit" id="save-new-category-button" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold shadow-md">Save Category</button>
                 </div>
             </form>
             <div id="add-new-category-status" class="mt-4 hidden"></div>
@@ -446,7 +503,7 @@
 
 
     <!-- Add Category Detail Page -->
-    <div id="add-category-detail-page" class="flex-grow flex items-center justify-center p-4 relative pt-16">
+    <div id="add-category-detail-page" class="flex-grow flex items-center justify-center p-4 relative pt-16 hidden">
         <button id="back-from-add-detail-btn" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -462,7 +519,7 @@
                 </div>
                 <div>
                     <label for="detail-url" class="block text-gray-700 text-sm font-semibold mb-2">Detail URL (Link)</label>
-                    <input type="url" id="detail-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    <input type="url" id="detail-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., https://watercompany.com/login" required>
                 </div>
                 <div>
                     <label for="detail-description" class="block text-gray-700 text-sm font-semibold mb-2">Detail Description (Optional)</label>
@@ -665,6 +722,7 @@
             const deleteCategoryButton = document.getElementById('delete-category-button');
             // Corrected ID for categories refresh button
             const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
+            const viewFilesButton = document.getElementById('view-files-button'); // New: View Files button
 
 
             // Property details header elements
@@ -746,6 +804,15 @@
             const cancelUpdatePropertyButton = document.getElementById('cancel-update-property');
             const updatePropertyStatus = document.getElementById('update-property-status');
             const backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn');
+
+            // Elements for Property Files Page
+            const propertyFilesPage = document.getElementById('property-files-page'); // New files page
+            const filesPropertyTitleSpan = document.getElementById('files-property-title'); // Span for property title on files page
+            const fileUploadInput = document.getElementById('file-upload-input'); // File input
+            const uploadFileButton = document.getElementById('upload-file-button'); // Upload button
+            const fileUploadStatus = document.getElementById('file-upload-status'); // Upload status message
+            const filesListContainer = document.getElementById('files-list-container'); // Container for file list
+            const backFromFilesButton = document.getElementById('back-from-files-button'); // Back button on files page
 
 
             // --- Global variables ---
@@ -1001,7 +1068,7 @@
                 const allPages = [
                     loginPage, registerPage, propertySelectionPage, addPropertyPage,
                     propertyCategoriesPage, addCategoryDetailPage, addNewCategoryPage,
-                    updatePropertyPage, updateCategoryDetailPage
+                    updatePropertyPage, updateCategoryDetailPage, propertyFilesPage // Include new files page
                 ];
 
                 allPages.forEach(page => {
@@ -1381,6 +1448,10 @@
 
             // --- Display Category Details / Dynamic Buttons (now tiles) ---
             async function displayCategoryDetails(selectedCategoryName) {
+                // Ensure only category content is visible when this is active
+                if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                if (propertyFilesPage) propertyFilesPage.style.display = 'none';
+
                 // IMPORTANT: Re-get securityWarningDiv here as categoryDetailsContent.innerHTML resets its children
                 const securityWarningDiv = document.getElementById('security-warning');
                 
@@ -1465,7 +1536,7 @@
                                 if (targetInput) { // Null check
                                     if (targetInput.type === 'password') {
                                         targetInput.type = 'text';
-                                        e.target.textContent = '🙈';
+                                        e.target.textContent = '�';
                                     } else {
                                         targetInput.type = 'password';
                                         e.target.textContent = '👁️';
@@ -1834,7 +1905,7 @@
                     const detailId = updateDetailIdInput.value;
                     const detailName = updateDetailNameInput.value.trim();
                     const detailUrl = updateDetailUrlInput.value.trim();
-                    const detailDescription = detailDescriptionInput.value.trim();
+                    const detailDescription = updateDetailDescriptionInput.value.trim();
                     const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput ? updateCustomLogoUrlInput.value.trim() : null); // Null check
                     const usernameToSave = updateDetailUsernameInput ? updateDetailUsernameInput.value.trim() : ''; // Null check
                     const passwordToSave = updateDetailPasswordInput ? updateDetailPasswordInput.value.trim() : ''; // Null check
@@ -2076,6 +2147,223 @@
                 });
             }
 
+            // New: View Files button functionality
+            if (viewFilesButton) {
+                viewFilesButton.addEventListener('click', () => {
+                    if (currentSelectedProperty) {
+                        showPage(propertyFilesPage);
+                        if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
+                        displayPropertyFiles();
+                    } else {
+                        alert('Please select a property to view files.');
+                    }
+                });
+            }
+
+            // New: Back from Files button functionality
+            if (backFromFilesButton) {
+                backFromFilesButton.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                    // Re-render categories to ensure correct state if any files were added/deleted
+                    renderPropertyCategories();
+                });
+            }
+
+            // New: Upload File button functionality
+            if (uploadFileButton) {
+                uploadFileButton.addEventListener('click', async () => {
+                    if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
+                        if (fileUploadStatus) {
+                            fileUploadStatus.classList.remove('hidden');
+                            fileUploadStatus.className = 'mt-3 text-center text-sm bg-yellow-100 text-yellow-700';
+                            fileUploadStatus.textContent = 'Please select a file to upload.';
+                        }
+                        return;
+                    }
+
+                    const file = fileUploadInput.files[0];
+                    const reader = new FileReader();
+
+                    reader.onloadend = async () => {
+                        const base64data = reader.result.split(',')[1]; // Get only the Base64 part
+
+                        if (!currentSelectedProperty || !currentLoggedInUsername || !currentLoggedInPassword) {
+                            if (fileUploadStatus) {
+                                fileUploadStatus.classList.remove('hidden');
+                                fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
+                                fileUploadStatus.textContent = 'Error: Property not selected or user not logged in.';
+                            }
+                            return;
+                        }
+
+                        if (fileUploadStatus) {
+                            fileUploadStatus.classList.remove('hidden');
+                            fileUploadStatus.className = 'mt-3 text-center text-sm bg-blue-100 text-blue-700';
+                            fileUploadStatus.textContent = 'Uploading file...';
+                        }
+
+                        try {
+                            const response = await fetch('/.netlify/functions/uploadFile', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    property_id: currentSelectedProperty.id,
+                                    filename: file.name,
+                                    file_data_base64: base64data,
+                                    uploaded_by_username: currentLoggedInUsername,
+                                    username: currentLoggedInUsername,
+                                    password: currentLoggedInPassword
+                                })
+                            });
+
+                            const data = await response.json();
+
+                            if (response.ok) {
+                                if (fileUploadStatus) {
+                                    fileUploadStatus.className = 'mt-3 text-center text-sm bg-green-100 text-green-700';
+                                    fileUploadStatus.textContent = 'File uploaded successfully!';
+                                }
+                                if (fileUploadInput) fileUploadInput.value = ''; // Clear file input
+                                displayPropertyFiles(); // Refresh file list
+                            } else {
+                                if (fileUploadStatus) {
+                                    fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
+                                    fileUploadStatus.textContent = `Upload failed: ${data.details || data.message}`;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('File upload error:', error);
+                            if (fileUploadStatus) {
+                                fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
+                                fileUploadStatus.textContent = `Network error during upload: ${error.message}`;
+                            }
+                        }
+                    };
+                    reader.readAsDataURL(file); // Read file as Base64
+                });
+            }
+
+            // New: Display Property Files function
+            async function displayPropertyFiles() {
+                if (!currentSelectedProperty || !filesListContainer) {
+                    if (filesListContainer) filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">Select a property to view files.</p>`;
+                    return;
+                }
+
+                filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
+
+                try {
+                    const response = await fetch(`/.netlify/functions/getFiles?property_id=${currentSelectedProperty.id}`);
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                    }
+                    const files = await response.json();
+                    console.log(`Files for property ${currentSelectedProperty.id}:`, files);
+
+                    filesListContainer.innerHTML = ''; // Clear loading message
+
+                    if (files.length === 0) {
+                        filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files uploaded yet.</p>`;
+                        return;
+                    }
+
+                    files.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.classList.add('file-item');
+                        fileItem.dataset.fileId = file.id; // Store file ID for deletion
+
+                        const fileExtension = file.filename.split('.').pop().toLowerCase();
+                        let filePreviewHtml = '';
+
+                        // Simple heuristic for file preview/icon
+                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
+                            filePreviewHtml = `<img src="${file.file_url}" alt="${file.filename}" class="object-cover rounded-sm mr-3">`;
+                        } else if (fileExtension === 'pdf') {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-red-500 mr-3"><path d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25z" /><path fill-rule="evenodd" d="M12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zm0 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V4.5a.75.75 0 01.75-.75zM12 9a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V9.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // PDF icon
+                        } else if (['doc', 'docx'].includes(fileExtension)) {
+                             filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-blue-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zM12 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V2.25a.75.75 0 01.75-.75zM12 6.75a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V7.5a.75.75 0 01.75-.75zM12 13.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0v-3.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // Document icon
+                        } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-green-500 mr-3"><path fill-rule="evenodd" d="M3.75 12a.75.75 0 01.75-.75h14.25a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75zM3.75 6.75a.75.75 0 01.75-.75h14.25a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75zM4.5 18a.75.75 0 000 1.5h14.25a.75.75 0 000-1.5H4.5z" clip-rule="evenodd" /></svg>`; // Spreadsheet icon
+                        } else if (['txt'].includes(fileExtension)) {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-gray-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25a.75.75 0 01.75-.75h6a.75.75 0 01.75.75v6a.75.75 0 01-.75.75h-6a.75.75 0 01-.75-.75v-6zM5.25 11.25a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5H5.25zM5.25 16.5a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5H5.25z" clip-rule="evenodd" /></svg>`; // Text file icon
+                        } else {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-gray-400 mr-3"><path fill-rule="evenodd" d="M1.5 8.25a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM1.5 12a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM1.5 15.75a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>`; // Generic file icon
+                        }
+
+
+                        fileItem.innerHTML = `
+                            <div class="flex items-center flex-grow">
+                                ${filePreviewHtml}
+                                <div class="file-info">
+                                    <a href="${file.file_url}" target="_blank" rel="noopener noreferrer">${file.filename}</a>
+                                    <span>Uploaded by ${file.uploaded_by_username} on ${new Date(file.uploaded_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <button class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors delete-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Delete</button>
+                        `;
+
+                        fileItem.querySelector('.delete-file-btn').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const fileIdToDelete = e.target.dataset.fileId;
+                            const fileNameToDelete = e.target.dataset.fileName;
+
+                            showModal(
+                                verificationModal,
+                                `file: "${fileNameToDelete}"`,
+                                `deleting`,
+                                async (username, password) => {
+                                    if (verificationStatus) {
+                                        verificationStatus.classList.remove('hidden');
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                        verificationStatus.textContent = 'Verifying and deleting file...';
+                                    }
+                                    try {
+                                        const response = await fetch('/.netlify/functions/deleteFile', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                username: username,
+                                                password: password,
+                                                file_id_to_delete: fileIdToDelete
+                                            })
+                                        });
+
+                                        const data = await response.json();
+
+                                        if (response.ok) {
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                                verificationStatus.textContent = 'File deleted successfully!';
+                                            }
+                                            setTimeout(() => {
+                                                hideModal(verificationModal);
+                                                displayPropertyFiles(); // Refresh file list
+                                            }, 1500);
+                                        } else {
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error('Error during file deletion:', error);
+                                        if (verificationStatus) {
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                            verificationStatus.textContent = `Network error: ${error.message}`;
+                                        }
+                                    }
+                                }
+                            );
+                        });
+                        filesListContainer.appendChild(fileItem);
+                    });
+                } catch (error) {
+                    console.error('Error fetching files:', error);
+                    if (filesListContainer) filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Failed to load files: ${error.message}</p>`;
+                }
+            }
+
 
             // --- Initial Load: Show Login Page ---
             showPage(loginPage);
@@ -2083,3 +2371,4 @@
     </script>
 </body>
 </html>
+�
