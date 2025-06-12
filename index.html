@@ -381,7 +381,7 @@
                 </div>
                 <div>
                     <label for="property-image" class="block text-gray-700 text-sm font-semibold mb-2">Image URL</label>
-                    <input type="url" id="property-image" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., https://placehold.co/400x250" required>
+                    <input type="url" id="property-image" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
                 <div>
                     <label for="property-description" class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
@@ -448,7 +448,6 @@
                 <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                     <!-- Dynamic buttons related to the selected category will be inserted here -->
                 </div>
-                <!-- The security warning is also appended dynamically by JS -->
             </div>
              <!-- Property Files Section (Initially hidden) -->
             <div id="property-files-content" class="flex-grow flex flex-col p-4 hidden">
@@ -474,6 +473,11 @@
                     <p class="text-sm" id="files-error-text"></p>
                 </div>
             </div>
+            <!-- The security warning should be here, always visible within main when category content is displayed -->
+            <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
+                <p class="font-bold">Security Notice:</p>
+                <p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p>
+            </div>
         </main>
         <!-- The "Add Vendor's Details" button has been moved here -->
         <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
@@ -494,7 +498,7 @@
             <form id="add-new-category-form" class="space-y-4">
                 <div>
                     <label for="new-category-name" class="block text-gray-700 text-sm font-semibold mb-2">Category Name</label>
-                    <input type="text" id="new-category-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Utilities, Insurance" required>
+                    <input type="text" id="new-category-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-new-category" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
@@ -721,16 +725,15 @@
             const dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
             const categoryLoadingMessage = document.getElementById('category-loading-message');
             const backToPropertiesBtn = document.getElementById('back-to-properties-btn');
-            const addCategoryDetailButton = document.getElementById('add-category-detail-button');
+            // addCategoryDetailButton will be accessed directly via its new ID
             const addNewCategoryButton = document.getElementById('add-new-category-button');
             const deleteCategoryButton = document.getElementById('delete-category-button');
             // Corrected ID for categories refresh button
             const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
+            const viewFilesButton = document.getElementById('view-files-button');
 
 
             // Property details header elements
-            // IMPORTANT: These are now accessed directly, not nested inside categoryDetailsContent.
-            // Ensure these elements are present in the HTML outside of any dynamic content area.
             const propertyHeader = document.getElementById('property-header');
             const currentPropertyTitle = document.getElementById('current-property-title');
             const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
@@ -768,11 +771,8 @@
             const modalUsernameInput = document.getElementById('modal-username');
             const modalPasswordInput = document.getElementById('modal-password');
             const verificationStatus = document.getElementById('verification-status');
-            // Renamed from modalCategoryNameSpan to modalItemToDeleteNameSpan to be more generic
             const modalItemToDeleteNameSpan = document.getElementById('modal-item-to-delete-name');
-            // New element to dynamically set the action prompt (e.g., "please enter your credentials to confirm deleting")
             const modalPromptActionSpan = document.getElementById('modal-prompt-action');
-            // New element for the action button itself, to change its text and color
             const confirmActionButton = document.getElementById('confirm-action-button');
             const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
 
@@ -800,7 +800,7 @@
             const updatePropertyForm = document.getElementById('update-property-form');
             const updatePropertyIdInput = document.getElementById('update-property-id');
             const updatePropertyTitleInput = document.getElementById('update-property-title');
-            const updatePropertyImageInput = document.getElementById('update-property-image');
+            const updatePropertyImageInput = document.getElementById('property-image'); // Re-using propertyImageInput's element for update
             const updatePropertyDescriptionInput = document.getElementById('update-property-description');
             const updatePropertyCategoriesInput = document.getElementById('update-property-categories');
             const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
@@ -809,14 +809,14 @@
             const backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn');
 
             // Elements for Property Files Page
-            const propertyFilesPage = document.getElementById('property-files-page'); // New files page
-            const filesPropertyTitleSpan = document.getElementById('files-property-title'); // Span for property title on files page
-            const filesPropertyThumbnail = document.getElementById('files-property-thumbnail'); // Thumbnail for property on files page
-            const fileUploadInput = document.getElementById('file-upload-input'); // File input
-            const uploadFileButton = document.getElementById('upload-file-button'); // Upload button
-            const fileUploadStatus = document.getElementById('file-upload-status'); // Upload status message
-            const filesListContainer = document.getElementById('files-list-container'); // Container for file list
-            const backFromFilesButton = document.getElementById('back-from-files-button'); // Back button on files page
+            const propertyFilesPage = document.getElementById('property-files-page');
+            const filesPropertyTitleSpan = document.getElementById('files-property-title');
+            const filesPropertyThumbnail = document.getElementById('files-property-thumbnail');
+            const fileUploadInput = document.getElementById('file-upload-input');
+            const uploadFileButton = document.getElementById('upload-file-button');
+            const fileUploadStatus = document.getElementById('file-upload-status');
+            const filesListContainer = document.getElementById('files-list-container');
+            const backFromFilesButton = document.getElementById('back-from-files-button');
 
 
             // --- Global variables ---
@@ -1403,7 +1403,7 @@
                 if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
                     if (propertyCategoriesNav) propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
                     // Hide buttons if no categories
-                    if (addCategoryDetailButton) addCategoryDetailButton.style.display = 'none';
+                    // addCategoryDetailButton is not used directly here, but addCategoryDetailButtonAtBottom is
                     if (deleteCategoryButton) deleteCategoryButton.style.display = 'none';
                     // Show Add New Category and Refresh
                     if (addNewCategoryButton) addNewCategoryButton.style.display = 'block';
@@ -1415,7 +1415,7 @@
                 }
 
                 // Initial state for buttons if categories exist
-                if (addCategoryDetailButton) addCategoryDetailButton.style.display = 'none'; // Will be managed by displayCategoryDetails
+                // addCategoryDetailButton is not used directly here, but addCategoryDetailButtonAtBottom is
                 if (deleteCategoryButton) deleteCategoryButton.style.display = 'block';
                 if (addNewCategoryButton) addNewCategoryButton.style.display = 'block';
                 if (refreshCategoriesButtonOnCategoriesPage) refreshCategoriesButtonOnCategoriesPage.style.display = 'block';
@@ -1478,16 +1478,16 @@
                 const loadingMessage = document.getElementById('category-loading-message');
 
                 // Re-append "Add Vendor's Details" button to the bottom of the right column
-                const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom'); // Get the new button reference
                 const mainTag = document.querySelector('main'); // Get reference to the main tag
-                if (addVendorButton && mainTag) { // Ensure button and mainTag exist
+                if (addCategoryDetailButtonAtBottom && mainTag) { // Ensure button and mainTag exist
                     // If it's already a child of mainTag, removing and re-appending doesn't hurt.
                     // If it was somewhere else, this correctly moves it.
-                    if (addVendorButton.parentNode && addVendorButton.parentNode !== mainTag) {
-                        addVendorButton.parentNode.removeChild(addVendorButton);
+                    if (addCategoryDetailButtonAtBottom.parentNode && addCategoryDetailButtonAtBottom.parentNode !== mainTag) {
+                        addCategoryDetailButtonAtBottom.parentNode.removeChild(addCategoryDetailButtonAtBottom);
                     }
-                    mainTag.appendChild(addVendorButton);
-                    addVendorButton.style.display = 'block'; // Make sure it's visible
+                    mainTag.appendChild(addCategoryDetailButtonAtBottom); // Append to the main tag
+                    addCategoryDetailButtonAtBottom.style.display = 'block'; // Make sure it's visible
                 }
                 
                 try {
@@ -1741,7 +1741,11 @@
                         console.error('Error saving detail:', error);
                         if (addDetailStatus) { // Null check
                             addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                            addDetailStatus.textContent = `Error saving detail: ${error.message}`;
+                            if (error.message && error.message.includes('duplicate key value violates unique constraint')) { // More specific error check
+                                addDetailStatus.textContent = 'Detail with this name already exists for this category.';
+                            } else {
+                                addDetailStatus.textContent = `Error saving detail: ${error.message}`;
+                            }
                         }
                     }
                 });
@@ -1818,16 +1822,16 @@
                         renderPropertyCategories();
 
                     } catch (error) {
-                        console.error('Error adding new category:', error);
-                        if (addNewCategoryStatus) { // Null check
-                            addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                            if (error.message.includes('Category already exists')) {
-                                addNewCategoryStatus.textContent = 'Category already exists for this property.';
-                            } else {
-                                addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
+                            console.error('Error adding new category:', error);
+                            if (addNewCategoryStatus) { // Null check
+                                addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                if (error.message && error.message.includes('duplicate key value violates unique constraint')) { // More specific error check
+                                    addNewCategoryStatus.textContent = 'Category with this name already exists for this property.';
+                                } else {
+                                    addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
+                                }
                             }
                         }
-                    }
                 });
             }
 
@@ -1984,7 +1988,11 @@
                         console.error('Error updating detail:', error);
                         if (updateDetailStatus) { // Null check
                             updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                            updateDetailStatus.textContent = `Error updating detail: ${error.message}`;
+                            if (error.message && error.message.includes('duplicate key value violates unique constraint')) { // More specific error check
+                                updateDetailStatus.textContent = 'Detail with this name and URL already exists for this category.';
+                            } else {
+                                updateDetailStatus.textContent = `Error updating detail: ${error.message}`;
+                            }
                         }
                     }
                 });
@@ -2184,7 +2192,6 @@
             }
 
             // New: View Files button functionality
-            const viewFilesButton = document.getElementById('view-files-button'); // Declare viewFilesButton here
             if (viewFilesButton) {
                 viewFilesButton.addEventListener('click', () => {
                     if (currentSelectedProperty) {
@@ -2193,7 +2200,6 @@
                         if (propertyFilesPage) propertyFilesPage.style.display = 'flex'; // Ensure flex for its children
                         if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
                         // Also update the thumbnail on the files page
-                        const filesPropertyThumbnail = document.getElementById('files-property-thumbnail');
                         if (filesPropertyThumbnail) filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
                         
                         // Hide "Add Vendor's Details" button when viewing files
@@ -2305,7 +2311,7 @@
                     return;
                 }
 
-                filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
+                if (filesListContainer) filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
 
                 try {
                     const response = await fetch(`/.netlify/functions/getFiles?property_id=${currentSelectedProperty.id}`);
@@ -2316,10 +2322,10 @@
                     const files = await response.json();
                     console.log(`Files for property ${currentSelectedProperty.id}:`, files);
 
-                    filesListContainer.innerHTML = ''; // Clear loading message
+                    if (filesListContainer) filesListContainer.innerHTML = ''; // Clear loading message
 
                     if (files.length === 0) {
-                        filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files uploaded yet.</p>`;
+                        if (filesListContainer) filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files uploaded yet for this property.</p>`;
                         return;
                     }
 
@@ -2358,7 +2364,10 @@
                                     <span>Uploaded by ${file.uploaded_by_username} on ${new Date(file.uploaded_at).toLocaleDateString()}</span>
                                 </div>
                             </div>
-                            <button class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors delete-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Delete</button>
+                            <div class="flex-shrink-0 flex gap-2">
+                                <button class="bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500 transition-colors edit-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Edit</button>
+                                <button class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors delete-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Delete</button>
+                            </div>
                         `;
 
                         fileItem.querySelector('.delete-file-btn').addEventListener('click', (e) => {
@@ -2414,6 +2423,14 @@
                                 }
                             );
                         });
+
+                        fileItem.querySelector('.edit-file-btn').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            alert(`Edit functionality for file "${file.filename}" is coming soon! For now, you can only delete or re-upload.`);
+                            // Future: Implement full edit modal/page for file metadata
+                            // showModal(verificationModal, `"${file.filename}"`, `editing file details`, async (username, password) => { /* ... */ });
+                        });
+
                         filesListContainer.appendChild(fileItem);
                     });
                 } catch (error) {
