@@ -391,6 +391,9 @@
             <button id="refresh-categories-on-page-button" class="mt-2 bg-gray-600 text-white py-2 px-4 rounded-xl hover:bg-gray-700 transition-colors duration-200 font-semibold w-full">
                 Refresh Categories
             </button>
+            <button id="view-files-button" class="mt-2 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-semibold w-full">
+                View Files
+            </button>
         </aside>
 
         <!-- Right Section: Category Details / Dynamic Buttons -->
@@ -1378,9 +1381,16 @@
 
             // --- Display Category Details / Dynamic Buttons (now tiles) ---
             async function displayCategoryDetails(selectedCategoryName) {
-                const securityWarningDiv = document.getElementById('security-warning'); // Get reference locally
+                // IMPORTANT: Re-get securityWarningDiv here as categoryDetailsContent.innerHTML resets its children
+                const securityWarningDiv = document.getElementById('security-warning');
+                
                 if (categoryDetailsContent) categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
-                if (categoryDetailsContent && securityWarningDiv) categoryDetailsContent.appendChild(securityWarningDiv); // Re-append
+                
+                // Only append if it exists and is not already a child (though innerHTML wipes it, so re-append is safe)
+                if (categoryDetailsContent && securityWarningDiv) {
+                    categoryDetailsContent.appendChild(securityWarningDiv); 
+                }
+                
                 const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
                 const loadingMessage = document.getElementById('category-loading-message');
 
