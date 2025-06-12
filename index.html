@@ -663,6 +663,7 @@
             const refreshCategoriesButton = document.getElementById('refresh-categories-button');
 
             // Property details header elements
+            // These should be directly accessible on the page, not inside categoryDetailsContent
             const propertyHeader = document.getElementById('property-header');
             const currentPropertyTitle = document.getElementById('current-property-title');
             const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
@@ -1286,7 +1287,7 @@
                     currentPropertyThumbnailElement.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
                     currentPropertyThumbnailElement.alt = currentSelectedProperty.title;
                 } else if (currentPropertyTitleElement && currentPropertyThumbnailElement) {
-                    // Fallback if no property is selected
+                    // Fallback if no property is selected (e.g., initially or after deleting last property)
                     currentPropertyTitleElement.textContent = 'Category Details';
                     currentPropertyThumbnailElement.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
                     currentPropertyThumbnailElement.alt = 'Property Thumbnail';
