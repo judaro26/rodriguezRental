@@ -388,7 +388,7 @@
             <button id="delete-category-button" class="mt-2 bg-red-600 text-white py-2 px-4 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold w-full">
                 Delete Selected Category
             </button>
-            <button id="refresh-categories-button" class="mt-2 bg-gray-600 text-white py-2 px-4 rounded-xl hover:bg-gray-700 transition-colors duration-200 font-semibold w-full">
+            <button id="refresh-categories-on-page-button" class="mt-2 bg-gray-600 text-white py-2 px-4 rounded-xl hover:bg-gray-700 transition-colors duration-200 font-semibold w-full">
                 Refresh Categories
             </button>
         </aside>
@@ -663,7 +663,9 @@
             const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-button'); // Renamed for clarity
 
 
-            // Property details header elements (accessed directly in renderPropertyCategories)
+            // Property details header elements
+            // IMPORTANT: These are now accessed directly, not nested inside categoryDetailsContent.
+            // Ensure these elements are present in the HTML outside of any dynamic content area.
             const propertyHeader = document.getElementById('property-header');
             const currentPropertyTitle = document.getElementById('current-property-title');
             const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
@@ -687,7 +689,7 @@
 
 
             // New elements for Add New Category Page
-            const addNewCategoryPage = document.getElementById('add-new-category-page'); // Corrected ID
+            const addNewCategoryPage = document.getElementById('add-new-category-page'); // Corrected ID in JS, still corresponds to HTML ID
             const addNewCategoryForm = document.getElementById('add-new-category-form');
             const newCategoryNameInput = document.getElementById('new-category-name');
             const categoryPropertyTitleSpan = document.getElementById('category-property-title');
@@ -701,6 +703,7 @@
             const modalUsernameInput = document.getElementById('modal-username');
             const modalPasswordInput = document.getElementById('modal-password');
             const verificationStatus = document.getElementById('verification-status');
+            // Renamed from modalCategoryNameSpan to modalItemToDeleteNameSpan to be more generic
             const modalItemToDeleteNameSpan = document.getElementById('modal-item-to-delete-name');
             const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
 
@@ -768,81 +771,85 @@
 
             // --- Helper Function to Render Preset Logoss (for Add form) ---
             function renderPresetLogos(initialSelectionUrl = null) {
-                presetLogoPicker.innerHTML = ''; // Clear existing
-                presetLogos.forEach(logo => {
-                    const logoItem = document.createElement('div');
-                    logoItem.classList.add('logo-picker-item');
-                    logoItem.dataset.logoUrl = logo.url;
+                if(presetLogoPicker) { // Null check for presetLogoPicker
+                    presetLogoPicker.innerHTML = ''; // Clear existing
+                    presetLogos.forEach(logo => {
+                        const logoItem = document.createElement('div');
+                        logoItem.classList.add('logo-picker-item');
+                        logoItem.dataset.logoUrl = logo.url;
 
-                    if (initialSelectionUrl === logo.url) {
-                        logoItem.classList.add('selected');
-                        selectedPresetLogoUrl = logo.url; // Pre-select for add form
-                    }
+                        if (initialSelectionUrl === logo.url) {
+                            logoItem.classList.add('selected');
+                            selectedPresetLogoUrl = logo.url; // Pre-select for add form
+                        }
 
-                    const img = document.createElement('img');
-                    img.src = logo.url;
-                    img.alt = logo.name;
-                    // Add onerror for images, though these CDN links should be stable
-                    img.onerror = function() {
-                        const placeholder = document.createElement('div');
-                        placeholder.classList.add('logo-placeholder');
-                        placeholder.textContent = logo.name.substring(0, 3); // Fallback to first 3 letters
-                        logoItem.replaceChild(placeholder, img);
-                    };
-                    logoItem.appendChild(img);
+                        const img = document.createElement('img');
+                        img.src = logo.url;
+                        img.alt = logo.name;
+                        // Add onerror for images, though these CDN links should be stable
+                        img.onerror = function() {
+                            const placeholder = document.createElement('div');
+                            placeholder.classList.add('logo-placeholder');
+                            placeholder.textContent = logo.name.substring(0, 3); // Fallback to first 3 letters
+                            logoItem.replaceChild(placeholder, img);
+                        };
+                        logoItem.appendChild(img);
 
-                    logoItem.addEventListener('click', () => {
-                        // Deselect all others
-                        document.querySelectorAll('#preset-logo-picker .logo-picker-item').forEach(item => item.classList.remove('selected'));
-                        // Select this one
-                        logoItem.classList.add('selected');
-                        selectedPresetLogoUrl = logo.url; // Set the selected preset URL
-                        customLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
+                        logoItem.addEventListener('click', () => {
+                            // Deselect all others
+                            document.querySelectorAll('#preset-logo-picker .logo-picker-item').forEach(item => item.classList.remove('selected'));
+                            // Select this one
+                            logoItem.classList.add('selected');
+                            selectedPresetLogoUrl = logo.url; // Set the selected preset URL
+                            if (customLogoUrlInput) customLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
+                        });
+                        presetLogoPicker.appendChild(logoItem);
                     });
-                    presetLogoPicker.appendChild(logoItem);
-                });
+                }
             }
 
             // --- Helper Function to Render Preset Logos (for Update form) ---
             function renderPresetLogosForUpdate(initialSelectionUrl = null) {
-                updatePresetLogoPicker.innerHTML = ''; // Clear existing
-                presetLogos.forEach(logo => {
-                    const logoItem = document.createElement('div');
-                    logoItem.classList.add('logo-picker-item');
-                    logoItem.dataset.logoUrl = logo.url;
+                if(updatePresetLogoPicker) { // Null check for updatePresetLogoPicker
+                    updatePresetLogoPicker.innerHTML = ''; // Clear existing
+                    presetLogos.forEach(logo => {
+                        const logoItem = document.createElement('div');
+                        logoItem.classList.add('logo-picker-item');
+                        logoItem.dataset.logoUrl = logo.url;
 
-                    if (initialSelectionUrl === logo.url) {
-                        logoItem.classList.add('selected');
-                        selectedUpdatePresetLogoUrl = logo.url; // Pre-select for update form
-                    }
+                        if (initialSelectionUrl === logo.url) {
+                            logoItem.classList.add('selected');
+                            selectedUpdatePresetLogoUrl = logo.url; // Pre-select for update form
+                        }
 
-                    const img = document.createElement('img');
-                    img.src = logo.url;
-                    img.alt = logo.name;
-                    img.onerror = function() {
-                        const placeholder = document.createElement('div');
-                        placeholder.classList.add('logo-placeholder');
-                        placeholder.textContent = logo.name.substring(0, 3);
-                        logoItem.replaceChild(placeholder, img);
-                    };
-                    logoItem.appendChild(img);
+                        const img = document.createElement('img');
+                        img.src = logo.url;
+                        img.alt = logo.name;
+                        img.onerror = function() {
+                            const placeholder = document.createElement('div');
+                            placeholder.classList.add('logo-placeholder');
+                            placeholder.textContent = logo.name.substring(0, 3);
+                            logoItem.replaceChild(placeholder, img);
+                        };
+                        logoItem.appendChild(img);
 
-                    logoItem.addEventListener('click', () => {
-                        document.querySelectorAll('#update-preset-logo-picker .logo-picker-item').forEach(item => item.classList.remove('selected'));
-                        logoItem.classList.add('selected');
-                        selectedUpdatePresetLogoUrl = logo.url;
-                        updateCustomLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
+                        logoItem.addEventListener('click', () => {
+                            document.querySelectorAll('#update-preset-logo-picker .logo-picker-item').forEach(item => item.classList.remove('selected'));
+                            logoItem.classList.add('selected');
+                            selectedUpdatePresetLogoUrl = logo.url;
+                            if (updateCustomLogoUrlInput) updateCustomLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
+                        });
+                        updatePresetLogoPicker.appendChild(logoItem);
                     });
-                    updatePresetLogoPicker.appendChild(logoItem);
-                });
+                }
             }
 
 
             // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
             async function fetchProperties(isForeignFilter = null) { // Added filter parameter
-                propertiesLoadingMessage.style.display = 'block';
-                propertiesErrorMessage.classList.add('hidden');
-                propertyCardsContainer.innerHTML = '';
+                if (propertiesLoadingMessage) propertiesLoadingMessage.style.display = 'block';
+                if (propertiesErrorMessage) propertiesErrorMessage.classList.add('hidden');
+                if (propertyCardsContainer) propertyCardsContainer.innerHTML = '';
 
                 try {
                     const response = await fetch('/.netlify/functions/getProperties');
@@ -859,10 +866,10 @@
                 }
                 catch (error) {
                     console.error('Error fetching properties from Netlify Function:', error);
-                    propertiesErrorMessage.classList.remove('hidden');
-                    propertiesErrorText.textContent = error.message;
+                    if (propertiesErrorMessage) propertiesErrorMessage.classList.remove('hidden');
+                    if (propertiesErrorText) propertiesErrorText.textContent = error.message;
                 } finally {
-                    propertiesLoadingMessage.style.display = 'none';
+                    if (propertiesLoadingMessage) propertiesLoadingMessage.style.display = 'none';
                 }
             }
 
@@ -922,63 +929,75 @@
 
                 // Add highlight to the active filter button
                 if (currentPropertyFilter === null) {
-                    document.getElementById('filter-all-properties').classList.remove('bg-gray-200', 'text-gray-800');
-                    document.getElementById('filter-all-properties').classList.add('bg-blue-500', 'text-white');
+                    if (filterAllPropertiesBtn) {
+                        filterAllPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
+                        filterAllPropertiesBtn.classList.add('bg-blue-500', 'text-white');
+                    }
                 } else if (currentPropertyFilter === false) {
-                    document.getElementById('filter-domestic-properties').classList.remove('bg-gray-200', 'text-gray-800');
-                    document.getElementById('filter-domestic-properties').classList.add('bg-blue-500', 'text-white');
+                    if (filterDomesticPropertiesBtn) {
+                        filterDomesticPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
+                        filterDomesticPropertiesBtn.classList.add('bg-blue-500', 'text-white');
+                    }
                 } else if (currentPropertyFilter === true) {
-                    document.getElementById('filter-foreign-properties').classList.remove('bg-gray-200', 'text-gray-800');
-                    document.getElementById('filter-foreign-properties').classList.add('bg-blue-500', 'text-white');
+                    if (filterForeignPropertiesBtn) {
+                        filterForeignPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
+                        filterForeignPropertiesBtn.classList.add('bg-blue-500', 'text-white');
+                    }
                 }
 
                 // Disable foreign button if user is not approved
-                if (!currentUserForeignApprovedStatus) {
-                    document.getElementById('filter-foreign-properties').disabled = true;
-                    document.getElementById('filter-foreign-properties').classList.remove('hover:bg-gray-300', 'cursor-pointer');
-                    document.getElementById('filter-foreign-properties').classList.add('opacity-50', 'cursor-not-allowed');
-                } else {
-                    document.getElementById('filter-foreign-properties').disabled = false;
-                    document.getElementById('filter-foreign-properties').classList.add('hover:bg-gray-300', 'cursor-pointer');
-                    document.getElementById('filter-foreign-properties').classList.remove('opacity-50', 'cursor-not-allowed');
+                if (filterForeignPropertiesBtn) { // Null check
+                    if (!currentUserForeignApprovedStatus) {
+                        filterForeignPropertiesBtn.disabled = true;
+                        filterForeignPropertiesBtn.classList.remove('hover:bg-gray-300', 'cursor-pointer');
+                        filterForeignPropertiesBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        filterForeignPropertiesBtn.disabled = false;
+                        filterForeignPropertiesBtn.classList.add('hover:bg-gray-300', 'cursor-pointer');
+                        filterForeignPropertiesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
                 }
                  // Disable domestic button if user is not approved
-                if (!currentUserDomesticApprovedStatus) {
-                    document.getElementById('filter-domestic-properties').disabled = true;
-                    document.getElementById('filter-domestic-properties').classList.remove('hover:bg-gray-300', 'cursor-pointer');
-                    document.getElementById('filter-domestic-properties').classList.add('opacity-50', 'cursor-not-allowed');
-                } else {
-                    document.getElementById('filter-domestic-properties').disabled = false;
-                    document.getElementById('filter-domestic-properties').classList.add('hover:bg-gray-300', 'cursor-pointer');
-                    document.getElementById('filter-domestic-properties').classList.remove('opacity-50', 'cursor-not-allowed');
+                if (filterDomesticPropertiesBtn) { // Null check
+                    if (!currentUserDomesticApprovedStatus) {
+                        filterDomesticPropertiesBtn.disabled = true;
+                        filterDomesticPropertiesBtn.classList.remove('hover:bg-gray-300', 'cursor-pointer');
+                        filterDomesticPropertiesBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        filterDomesticPropertiesBtn.disabled = false;
+                        filterDomesticPropertiesBtn.classList.add('hover:bg-gray-300', 'cursor-pointer');
+                        filterDomesticPropertiesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
                 }
 
                 // If user is neither domestic nor foreign approved, disable "All Properties" too
-                if (!currentUserDomesticApprovedStatus && !currentUserForeignApprovedStatus) {
-                     document.getElementById('filter-all-properties').disabled = true;
-                     document.getElementById('filter-all-properties').classList.remove('hover:bg-blue-600', 'cursor-pointer');
-                     document.getElementById('filter-all-properties').classList.add('opacity-50', 'cursor-not-allowed');
-                } else {
-                    document.getElementById('filter-all-properties').disabled = false;
-                    document.getElementById('filter-all-properties').classList.add('hover:bg-blue-600', 'cursor-pointer');
-                    document.getElementById('filter-all-properties').classList.remove('opacity-50', 'cursor-not-allowed');
+                if (filterAllPropertiesBtn) { // Null check
+                    if (!currentUserDomesticApprovedStatus && !currentUserForeignApprovedStatus) {
+                        filterAllPropertiesBtn.disabled = true;
+                        filterAllPropertiesBtn.classList.remove('hover:bg-blue-600', 'cursor-pointer');
+                        filterAllPropertiesBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        filterAllPropertiesBtn.disabled = false;
+                        filterAllPropertiesBtn.classList.add('hover:bg-blue-600', 'cursor-pointer');
+                        filterAllPropertiesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
                 }
             }
 
 
             // --- Page Navigation Functions ---
             function showPage(pageElement) {
-                // Hide all main pages
-                loginPage.style.display = 'none';
-                registerPage.style.display = 'none';
-                propertySelectionPage.style.display = 'none';
-                addPropertyPage.style.display = 'none';
-                propertyCategoriesPage.style.display = 'none';
-                addCategoryDetailPage.style.display = 'none';
-                addNewCategoryPage.style.display = 'none';
-                updatePropertyPage.style.display = 'none'; // Ensure update property page is hidden
-                updateCategoryDetailPage.style.display = 'none'; // Hide update page
-                verificationModal.classList.add('hidden'); // Ensure modal is hidden
+                const allPages = [
+                    loginPage, registerPage, propertySelectionPage, addPropertyPage,
+                    propertyCategoriesPage, addCategoryDetailPage, addNewCategoryPage,
+                    updatePropertyPage, updateCategoryDetailPage
+                ];
+
+                allPages.forEach(page => {
+                    if (page) { // Check if the element exists before trying to access its style
+                        page.style.display = 'none';
+                    }
+                });
 
                 // Show the requested main page
                 if (pageElement) { // Add null check here
@@ -986,25 +1005,23 @@
                 }
 
                 // Handle specific messages/errors
-                if (pageElement !== loginPage) {
-                    loginErrorMessage.classList.add('hidden');
-                    registrationStatusMessage.classList.add('hidden');
-                }
-                if (pageElement !== registerPage) {
-                    registerErrorMessage.classList.add('hidden');
-                }
+                if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
+                if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
+                if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
             }
 
             // --- Show/Hide Modal Function ---
             // Now accepts a callback function and a message for the modal
             function showModal(modalElement, confirmationMessage, callback) {
                 modalElement.classList.remove('hidden');
-                modalItemToDeleteNameSpan.textContent = confirmationMessage; // Update modal message dynamically
+                if (modalItemToDeleteNameSpan) modalItemToDeleteNameSpan.textContent = confirmationMessage; // Update modal message dynamically
                 currentVerificationCallback = callback; // Store the callback
-                modalUsernameInput.value = '';
-                modalPasswordInput.value = '';
-                verificationStatus.classList.add('hidden'); // Clear status from previous attempts
-                verificationStatus.textContent = '';
+                if (modalUsernameInput) modalUsernameInput.value = '';
+                if (modalPasswordInput) modalPasswordInput.value = '';
+                if (verificationStatus) { // Null check
+                    verificationStatus.classList.add('hidden'); // Clear status from previous attempts
+                    verificationStatus.textContent = '';
+                }
             }
 
             function hideModal(modalElement) {
@@ -1017,14 +1034,14 @@
                 event.preventDefault();
 
                 const username = usernameInput.value.trim();
-                const password = passwordInput.value.trim();
+                const const_password = passwordInput.value.trim(); // Use a local const for the submitted password
 
-                loginErrorMessage.classList.add('hidden');
-                loginErrorText.textContent = '';
+                if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
+                if (loginErrorText) loginErrorText.textContent = '';
 
-                if (!username || !password) {
-                    loginErrorMessage.classList.remove('hidden');
-                    loginErrorText.textContent = 'Please enter both username and password.';
+                if (!username || !const_password) {
+                    if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
+                    if (loginErrorText) loginErrorText.textContent = 'Please enter both username and password.';
                     return;
                 }
 
@@ -1032,7 +1049,7 @@
                     const response = await fetch('/.netlify/functions/loginUser', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
+                        body: JSON.stringify({ username, password: const_password }) // Pass the local const
                     });
 
                     const data = await response.json();
@@ -1042,82 +1059,86 @@
                         currentUserForeignApprovedStatus = data.foreign_approved; // Store user's foreign approval status
                         currentUserDomesticApprovedStatus = data.domestic_approved; // Store user's domestic approval status
                         currentLoggedInUsername = username; // Store username
-                        currentLoggedInPassword = password; // Store password (WARNING: For demo purposes only)
+                        currentLoggedInPassword = const_password; // Store password (WARNING: For demo purposes only)
 
                         showPage(propertySelectionPage);
                         // Fetch properties after successful login, applying default filter (all)
                         await fetchProperties(null);
                         updateFilterButtonsHighlight(); // Highlight "All Properties" and manage foreign/domestic button state
                     } else {
-                        loginErrorMessage.classList.remove('hidden');
-                        loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
-                        passwordInput.value = '';
+                        if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
+                        if (loginErrorText) loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
+                        if (passwordInput) passwordInput.value = '';
                     }
                 } catch (error) {
                     console.error("Fetch error during login:", error);
-                    loginErrorMessage.classList.remove('hidden');
-                    loginErrorText.textContent = 'Network error or server issue. Please try again later.';
-                    passwordInput.value = '';
+                    if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
+                    if (loginErrorText) loginErrorText.textContent = 'Network error or server issue. Please try again later.';
+                    if (passwordInput) passwordInput.value = '';
                 }
             });
 
             // --- Registration Logic ---
-            showRegisterFormBtn.addEventListener('click', () => {
-                showPage(registerPage);
-                regUsernameInput.value = '';
-                regPasswordInput.value = '';
-                registerErrorMessage.classList.add('hidden');
-                registrationStatusMessage.classList.add('hidden');
-            });
+            if (showRegisterFormBtn) { // Null check
+                showRegisterFormBtn.addEventListener('click', () => {
+                    showPage(registerPage);
+                    if (regUsernameInput) regUsernameInput.value = '';
+                    if (regPasswordInput) regPasswordInput.value = '';
+                    if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
+                    if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
+                });
+            }
 
-            registerForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
+            if (registerForm) { // Null check
+                registerForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
 
-                const username = regUsernameInput.value.trim();
-                const password = regPasswordInput.value.trim();
+                    const username = regUsernameInput.value.trim();
+                    const password = regPasswordInput.value.trim();
 
-                registerErrorMessage.classList.add('hidden');
-                registerErrorText.textContent = '';
+                    if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
+                    if (registerErrorText) registerErrorText.textContent = '';
 
-                if (!username || !password) {
-                    registerErrorMessage.classList.remove('hidden');
-                    registerErrorText.textContent = 'Please enter both username and password.';
-                    return;
-                }
-
-                try {
-                    const response = await fetch('/.netlify/functions/registerUser', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        console.log("Registration successful:", data.message);
-                        registrationStatusMessage.classList.remove('hidden');
-                        showPage(loginPage);
-                        usernameInput.value = username;
-                        passwordInput.value = '';
-                    } else {
-                        registerErrorMessage.classList.remove('hidden');
-                        registerErrorText.textContent = data.message || 'An unknown error occurred during registration.';
-                        regPasswordInput.value = '';
+                    if (!username || !password) {
+                        if (registerErrorMessage) registerErrorMessage.classList.remove('hidden');
+                        if (registerErrorText) registerErrorText.textContent = 'Please enter both username and password.';
+                        return;
                     }
-                } catch (error) {
-                    console.error("Fetch error during registration:", error);
-                    registerErrorMessage.classList.add('hidden');
-                    registerErrorText.textContent = 'Network error or server issue. Please try again later.';
-                    regPasswordInput.value = '';
-                }
-            });
+
+                    try {
+                        const response = await fetch('/.netlify/functions/registerUser', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username, password })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            console.log("Registration successful:", data.message);
+                            if (registrationStatusMessage) registrationStatusMessage.classList.remove('hidden');
+                            showPage(loginPage);
+                            if (usernameInput) usernameInput.value = username;
+                            if (passwordInput) passwordInput.value = '';
+                        } else {
+                            if (registerErrorMessage) registerErrorMessage.classList.remove('hidden');
+                            if (registerErrorText) registerErrorText.textContent = data.message || 'An unknown error occurred during registration.';
+                            if (regPasswordInput) regPasswordInput.value = '';
+                        }
+                    } catch (error) {
+                        console.error("Fetch error during registration:", error);
+                        if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
+                        if (registerErrorText) registerErrorText.textContent = 'Network error or server issue. Please try again later.';
+                        if (regPasswordInput) regPasswordInput.value = '';
+                    }
+                });
+            }
 
             // --- Property Selection Logic ---
             function renderPropertyCards() {
-                propertyCardsContainer.innerHTML = '';
+                if (propertyCardsContainer) propertyCardsContainer.innerHTML = '';
                 if (displayedProperties.length === 0) { // Use displayedProperties
-                    propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found matching this filter. Add a new one!</p>`;
+                    if (propertyCardsContainer) propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found matching this filter. Add a new one!</p>`;
                     return;
                 }
                 displayedProperties.forEach(property => { // Iterate over displayedProperties
@@ -1149,14 +1170,6 @@
                         currentSelectedProperty = properties.find(p => p.id == e.target.dataset.propertyId);
                         showPage(propertyCategoriesPage);
                         renderPropertyCategories();
-                        // The property-header elements are outside category-details-content now, so access them directly
-                        if (currentPropertyTitle && currentSelectedProperty) {
-                            currentPropertyTitle.textContent = currentSelectedProperty.title;
-                            currentPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-                            currentPropertyThumbnail.alt = currentSelectedProperty.title;
-                        }
-                        categoryDetailsHeading.textContent = 'Category Details'; // Reset detail heading to default
-                        categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
                     });
 
                     propertyCard.querySelector('[data-action="edit-property"]').addEventListener('click', (e) => {
@@ -1165,67 +1178,72 @@
                         const propertyToEdit = properties.find(p => p.id == propertyIdToEdit);
                         if (propertyToEdit) {
                             showPage(updatePropertyPage); // Show the new update property page
-                            updatePropertyIdInput.value = propertyToEdit.id;
-                            updatePropertyTitleInput.value = propertyToEdit.title;
-                            updatePropertyImageInput.value = propertyToEdit.image;
-                            updatePropertyDescriptionInput.value = propertyToEdit.description;
-                            updatePropertyCategoriesInput.value = propertyToEdit.categories.join(', ');
-                            updatePropertyIsForeignInput.checked = propertyToEdit.is_foreign;
-                            updatePropertyStatus.classList.add('hidden'); // Clear status
+                            if (updatePropertyIdInput) updatePropertyIdInput.value = propertyToEdit.id;
+                            if (updatePropertyTitleInput) updatePropertyTitleInput.value = propertyToEdit.title;
+                            if (updatePropertyImageInput) updatePropertyImageInput.value = propertyToEdit.image;
+                            if (updatePropertyDescriptionInput) updatePropertyDescriptionInput.value = propertyToEdit.description;
+                            if (updatePropertyCategoriesInput) updatePropertyCategoriesInput.value = propertyToEdit.categories.join(', ');
+                            if (updatePropertyIsForeignInput) updatePropertyIsForeignInput.checked = propertyToEdit.is_foreign;
+                            if (updatePropertyStatus) updatePropertyStatus.classList.add('hidden'); // Clear status
                         } else {
                             alert('Property not found for editing.');
                         }
                     });
 
-                    propertyCardsContainer.appendChild(propertyCard);
+                    if (propertyCardsContainer) propertyCardsContainer.appendChild(propertyCard);
                 });
             }
 
             // Filter button event listeners
-            document.getElementById('filter-all-properties').addEventListener('click', () => applyPropertyFilter(null));
-            document.getElementById('filter-domestic-properties').addEventListener('click', () => applyPropertyFilter(false));
-            document.getElementById('filter-foreign-properties').addEventListener('click', () => {
+            if (filterAllPropertiesBtn) filterAllPropertiesBtn.addEventListener('click', () => applyPropertyFilter(null));
+            if (filterDomesticPropertiesBtn) filterDomesticPropertiesBtn.addEventListener('click', () => applyPropertyFilter(false));
+            if (filterForeignPropertiesBtn) filterForeignPropertiesBtn.addEventListener('click', () => {
                 if (currentUserForeignApprovedStatus) {
                     applyPropertyFilter(true);
                 } else {
                     alert('You are not approved to view foreign properties. Please contact an administrator.');
-                    // Optionally, reset filter to 'Domestic' if user clicks 'Foreign' but isn't approved
                     applyPropertyFilter(false); // Default to domestic if not approved for foreign
                 }
             });
 
-            addPropertyButton.addEventListener('click', () => {
-                showPage(addPropertyPage);
-                addPropertyForm.reset();
-                propertyIsForeignInput.checked = false; // Reset checkbox
-                addPropertyStatus.classList.add('hidden');
-            });
+            if (addPropertyButton) { // Null check
+                addPropertyButton.addEventListener('click', () => {
+                    showPage(addPropertyPage);
+                    if (addPropertyForm) addPropertyForm.reset();
+                    if (propertyIsForeignInput) propertyIsForeignInput.checked = false; // Reset checkbox
+                    if (addPropertyStatus) addPropertyStatus.classList.add('hidden');
+                });
+            }
 
             // --- Add New Property Form Logic ---
-            addPropertyForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
+            if (addPropertyForm) { // Null check
+                addPropertyForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
 
-                console.log("Add Property form submitted.");
+                    console.log("Add Property form submitted.");
 
-                const title = propertyTitleInput.value.trim();
-                const image = propertyImageInput.value.trim();
-                const description = propertyDescriptionInput.value.trim();
-                const categoriesString = propertyCategoriesInput.value.trim();
-                const isForeign = propertyIsForeignInput.checked; // Get checkbox value
+                    const title = propertyTitleInput.value.trim();
+                    const image = propertyImageInput.value.trim();
+                    const description = propertyDescriptionInput.value.trim();
+                    const categoriesString = propertyCategoriesInput.value.trim();
+                    const isForeign = propertyIsForeignInput.checked;
 
-                if (title && image && description && categoriesString) {
-                    const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
-
-                    if (parsedCategories.length === 0) {
-                        addPropertyStatus.classList.remove('hidden');
-                        addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
-                        addPropertyStatus.textContent = 'Please enter at least one category.';
+                    if (!title || !image || !description || !categoriesString) {
+                        if (addPropertyStatus) {
+                            addPropertyStatus.classList.remove('hidden');
+                            addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                            addPropertyStatus.textContent = 'Please fill in all required fields.';
+                        }
                         return;
                     }
 
-                    addPropertyStatus.classList.remove('hidden');
-                    addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                    addPropertyStatus.textContent = 'Saving property...';
+                    const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
+
+                    if (addPropertyStatus) {
+                        addPropertyStatus.classList.remove('hidden');
+                        addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        addPropertyStatus.textContent = 'Saving property...';
+                    }
 
                     console.log("Attempting to save property:", { title, image, description, categories: parsedCategories, isForeign });
 
@@ -1246,42 +1264,41 @@
                         const savedProperty = await response.json();
                         console.log('Property saved successfully:', savedProperty);
 
-                        addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                        addPropertyStatus.textContent = 'Property saved successfully!';
+                        if (addPropertyStatus) {
+                            addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                            addPropertyStatus.textContent = 'Property saved successfully!';
+                        }
                         
                         setTimeout(async () => {
                             showPage(propertySelectionPage);
-                            // Refresh properties with the *current* filter applied, not necessarily all
                             await fetchProperties(currentPropertyFilter);
                         }, 1500);
 
                     } catch (error) {
                         console.error('Error saving property:', error);
-                        addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                        addPropertyStatus.textContent = `Error saving property: ${error.message}`;
+                        if (addPropertyStatus) {
+                            addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            addPropertyStatus.textContent = `Error saving property: ${error.message}`;
+                        }
                     }
-                } else {
-                    addPropertyStatus.classList.remove('hidden');
-                    addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
-                    addPropertyStatus.textContent = 'Please fill in all fields to add a new property.';
-                }
-            });
+                });
+            }
 
-            cancelAddPropertyButton.addEventListener('click', () => {
-                showPage(propertySelectionPage);
-            });
+            if (cancelAddPropertyButton) { // Null check
+                cancelAddPropertyButton.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                });
+            }
 
             // --- Property Categories Page Logic ---
             function renderPropertyCategories() {
-                propertyCategoriesNav.innerHTML = '';
+                if (propertyCategoriesNav) propertyCategoriesNav.innerHTML = '';
                 // Update the property header details
-                // Ensure elements are available before attempting to set their properties
                 if (currentPropertyTitle && currentPropertyThumbnail && currentSelectedProperty) {
                     currentPropertyTitle.textContent = currentSelectedProperty.title;
                     currentPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
                     currentPropertyThumbnail.alt = currentSelectedProperty.title;
                 } else if (currentPropertyTitle && currentPropertyThumbnail) {
-                    // Fallback if no property is selected (e.g., initially or after deleting last property)
                     currentPropertyTitle.textContent = 'Category Details';
                     currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
                     currentPropertyThumbnail.alt = 'Property Thumbnail';
@@ -1289,18 +1306,18 @@
 
 
                 if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
-                    propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
-                    addCategoryDetailButton.style.display = 'none'; // Hide if no categories
-                    deleteCategoryButton.style.display = 'none'; // Hide if no categories
-                    addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
-                    refreshCategoriesButton.style.display = 'block'; // Show refresh button
+                    if (propertyCategoriesNav) propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
+                    if (addCategoryDetailButton) addCategoryDetailButton.style.display = 'none';
+                    if (deleteCategoryButton) deleteCategoryButton.style.display = 'none';
+                    if (addNewCategoryButton) addNewCategoryButton.style.display = 'block';
+                    if (refreshCategoriesButtonOnCategoriesPage) refreshCategoriesButtonOnCategoriesPage.style.display = 'block';
                     return;
                 }
 
-                addCategoryDetailButton.style.display = 'none'; // Initially hide "Add Category Detail" on category list load
-                deleteCategoryButton.style.display = 'block'; // Show delete button if categories exist
-                addNewCategoryButton.style.display = 'block'; // Always show Add New Category button if a property is selected
-                refreshCategoriesButton.style.display = 'block'; // Show refresh button
+                if (addCategoryDetailButton) addCategoryDetailButton.style.display = 'none';
+                if (deleteCategoryButton) deleteCategoryButton.style.display = 'block';
+                if (addNewCategoryButton) addNewCategoryButton.style.display = 'block';
+                if (refreshCategoriesButtonOnCategoriesPage) refreshCategoriesButtonOnCategoriesPage.style.display = 'block';
 
                 currentSelectedProperty.categories.forEach(categoryName => {
                     const categoryDiv = document.createElement('div');
@@ -1312,28 +1329,25 @@
                     categoryDiv.addEventListener('click', () => {
                         currentSelectedCategoryName = categoryName;
                         displayCategoryDetails(categoryName);
-                        categoryDetailsHeading.textContent = `Your ${categoryName} Details`; // Dynamic label update
+                        if (categoryDetailsHeading) categoryDetailsHeading.textContent = `Your ${categoryName} Details`;
                         document.querySelectorAll('#property-categories-nav > div').forEach(div => {
                             div.classList.remove('bg-blue-200', 'text-blue-800');
                         });
                         categoryDiv.classList.add('bg-blue-200', 'text-blue-800');
-                        // Show "Add Category Detail" button only when a category is selected
-                        addCategoryDetailButton.style.display = 'block';
+                        if (addCategoryDetailButton) addCategoryDetailButton.style.display = 'block';
                     });
-                    propertyCategoriesNav.appendChild(categoryDiv);
+                    if (propertyCategoriesNav) propertyCategoriesNav.appendChild(categoryDiv);
                 });
 
                 if (currentSelectedProperty.categories.length > 0) {
-                    // Try to re-select the previously selected category if it still exists
                     const previouslySelectedDiv = currentSelectedCategoryName
-                        ? propertyCategoriesNav.querySelector(`[data-category-name="${currentSelectedCategoryName}"]`)
+                        ? (propertyCategoriesNav ? propertyCategoriesNav.querySelector(`[data-category-name="${currentSelectedCategoryName}"]`) : null)
                         : null;
 
                     if (previouslySelectedDiv) {
                         previouslySelectedDiv.click();
                     } else {
-                        // Otherwise, click the first category
-                        const firstCategoryDiv = propertyCategoriesNav.querySelector('div');
+                        const firstCategoryDiv = propertyCategoriesNav ? propertyCategoriesNav.querySelector('div') : null;
                         if (firstCategoryDiv) {
                             firstCategoryDiv.click();
                         }
@@ -1343,21 +1357,18 @@
 
             // --- Display Category Details / Dynamic Buttons (now tiles) ---
             async function displayCategoryDetails(selectedCategoryName) {
-                const securityWarningDiv = document.getElementById('security-warning');
-                categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
-                // Re-append the security warning
-                categoryDetailsContent.appendChild(securityWarningDiv);
-                const buttonsContainer = categoryDetailsContent.querySelector('#dynamic-category-buttons-container');
-                const loadingMessage = categoryDetailsContent.querySelector('#category-loading-message');
+                if (categoryDetailsContent) categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
+                if (categoryDetailsContent && securityWarningDiv) categoryDetailsContent.appendChild(securityWarningDiv); // Re-append
+                const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
+                const loadingMessage = document.getElementById('category-loading-message');
 
-                // Place the "Add Category Detail" button at the bottom of the right column's content area
-                // Ensure it's removed from its previous parent before re-appending
-                if (addCategoryDetailButton.parentNode) {
-                    addCategoryDetailButton.parentNode.removeChild(addCategoryDetailButton);
+                if (addCategoryDetailButton) { // Null check
+                    if (addCategoryDetailButton.parentNode) {
+                        addCategoryDetailButton.parentNode.removeChild(addCategoryDetailButton);
+                    }
+                    if (categoryDetailsContent) categoryDetailsContent.appendChild(addCategoryDetailButton);
+                    addCategoryDetailButton.style.display = 'block';
                 }
-                categoryDetailsContent.appendChild(addCategoryDetailButton);
-                addCategoryDetailButton.style.display = 'block'; // Make sure it's visible after a category is selected
-
 
                 try {
                     const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=${currentSelectedProperty.id}&category_name=${encodeURIComponent(selectedCategoryName)}`);
@@ -1368,25 +1379,24 @@
                     const details = await response.json();
                     console.log(`Details for ${selectedCategoryName}:`, details);
 
-                    loadingMessage.style.display = 'none'; // Hide loading message
-                    buttonsContainer.innerHTML = ''; // Clear existing buttons
+                    if (loadingMessage) loadingMessage.style.display = 'none';
+                    if (buttonsContainer) buttonsContainer.innerHTML = '';
 
                     if (details.length === 0) {
                         const noDetailsMessage = document.createElement('p');
                         noDetailsMessage.classList.add('text-gray-600', 'mt-4');
                         noDetailsMessage.textContent = `No details found for category: "${selectedCategoryName}".`;
-                        categoryDetailsContent.insertBefore(noDetailsMessage, buttonsContainer);
+                        if (buttonsContainer) buttonsContainer.appendChild(noDetailsMessage); // Append to buttonsContainer
                     } else {
                         details.forEach(detail => {
-                            const detailTile = document.createElement('div'); // Changed to div for tile
-                            detailTile.classList.add('detail-tile'); // Apply tile styling
-                            detailTile.dataset.detailId = detail.id; // Store detail ID for potential updates
+                            const detailTile = document.createElement('div');
+                            detailTile.classList.add('detail-tile');
+                            detailTile.dataset.detailId = detail.id;
 
                             const logoHtml = detail.detail_logo_url
                                 ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain w-16 h-16 mb-2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
                                 : `<div class="logo-placeholder w-16 h-16 mb-2">${detail.detail_name.substring(0,3)}</div>`;
 
-                            // Add unique IDs for username/password inputs and their toggles
                             const usernameInputId = `username-${detail.id}`;
                             const passwordInputId = `password-${detail.id}`;
 
@@ -1407,7 +1417,7 @@
                                         <button class="copy-btn" data-target="${passwordInputId}">Copy</button>
                                     </div>
                                     <p class="text-xs text-red-500 mt-1">
-                                        Note: Credentials areored directly in your database. **This is a HIGH SECURITY RISK.**
+                                        Note: Credentials are stored directly in your database. **This is a HIGH SECURITY RISK.**
                                         Consider using a dedicated password manager for sensitive data.
                                     </p>
                                 </div>
@@ -1418,32 +1428,33 @@
                                 </div>
                             `;
 
-                            // Add event listeners for new elements within the tile
                             detailTile.querySelector(`.password-toggle-btn[data-target="${passwordInputId}"]`).addEventListener('click', (e) => {
                                 const targetInput = document.getElementById(e.target.dataset.target);
-                                if (targetInput.type === 'password') {
-                                    targetInput.type = 'text';
-                                    e.target.textContent = '🙈';
-                                } else {
-                                    targetInput.type = 'password';
-                                    e.target.textContent = '👁️';
+                                if (targetInput) { // Null check
+                                    if (targetInput.type === 'password') {
+                                        targetInput.type = 'text';
+                                        e.target.textContent = '🙈';
+                                    } else {
+                                        targetInput.type = 'password';
+                                        e.target.textContent = '👁️';
+                                    }
                                 }
                             });
 
                             detailTile.querySelectorAll('.copy-btn').forEach(button => {
                                 button.addEventListener('click', (e) => {
                                     const targetInput = document.getElementById(e.target.dataset.target);
-                                    // Use execCommand('copy') as navigator.clipboard.writeText() might not work in iframe
-                                    targetInput.select();
-                                    document.execCommand('copy');
-                                    alert('Copied to clipboard!');
+                                    if (targetInput) { // Null check
+                                        targetInput.select();
+                                        document.execCommand('copy');
+                                        alert('Copied to clipboard!');
+                                    }
                                 });
                             });
 
 
-                            // Event delegation for general action buttons inside the tile
                             detailTile.querySelector('[data-action="view"]').addEventListener('click', (e) => {
-                                e.stopPropagation(); // Prevent tile click from firing
+                                e.stopPropagation();
                                 const url = e.target.dataset.url;
                                 if (url) {
                                     window.open(url, '_blank');
@@ -1452,23 +1463,24 @@
                                 }
                             });
 
-                            detailTile.querySelector('[data-action="edit"]').addEventListener('click', async (e) => { // Made async to await modal
-                                e.stopPropagation(); // Prevent tile click from firing
+                            detailTile.querySelector('[data-action="edit"]').addEventListener('click', async (e) => {
+                                e.stopPropagation();
                                 const detailId = e.target.dataset.id;
                                 const detailName = e.target.dataset.name;
 
-                                // Show confirmation modal before opening edit page
                                 showModal(
                                     verificationModal,
-                                    `edit details for "${detailName}"`, // Specific message for editing
+                                    `edit details for "${detailName}"`,
                                     async (username, password) => {
-                                        verificationStatus.classList.remove('hidden');
-                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                                        verificationStatus.textContent = 'Verifying credentials...';
+                                        if (verificationStatus) { // Null check
+                                            verificationStatus.classList.remove('hidden');
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                            verificationStatus.textContent = 'Verifying credentials...';
+                                        }
 
                                         try {
-                                            // Make an authentication request to a Netlify Function
-                                            const authResponse = await fetch('/.netlify/functions/loginUser', { // Use loginUser for auth check
+                                            // Authenticate against Netlify function using the provided credentials
+                                            const authResponse = await fetch('/.netlify/functions/loginUser', {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ username, password })
@@ -1476,401 +1488,559 @@
                                             const authData = await authResponse.json();
 
                                             if (authResponse.ok) {
-                                                // If authentication is successful, proceed with pre-populating form
                                                 hideModal(verificationModal);
                                                 
-                                                // Pre-populate form for editing
-                                                showPage(updateCategoryDetailPage); // Navigate to the new update detail page
-                                                updateDetailIdInput.value = detail.id; // Set ID
-                                                updateDetailNameInput.value = detail.detail_name;
-                                                updateDetailUrlInput.value = detail.detail_url;
-                                                updateDetailDescriptionInput.value = detail.detail_description || '';
-                                                updateCustomLogoUrlInput.value = detail.detail_logo_url || ''; // Set custom logo input
-                                                updateDetailUsernameInput.value = detail.detail_username || '';
-                                                updateDetailPasswordInput.value = detail.detail_password || '';
+                                                showPage(updateCategoryDetailPage);
+                                                if (updateDetailIdInput) updateDetailIdInput.value = detail.id;
+                                                if (updateDetailNameInput) updateDetailNameInput.value = detail.detail_name;
+                                                if (updateDetailUrlInput) updateDetailUrlInput.value = detail.detail_url;
+                                                if (updateDetailDescriptionInput) updateDetailDescriptionInput.value = detail.detail_description || '';
+                                                if (updateCustomLogoUrlInput) updateCustomLogoUrlInput.value = detail.detail_logo_url || '';
+                                                if (updateDetailUsernameInput) updateDetailUsernameInput.value = detail.detail_username || '';
+                                                if (updateDetailPasswordInput) updateDetailPasswordInput.value = detail.detail_password || '';
 
-                                                renderPresetLogosForUpdate(detail.detail_logo_url); // Render presets with current one selected
-                                                updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
-                                                updateDetailStatus.classList.add('hidden'); // Clear status
+                                                renderPresetLogosForUpdate(detail.detail_logo_url);
+                                                if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+                                                if (updateDetailStatus) updateDetailStatus.classList.add('hidden');
 
                                             } else {
-                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                                verificationStatus.textContent = authData.message || 'Authentication failed. Please check credentials.';
+                                                if (verificationStatus) { // Null check
+                                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                    verificationStatus.textContent = authData.message || 'Authentication failed. Please check credentials.';
+                                                }
                                             }
                                         } catch (error) {
                                             console.error('Error during authentication for edit:', error);
-                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                            verificationStatus.textContent = `Network error: ${error.message}`;
+                                            if (verificationStatus) { // Null check
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                verificationStatus.textContent = `Network error: ${error.message}`;
+                                            }
                                         }
                                     }
                                 );
                             });
 
-                            buttonsContainer.appendChild(detailTile);
+                            if (buttonsContainer) buttonsContainer.appendChild(detailTile);
                         });
                     }
 
                 } catch (error) {
                     console.error('Error fetching category details:', error);
-                    loadingMessage.classList.add('text-red-600');
-                    loadingMessage.textContent = `Failed to load details: ${error.message}`;
-                    buttonsContainer.innerHTML = ''; // Clear any partial content
+                    if (loadingMessage) { // Null check
+                        loadingMessage.classList.add('text-red-600');
+                        loadingMessage.textContent = `Failed to load details: ${error.message}`;
+                    }
+                    if (buttonsContainer) buttonsContainer.innerHTML = '';
                 }
             }
 
             // --- Add Category Detail Button & Form Logic ---
-            addCategoryDetailButton.addEventListener('click', () => {
-                if (currentSelectedProperty && currentSelectedCategoryName) {
-                    addDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
-                    showPage(addCategoryDetailPage);
-                    addDetailForm.reset();
-                    detailUsernameAddInput.value = ''; // Clear for new entry
-                    detailPasswordAddInput.value = ''; // Clear for new entry
-                    addDetailStatus.classList.add('hidden');
-                    renderPresetLogos(); // Render preset logos for adding
-                    selectedPresetLogoUrl = null; // Reset selected preset
-                    customLogoUrlInput.value = ''; // Clear custom URL
-                } else {
-                    alert('Please select a property category first to add details to it.');
-                }
-            });
+            if (addCategoryDetailButton) { // Null check
+                addCategoryDetailButton.addEventListener('click', () => {
+                    if (currentSelectedProperty && currentSelectedCategoryName) {
+                        if (addDetailCategoryNameSpan) addDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+                        showPage(addCategoryDetailPage);
+                        if (addDetailForm) addDetailForm.reset();
+                        if (detailUsernameAddInput) detailUsernameAddInput.value = '';
+                        if (detailPasswordAddInput) detailPasswordAddInput.value = '';
+                        if (addDetailStatus) addDetailStatus.classList.add('hidden');
+                        renderPresetLogos();
+                        selectedPresetLogoUrl = null;
+                        if (customLogoUrlInput) customLogoUrlInput.value = '';
+                    } else {
+                        alert('Please select a property category first to add details to it.');
+                    }
+                });
+            }
 
-            addDetailForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
+            if (addDetailForm) { // Null check
+                addDetailForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
 
-                const detailName = detailNameInput.value.trim();
-                const detailUrl = detailUrlInput.value.trim();
-                const detailDescription = detailDescriptionInput.value.trim();
-                const logoUrlToSend = selectedPresetLogoUrl || (customLogoUrlInput.value.trim() !== '' ? customLogoUrlInput.value.trim() : null);
-                const usernameToSave = detailUsernameAddInput.value.trim();
-                const passwordToSave = detailPasswordAddInput.value.trim();
+                    const detailName = detailNameInput.value.trim();
+                    const detailUrl = detailUrlInput.value.trim();
+                    const detailDescription = detailDescriptionInput.value.trim();
+                    const logoUrlToSend = selectedPresetLogoUrl || (customLogoUrlInput ? customLogoUrlInput.value.trim() : null); // Null check
+                    const usernameToSave = detailUsernameAddInput ? detailUsernameAddInput.value.trim() : ''; // Null check
+                    const passwordToSave = detailPasswordAddInput ? detailPasswordAddInput.value.trim() : ''; // Null check
 
 
-                if (!detailName || !detailUrl) {
-                    addDetailStatus.classList.remove('hidden');
-                    addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
-                    addDetailStatus.textContent = 'Detail Name and URL are required.';
-                    return;
-                }
-
-                addDetailStatus.classList.remove('hidden');
-                addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                addDetailStatus.textContent = 'Saving detail...';
-
-                try {
-                    const response = await fetch('/.netlify/functions/addCategoryDetail', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            property_id: currentSelectedProperty.id,
-                            category_name: currentSelectedCategoryName,
-                            detail_name: detailName,
-                            detail_url: detailUrl,
-                            detail_description: detailDescription,
-                            detail_logo_url: logoUrlToSend,
-                            detail_username: usernameToSave,
-                            detail_password: passwordToSave
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorBody = await response.json();
-                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                    if (!detailName || !detailUrl) {
+                        if (addDetailStatus) { // Null check
+                            addDetailStatus.classList.remove('hidden');
+                            addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                            addDetailStatus.textContent = 'Detail Name and URL are required.';
+                        }
+                        return;
                     }
 
-                    const savedDetail = await response.json();
-                    console.log('Category detail saved:', savedDetail);
+                    if (addDetailStatus) { // Null check
+                        addDetailStatus.classList.remove('hidden');
+                        addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        addDetailStatus.textContent = 'Saving detail...';
+                    }
 
-                    addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                    addDetailStatus.textContent = 'Detail saved successfully!';
+                    try {
+                        const response = await fetch('/.netlify/functions/addCategoryDetail', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                property_id: currentSelectedProperty.id,
+                                category_name: currentSelectedCategoryName,
+                                detail_name: detailName,
+                                detail_url: detailUrl,
+                                detail_description: detailDescription,
+                                detail_logo_url: logoUrlToSend,
+                                detail_username: usernameToSave,
+                                detail_password: passwordToSave
+                            })
+                        });
 
-                    setTimeout(() => {
-                        showPage(propertyCategoriesPage);
-                        displayCategoryDetails(currentSelectedCategoryName);
-                    }, 1500);
+                        if (!response.ok) {
+                            const errorBody = await response.json();
+                            throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                        }
 
-                } catch (error) {
-                    console.error('Error saving detail:', error);
-                    addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                    addDetailStatus.textContent = `Error saving detail: ${error.message}`;
-                }
-            });
+                        const savedDetail = await response.json();
+                        console.log('Category detail saved:', savedDetail);
 
-            cancelAddDetailButton.addEventListener('click', () => {
-                showPage(propertyCategoriesPage);
-            });
+                        if (addDetailStatus) { // Null check
+                            addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                            addDetailStatus.textContent = 'Detail saved successfully!';
+                        }
+
+                        setTimeout(() => {
+                            showPage(propertyCategoriesPage);
+                            displayCategoryDetails(currentSelectedCategoryName);
+                        }, 1500);
+
+                    } catch (error) {
+                        console.error('Error saving detail:', error);
+                        if (addDetailStatus) { // Null check
+                            addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            addDetailStatus.textContent = `Error saving detail: ${error.message}`;
+                        }
+                    }
+                });
+            }
+
+            if (cancelAddDetailButton) { // Null check
+                cancelAddDetailButton.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                });
+            }
 
 
             // --- Add New Category Button & Form Logic ---
-            addNewCategoryButton.addEventListener('click', () => {
-                if (currentSelectedProperty) {
-                    categoryPropertyTitleSpan.textContent = `"${currentSelectedProperty.title}"`; // Show property title in form
-                    showPage(addNewCategoryPage);
-                    addNewCategoryForm.reset();
-                    addNewCategoryStatus.classList.add('hidden');
-                } else {
-                    alert('Please select a property first to add a new category.');
-                }
-            });
-
-            addNewCategoryForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-
-                const newCategoryName = newCategoryNameInput.value.trim();
-
-                if (!newCategoryName) {
-                    addNewCategoryStatus.classList.remove('hidden');
-                    addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
-                    addNewCategoryStatus.textContent = 'Please enter a category name.';
-                    return;
-                }
-
-                addNewCategoryStatus.classList.remove('hidden');
-                addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                addNewCategoryStatus.textContent = 'Adding category...';
-
-                try {
-                    const response = await fetch('/.netlify/functions/updatePropertyCategories', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            property_id: currentSelectedProperty.id,
-                            new_category_name: newCategoryName
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorBody = await response.json();
-                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
-                    }
-
-                    const result = await response.json();
-                    console.log('Category added successfully:', result.message);
-
-                    addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                    addNewCategoryStatus.textContent = 'Category added successfully!';
-                    
-                    // Directly update currentSelectedProperty for immediate UI refresh
-                    currentSelectedProperty.categories = result.updatedProperty.categories;
-
-                    // Navigate back and render categories immediately
-                    showPage(propertyCategoriesPage);
-                    renderPropertyCategories(); // Re-render categories for the current property
-
-                } catch (error) {
-                    console.error('Error adding new category:', error);
-                    addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                    if (error.message.includes('Category already exists')) {
-                        addNewCategoryStatus.textContent = 'Category already exists for this property.';
+            if (addNewCategoryButton) { // Null check
+                addNewCategoryButton.addEventListener('click', () => {
+                    if (currentSelectedProperty) {
+                        if (categoryPropertyTitleSpan) categoryPropertyTitleSpan.textContent = `"${currentSelectedProperty.title}"`; // Show property title in form
+                        showPage(addNewCategoryPage);
+                        if (addNewCategoryForm) addNewCategoryForm.reset();
+                        if (addNewCategoryStatus) addNewCategoryStatus.classList.add('hidden');
                     } else {
-                        addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
+                        alert('Please select a property first to add a new category.');
                     }
-                }
-            });
+                });
+            }
 
-            cancelNewCategoryButton.addEventListener('click', () => {
-                showPage(propertyCategoriesPage);
-            });
+            if (addNewCategoryForm) { // Null check
+                addNewCategoryForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    const newCategoryName = newCategoryNameInput.value.trim();
+
+                    if (!newCategoryName) {
+                        if (addNewCategoryStatus) { // Null check
+                            addNewCategoryStatus.classList.remove('hidden');
+                            addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                            addNewCategoryStatus.textContent = 'Please enter a category name.';
+                        }
+                        return;
+                    }
+
+                    if (addNewCategoryStatus) { // Null check
+                        addNewCategoryStatus.classList.remove('hidden');
+                        addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        addNewCategoryStatus.textContent = 'Adding category...';
+                    }
+
+                    try {
+                        const response = await fetch('/.netlify/functions/updatePropertyCategories', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                property_id: currentSelectedProperty.id,
+                                new_category_name: newCategoryName
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errorBody = await response.json();
+                            throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                        }
+
+                        const result = await response.json();
+                        console.log('Category added successfully:', result.message);
+
+                        if (addNewCategoryStatus) { // Null check
+                            addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                            addNewCategoryStatus.textContent = 'Category added successfully!';
+                        }
+                        
+                        currentSelectedProperty.categories = result.updatedProperty.categories;
+
+                        showPage(propertyCategoriesPage);
+                        renderPropertyCategories();
+
+                    } catch (error) {
+                        console.error('Error adding new category:', error);
+                        if (addNewCategoryStatus) { // Null check
+                            addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            if (error.message.includes('Category already exists')) {
+                                addNewCategoryStatus.textContent = 'Category already exists for this property.';
+                            } else {
+                                addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (cancelNewCategoryButton) { // Null check
+                cancelNewCategoryButton.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                });
+            }
 
 
             // --- Update Property Logic ---
-            updatePropertyForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
+            if (updatePropertyForm) { // Null check
+                updatePropertyForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
 
-                const propertyId = updatePropertyIdInput.value;
-                const title = updatePropertyTitleInput.value.trim();
-                const image = updatePropertyImageInput.value.trim();
-                const description = updatePropertyDescriptionInput.value.trim();
-                const categoriesString = updatePropertyCategoriesInput.value.trim();
-                const isForeign = updatePropertyIsForeignInput.checked;
+                    const propertyId = updatePropertyIdInput.value;
+                    const title = updatePropertyTitleInput.value.trim();
+                    const image = updatePropertyImageInput.value.trim();
+                    const description = updatePropertyDescriptionInput.value.trim();
+                    const categoriesString = updatePropertyCategoriesInput.value.trim();
+                    const isForeign = updatePropertyIsForeignInput.checked;
 
-                if (!title || !image || !description || !categoriesString) {
-                    updatePropertyStatus.classList.remove('hidden');
-                    updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
-                    updatePropertyStatus.textContent = 'All fields except Username/Password are required.';
-                    return;
-                }
-
-                const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
-
-                updatePropertyStatus.classList.remove('hidden');
-                updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                updatePropertyStatus.textContent = 'Updating property...';
-
-                try {
-                    const response = await fetch('/.netlify/functions/updateProperty', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id: propertyId,
-                            title: title,
-                            image: image,
-                            description: description,
-                            categories: parsedCategories,
-                            is_foreign: isForeign
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorBody = await response.json();
-                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                    if (!title || !image || !description || !categoriesString) {
+                        if (updatePropertyStatus) { // Null check
+                            updatePropertyStatus.classList.remove('hidden');
+                            updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                            updatePropertyStatus.textContent = 'All fields except Username/Password are required.';
+                        }
+                        return;
                     }
 
-                    const result = await response.json();
-                    console.log('Property updated successfully:', result.message);
+                    const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
 
-                    updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                    updatePropertyStatus.textContent = 'Property updated successfully!';
+                    if (updatePropertyStatus) { // Null check
+                        updatePropertyStatus.classList.remove('hidden');
+                        updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        updatePropertyStatus.textContent = 'Updating property...';
+                    }
 
-                    setTimeout(async () => {
-                        showPage(propertySelectionPage);
-                        await fetchProperties(currentPropertyFilter); // Refresh properties to show updated data
-                    }, 1500);
+                    try {
+                        const response = await fetch('/.netlify/functions/updateProperty', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: propertyId,
+                                title: title,
+                                image: image,
+                                description: description,
+                                categories: parsedCategories,
+                                is_foreign: isForeign
+                            })
+                        });
 
-                } catch (error) {
-                    console.error('Error updating property:', error);
-                    updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                    updatePropertyStatus.textContent = `Error updating property: ${error.message}`;
-                }
-            });
+                        if (!response.ok) {
+                            const errorBody = await response.json();
+                            throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                        }
 
-            cancelUpdatePropertyButton.addEventListener('click', () => {
-                showPage(propertySelectionPage);
-            });
+                        const result = await response.json();
+                        console.log('Property updated successfully:', result.message);
+
+                        if (updatePropertyStatus) { // Null check
+                            updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                            updatePropertyStatus.textContent = 'Property updated successfully!';
+                        }
+
+                        setTimeout(async () => {
+                            showPage(propertySelectionPage);
+                            await fetchProperties(currentPropertyFilter);
+                        }, 1500);
+
+                    } catch (error) {
+                        console.error('Error updating property:', error);
+                        if (updatePropertyStatus) { // Null check
+                            updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            updatePropertyStatus.textContent = `Error updating property: ${error.message}`;
+                        }
+                    }
+                });
+            }
+
+            if (cancelUpdatePropertyButton) { // Null check
+                cancelUpdatePropertyButton.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                });
+            }
+
+
+            // --- Update Category Detail Logic ---
+            if (updateDetailForm) { // Null check
+                updateDetailForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    const detailId = updateDetailIdInput.value;
+                    const detailName = updateDetailNameInput.value.trim();
+                    const detailUrl = updateDetailUrlInput.value.trim();
+                    const detailDescription = updateDetailDescriptionInput.value.trim();
+                    const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput ? updateCustomLogoUrlInput.value.trim() : null); // Null check
+                    const usernameToSave = updateDetailUsernameInput ? updateDetailUsernameInput.value.trim() : ''; // Null check
+                    const passwordToSave = updateDetailPasswordInput ? updateDetailPasswordInput.value.trim() : ''; // Null check
+
+
+                    if (!detailName || !detailUrl) {
+                        if (updateDetailStatus) { // Null check
+                            updateDetailStatus.classList.remove('hidden');
+                            updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
+                            updateDetailStatus.textContent = 'Detail Name and URL are required.';
+                        }
+                        return;
+                    }
+
+                    if (updateDetailStatus) { // Null check
+                        updateDetailStatus.classList.remove('hidden');
+                        updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        updateDetailStatus.textContent = 'Updating detail...';
+                    }
+
+                    try {
+                        const response = await fetch('/.netlify/functions/updateCategoryDetail', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: detailId,
+                                detail_name: detailName,
+                                detail_url: detailUrl,
+                                detail_description: detailDescription,
+                                detail_logo_url: logoUrlToSend,
+                                detail_username: usernameToSave,
+                                detail_password: passwordToSave,
+                                username: currentLoggedInUsername, // Pass current logged-in username
+                                password: currentLoggedInPassword  // Pass current logged-in password
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errorBody = await response.json();
+                            throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                        }
+
+                        const updatedDetail = await response.json();
+                        console.log('Category detail updated:', updatedDetail);
+
+                        if (updateDetailStatus) { // Null check
+                            updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                            updateDetailStatus.textContent = 'Detail updated successfully!';
+                        }
+
+                        setTimeout(() => {
+                            showPage(propertyCategoriesPage);
+                            displayCategoryDetails(currentSelectedCategoryName);
+                        }, 1500);
+
+                    } catch (error) {
+                        console.error('Error updating detail:', error);
+                        if (updateDetailStatus) { // Null check
+                            updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            updateDetailStatus.textContent = `Error updating detail: ${error.message}`;
+                        }
+                    }
+                });
+            }
+
+            if (cancelUpdateDetailButton) { // Null check
+                cancelUpdateDetailButton.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                });
+            }
 
 
             // --- Delete Category Logic ---
-            deleteCategoryButton.addEventListener('click', () => {
-                if (!currentSelectedProperty || !currentSelectedCategoryName) {
-                    alert('Please select a property and a category to delete.');
-                    return;
-                }
-                showModal(
-                    verificationModal,
-                    `category: "${currentSelectedCategoryName}"`, // Specific message for deleting category
-                    async (username, password) => { // Callback for delete category
-                        verificationStatus.classList.remove('hidden');
-                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                        verificationStatus.textContent = 'Verifying and deleting category...';
-                        try {
-                            const response = await fetch('/.netlify/functions/deletePropertyCategory', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    username: username,
-                                    password: password,
-                                    property_id: currentSelectedProperty.id,
-                                    category_to_delete: currentSelectedCategoryName
-                                })
-                            });
-
-                            const data = await response.json();
-
-                            if (response.ok) {
-                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                                verificationStatus.textContent = data.message;
-                                
-                                currentSelectedProperty.categories = data.updatedProperty.categories;
-
-                                setTimeout(() => {
-                                    hideModal(verificationModal);
-                                    showPage(propertyCategoriesPage);
-                                    renderPropertyCategories();
-                                    if (!currentSelectedProperty.categories.includes(currentSelectedCategoryName)) {
-                                        currentSelectedCategoryName = null;
-                                        categoryDetailsHeading.textContent = 'Category Details';
-                                        categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
-                                    }
-                                }, 1500);
-
-                            } else {
-                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
-                                modalPasswordInput.value = '';
-                            }
-                        } catch (error) {
-                            console.error('Error during delete verification:', error);
-                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                            verificationStatus.textContent = `Network error: ${error.message}`;
-                            modalPasswordInput.value = '';
-                        }
+            if (deleteCategoryButton) { // Null check
+                deleteCategoryButton.addEventListener('click', () => {
+                    if (!currentSelectedProperty || !currentSelectedCategoryName) {
+                        alert('Please select a property and a category to delete.');
+                        return;
                     }
-                );
-            });
+                    showModal(
+                        verificationModal,
+                        `category: "${currentSelectedCategoryName}"`, // Specific message for deleting category
+                        async (username, password) => { // Callback for delete category
+                            if (verificationStatus) { // Null check
+                                verificationStatus.classList.remove('hidden');
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                verificationStatus.textContent = 'Verifying and deleting category...';
+                            }
+                            try {
+                                const response = await fetch('/.netlify/functions/deletePropertyCategory', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        username: username,
+                                        password: password,
+                                        property_id: currentSelectedProperty.id,
+                                        category_to_delete: currentSelectedCategoryName
+                                    })
+                                });
+
+                                const data = await response.json();
+
+                                if (response.ok) {
+                                    if (verificationStatus) { // Null check
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                        verificationStatus.textContent = data.message;
+                                    }
+                                    
+                                    currentSelectedProperty.categories = data.updatedProperty.categories;
+
+                                    setTimeout(() => {
+                                        hideModal(verificationModal);
+                                        showPage(propertyCategoriesPage);
+                                        renderPropertyCategories();
+                                        if (!currentSelectedProperty.categories.includes(currentSelectedCategoryName)) {
+                                            currentSelectedCategoryName = null;
+                                            if (categoryDetailsHeading) categoryDetailsHeading.textContent = 'Category Details';
+                                            if (categoryDetailsContent) categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div><div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert"><p class="font-bold">Security Notice:</p><p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p></div>`;
+                                        }
+                                    }, 1500);
+
+                                } else {
+                                    if (verificationStatus) { // Null check
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                        verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                        if (modalPasswordInput) modalPasswordInput.value = '';
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error during delete verification:', error);
+                                if (verificationStatus) { // Null check
+                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                    verificationStatus.textContent = `Network error: ${error.message}`;
+                                    if (modalPasswordInput) modalPasswordInput.value = '';
+                                }
+                            }
+                        }
+                    );
+                });
+            }
 
             // --- Manual Refresh Categories Button Logic ---
-            refreshCategoriesButton.addEventListener('click', () => {
-                if (currentSelectedProperty) {
-                    renderPropertyCategories(); // Re-render categories for the currently selected property
-                } else {
-                    alert('Please select a property first.');
-                }
-            });
+            if (refreshCategoriesButtonOnCategoriesPage) { // Null check
+                refreshCategoriesButtonOnCategoriesPage.addEventListener('click', () => {
+                    if (currentSelectedProperty) {
+                        renderPropertyCategories(); // Re-render categories for the currently selected property
+                    } else {
+                        alert('Please select a property first.');
+                    }
+                });
+            }
+
+            if (refreshPropertiesButton) { // Null check
+                refreshPropertiesButton.addEventListener('click', async () => {
+                    await fetchProperties(currentPropertyFilter);
+                });
+            }
 
 
             // --- Verification Modal Form Submission Handler ---
-            // This handler is now generic and calls currentVerificationCallback
-            verificationForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                // Execute the stored callback with modal credentials
-                if (currentVerificationCallback) {
-                    await currentVerificationCallback(modalUsernameInput.value.trim(), modalPasswordInput.value.trim());
-                }
-            });
+            if (verificationForm) { // Null check
+                verificationForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    if (currentVerificationCallback) {
+                        await currentVerificationCallback(modalUsernameInput.value.trim(), modalPasswordInput.value.trim());
+                    }
+                });
+            }
 
-            cancelVerificationBtn.addEventListener('click', () => {
-                hideModal(verificationModal);
-            });
+            if (cancelVerificationBtn) { // Null check
+                cancelVerificationBtn.addEventListener('click', () => {
+                    hideModal(verificationModal);
+                });
+            }
 
 
             // --- Back Button Event Listeners ---
-            backToLoginBtn.addEventListener('click', () => {
-                showPage(loginPage);
-                usernameInput.value = '';
-                passwordInput.value = '';
-                registrationStatusMessage.classList.add('hidden');
-            });
+            if (backToLoginBtn) { // Null check
+                backToLoginBtn.addEventListener('click', () => {
+                    showPage(loginPage);
+                    if (usernameInput) usernameInput.value = '';
+                    if (passwordInput) passwordInput.value = '';
+                    if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
+                });
+            }
 
-            backToLoginFromRegisterBtn.addEventListener('click', () => {
-                showPage(loginPage);
-                regUsernameInput.value = '';
-                regPasswordInput.value = '';
-                registerErrorMessage.classList.add('hidden');
-            });
+            if (backToLoginFromRegisterBtn) { // Null check
+                backToLoginFromRegisterBtn.addEventListener('click', () => {
+                    showPage(loginPage);
+                    if (regUsernameInput) regUsernameInput.value = '';
+                    if (regPasswordInput) regPasswordInput.value = '';
+                    if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
+                });
+            }
 
-            backFromAddPropertyBtn.addEventListener('click', () => {
-                showPage(propertySelectionPage);
-                addPropertyForm.reset();
-                addPropertyStatus.classList.add('hidden');
-            });
+            if (backFromAddPropertyBtn) { // Null check
+                backFromAddPropertyBtn.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                    if (addPropertyForm) addPropertyForm.reset();
+                    if (addPropertyStatus) addPropertyStatus.classList.add('hidden');
+                });
+            }
 
-            backToPropertiesBtn.addEventListener('click', () => {
-                showPage(propertySelectionPage);
-                currentSelectedProperty = null;
-                currentSelectedCategoryName = null;
-                categoryDetailsHeading.textContent = 'Category Details';
-                // Also reset property header when going back to properties list
-                if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details'; // Default text
-                if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // Default placeholder
-            });
+            if (backToPropertiesBtn) { // Null check
+                backToPropertiesBtn.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                    currentSelectedProperty = null;
+                    currentSelectedCategoryName = null;
+                    if (categoryDetailsHeading) categoryDetailsHeading.textContent = 'Category Details';
+                    // Also reset property header when going back to properties list
+                    if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details'; // Default text
+                    if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // Default placeholder
+                });
+            }
 
-            backFromAddDetailBtn.addEventListener('click', () => {
-                showPage(propertyCategoriesPage);
-            });
+            if (backFromAddDetailBtn) { // Null check
+                backFromAddDetailBtn.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                });
+            }
 
-            backFromAddNewCategoryBtn.addEventListener('click', () => {
-                showPage(propertyCategoriesPage);
-            });
+            if (backFromAddNewCategoryBtn) { // Null check
+                backFromAddNewCategoryBtn.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                });
+            }
 
-            backFromUpdateDetailBtn.addEventListener('click', () => { // New back button listener
-                showPage(propertyCategoriesPage);
-            });
+            if (backFromUpdateDetailBtn) { // Null check
+                backFromUpdateDetailBtn.addEventListener('click', () => {
+                    showPage(propertyCategoriesPage);
+                });
+            }
 
-            backFromUpdatePropertyBtn.addEventListener('click', () => { // NEW: Back button listener for Update Property Page
-                showPage(propertySelectionPage);
-                // After coming back from edit, refresh properties to ensure latest data is shown
-                fetchProperties(currentPropertyFilter);
-            });
+            if (backFromUpdatePropertyBtn) { // Null check
+                backFromUpdatePropertyBtn.addEventListener('click', () => {
+                    showPage(propertySelectionPage);
+                    fetchProperties(currentPropertyFilter);
+                });
+            }
 
 
             // --- Initial Load: Show Login Page ---
