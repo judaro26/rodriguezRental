@@ -76,11 +76,11 @@ exports.handler = async (event) => {
 
         await client.query('BEGIN'); // Start transaction
 
-        // Insert or ignore if folder already exists
+        // Insert into the 'folders' table. ON CONFLICT handles cases where the folder already exists
         const insertResult = await client.query(
             `INSERT INTO folders (id, property_id, name)
              VALUES ($1, $2, $3)
-             ON CONFLICT (property_id, name) DO NOTHING RETURNING *`,
+             ON CONFLICT (property_id, name) DO NOTHING RETURNING *`, // Use (property_id, name) for conflict check
             [folderId, property_id, folder_name]
         );
 
@@ -105,7 +105,7 @@ exports.handler = async (event) => {
     } catch (error) {
         console.error('Error in createFolder function:', error);
         if (client) {
-            await client.query('ROLLBACK'); // Rollback transaction on error
+            await client.query('ROLLBACK');
         }
         return {
             statusCode: 500,
