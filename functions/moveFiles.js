@@ -32,7 +32,7 @@ exports.handler = async (event) => {
 
         // 1. Authenticate user: Corrected column names here
         const authResult = await client.query(
-            'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1', // <-- CORRECTED COLUMN NAMES
+            'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1',
             [username]
         );
         const user = authResult.rows[0];
@@ -44,7 +44,7 @@ exports.handler = async (event) => {
             };
         }
 
-        // 2. Authorize user: Corrected property access here
+        // 2. Authorize user
         const propertyResult = await client.query(
             'SELECT is_foreign FROM properties WHERE id = $1',
             [property_id]
@@ -58,13 +58,13 @@ exports.handler = async (event) => {
             };
         }
 
-        if (property.is_foreign && !user.foreign_approved) { // <-- CORRECTED PROPERTY ACCESS
+        if (property.is_foreign && !user.foreign_approved) {
             return {
                 statusCode: 403,
                 body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage foreign properties.' }),
             };
         }
-        if (!property.is_foreign && !user.domestic_approved) { // <-- CORRECTED PROPERTY ACCESS
+        if (!property.is_foreign && !user.domestic_approved) {
             return {
                 statusCode: 403,
                 body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage domestic properties.' }),
@@ -73,11 +73,12 @@ exports.handler = async (event) => {
 
         await client.query('BEGIN');
 
-        const effectiveFolderName = folder_name && folder_name.trim() !== '' ? folder_name : folder_id;
+        // Determine the folder_name to store, falling back to folder_id if name is empty
+        const effectiveFolderName = folder_name && folder_name.trim() !== '' ? folder_name.trim() : folder_id;
 
         const updatePromises = file_ids.map(fileId =>
             client.query(
-                `UPDATE files
+                `UPDATE property_files -- Corrected table name here
                  SET folder_id = $1, folder_name = $2
                  WHERE id = $3 AND property_id = $4 RETURNING id`,
                 [folder_id, effectiveFolderName, fileId, property_id]
@@ -86,18 +87,25 @@ exports.handler = async (event) => {
 
         const updatedFiles = await Promise.all(updatePromises);
 
+        // Check if all files were found and updated
         if (updatedFiles.some(res => res.rowCount === 0)) {
-             await client.query('ROLLBACK');
-             return {
+            await client.query('ROLLBACK');
+            return {
                 statusCode: 404,
-                body: JSON.stringify({ message: 'One or more files not found or not associated with this property.', updatedCount: updatedFiles.filter(r => r.rowCount > 0).length }),
-             };
+                body: JSON.stringify({
+                    message: 'One or more files not found or not associated with this property.',
+                    updatedCount: updatedFiles.filter(r => r.rowCount > 0).length
+                }),
+            };
         }
 
         await client.query('COMMIT');
 
         return {
             statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({ message: `Successfully moved ${file_ids.length} file(s) to folder "${effectiveFolderName}".` }),
         };
 
