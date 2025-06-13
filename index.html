@@ -822,6 +822,8 @@
             const filesListContainer = document.getElementById('files-list-container');
             const backFromFilesButton = document.getElementById('back-from-files-button');
 
+            const propertyFilesContent = document.getElementById('property-files-content');
+
 
             // --- Global variables ---
             let currentVerificationCallback = null;
@@ -2202,16 +2204,31 @@
             if (viewFilesButton) {
                 viewFilesButton.addEventListener('click', () => {
                     if (currentSelectedProperty) {
-                        showPage(propertyFilesPage); // Directly show the files page
-                        // Hide "Add Vendor's Details" button when viewing files
-                        const addVendorButton = document.getElementById('add-category-detail-button-bottom');
-                        if (addVendorButton) addVendorButton.style.display = 'none';
-
-                        if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
-                        // Also update the thumbnail on the files page
-                        if (filesPropertyThumbnail) filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-                        
-                        displayPropertyFiles(); // Load files for the current property
+                        // Toggle between files and category details
+                        if (categoryDetailsContent && propertyFilesContent) {
+                            if (categoryDetailsContent.style.display !== 'none') {
+                                // Switching to files view
+                                categoryDetailsContent.style.display = 'none';
+                                propertyFilesContent.style.display = 'flex';
+                                
+                                // Update the files property title
+                                if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
+                                
+                                // Hide "Add Vendor's Details" button when viewing files
+                                const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                                if (addVendorButton) addVendorButton.style.display = 'none';
+                                
+                                displayPropertyFiles(); // Load files for the current property
+                            } else {
+                                // Switching back to category details
+                                categoryDetailsContent.style.display = 'flex';
+                                propertyFilesContent.style.display = 'none';
+                                
+                                // Show "Add Vendor's Details" button when viewing categories
+                                const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                                if (addVendorButton) addVendorButton.style.display = 'block';
+                            }
+                        }
                     } else {
                         alert('Please select a property to view files.');
                     }
