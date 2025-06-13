@@ -1,7 +1,7 @@
 // netlify/functions/uploadFile.js
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-const cloudinary = require('cloudinary').v2; // Make sure to install this: npm install cloudinary
+const cloudinary = require('cloudinary').v2;
 
 // Configure Cloudinary (ensure these are set as Netlify Environment Variables)
 cloudinary.config({
@@ -80,14 +80,17 @@ exports.handler = async (event) => {
         }
 
         // 3. Upload file to Cloudinary
-        // Use a folder structure to organize files per property
         const cloudinaryFolder = `property_files/${property_id}`;
+        // Extract file extension to help Cloudinary if resource_type: 'auto' is ambiguous,
+        // or if you want to use it for custom public_id logic.
+        const fileExtension = filename.split('.').pop();
+        const publicId = `${filename.replace(/\.[^/.]+$/, "")}_${Date.now()}`; // Unique public_id
 
-        const uploadResult = await cloudinary.uploader.upload(`data:image/jpeg;base64,${file_data_base64}`, { // Default to image/jpeg for example, your client sends actual mime type
+        const uploadResult = await cloudinary.uploader.upload(`data:image/jpeg;base64,${file_data_base64}`, { // Client should send actual MIME type in base64 string
             folder: cloudinaryFolder,
-            public_id: filename.replace(/\.[^/.]+$/, ""), // Use filename (without extension) as public_id
+            public_id: publicId,
             resource_type: 'auto', // Auto-detect image, video, raw (for PDFs)
-            overwrite: false, // Don't overwrite if file with same public_id exists
+            overwrite: false,
         });
 
         const fileUrl = uploadResult.secure_url;
@@ -98,7 +101,7 @@ exports.handler = async (event) => {
 
         const insertResult = await client.query(
             `INSERT INTO property_files (property_id, filename, file_url, size, uploaded_by_username)
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`, // Corrected table name
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
             [property_id, filename, fileUrl, fileSize, uploaded_by_username]
         );
 
@@ -117,7 +120,6 @@ exports.handler = async (event) => {
         if (client) {
             await client.query('ROLLBACK'); // Rollback transaction on error
         }
-        // Cloudinary upload errors might be more specific
         const details = error.http_code ? `Cloudinary Error: ${error.message} (Code: ${error.http_code})` : error.message;
 
         return {
