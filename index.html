@@ -1695,7 +1695,7 @@ data\-file\-id\="</span>{file.id}" data-file-name="${file.filename}">
             if (addVendorButton) addVendorButton.style.display = 'block';
             
             try {
-                const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=<span class="math-inline">\{currentSelectedProperty\.id\}&category\_name\=</span>{encodeURIComponent(selectedCategoryName)}`);
+                const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=${currentSelectedProperty.id}&category_name=${encodeURIComponent(selectedCategoryName)}`);
                 if (!response.ok) {
                     const errorBody = await response.json();
                     throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
