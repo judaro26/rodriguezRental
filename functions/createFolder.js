@@ -18,10 +18,7 @@ exports.handler = async (event) => {
         if (!property_id || !folder_name || !username || !password) {
             return {
                 statusCode: 400,
-                body: JSON.stringify({
-                    message: 'Missing required fields.',
-                    details: 'property_id, folder_name, username, and password are all mandatory.'
-                }),
+                body: JSON.stringify({ message: 'Missing required fields.', details: 'property_id, folder_name, username, and password are all mandatory.' }),
             };
         }
 
@@ -33,9 +30,9 @@ exports.handler = async (event) => {
         });
         client = await pool.connect();
 
-        // 1. Authenticate user: Corrected column names here
+        // 1. Authenticate user
         const authResult = await client.query(
-            'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1', // <-- CORRECTED COLUMN NAMES
+            'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1',
             [username]
         );
         const user = authResult.rows[0];
@@ -47,7 +44,7 @@ exports.handler = async (event) => {
             };
         }
 
-        // 2. Authorize user: Corrected property access here
+        // 2. Authorize user for the property
         const propertyResult = await client.query(
             'SELECT is_foreign FROM properties WHERE id = $1',
             [property_id]
@@ -61,38 +58,54 @@ exports.handler = async (event) => {
             };
         }
 
-        if (property.is_foreign && !user.foreign_approved) { // <-- CORRECTED PROPERTY ACCESS
+        if (property.is_foreign && !user.foreign_approved) {
             return {
                 statusCode: 403,
                 body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage foreign properties.' }),
             };
         }
-        if (!property.is_foreign && !user.domestic_approved) { // <-- CORRECTED PROPERTY ACCESS
+        if (!property.is_foreign && !user.domestic_approved) {
             return {
                 statusCode: 403,
                 body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage domestic properties.' }),
             };
         }
 
-        const folder_id = folder_name.trim().toLowerCase().replace(/\s+/g, '-');
+        // Generate a simple folder_id (kebab-case) from the folder_name
+        const folderId = folder_name.toLowerCase().replace(/\s+/g, '-');
 
-        await client.query(
-            'INSERT INTO folders (id, name, property_id) VALUES ($1, $2, $3) ON CONFLICT (name, property_id) DO NOTHING', // <-- CHANGED HERE
-            [folder_id, folder_name.trim(), property_id]
+        await client.query('BEGIN'); // Start transaction
+
+        // Insert or ignore if folder already exists
+        const insertResult = await client.query(
+            `INSERT INTO folders (id, property_id, name)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (property_id, name) DO NOTHING RETURNING *`,
+            [folderId, property_id, folder_name]
         );
+
+        await client.query('COMMIT'); // Commit transaction
+
+        if (insertResult.rowCount === 0) {
+            return {
+                statusCode: 409, // Conflict
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: `Folder "${folder_name}" already exists for this property.` }),
+            };
+        }
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: `Folder "${folder_name}" created successfully.`, folder: { id: folder_id, name: folder_name.trim() } }),
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ message: `Folder "${folder_name}" created successfully!`, folder: insertResult.rows[0] }),
         };
 
     } catch (error) {
         console.error('Error in createFolder function:', error);
-        if (error.code === '23505' && error.constraint === 'unique_folder_name_per_property') {
-             return {
-                statusCode: 409, // Conflict
-                body: JSON.stringify({ message: 'Folder with this name already exists for this property.', details: error.message }),
-            };
+        if (client) {
+            await client.query('ROLLBACK'); // Rollback transaction on error
         }
         return {
             statusCode: 500,
