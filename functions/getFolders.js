@@ -76,7 +76,7 @@ exports.handler = async (event) => {
         // --- Most likely area for DB error if not connection/auth related ---
         // Verify 'property_files' is the correct table name in your database
         const result = await client.query(
-            `SELECT DISTINCT folder_id as id, folder_name as name
+            `SELECT DISTINCT id as id, folder_name as name
              FROM property_files
              WHERE property_id = $1 AND folder_id IS NOT NULL
              ORDER BY name`,
