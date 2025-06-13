@@ -942,7 +942,8 @@
                 txt: 'file-alt',
                 zip: 'file-archive',
                 mp3: 'file-audio',
-                mp4: 'file-video'
+                mp4: 'file-video',
+                webp: 'file-image'  // Added webp support
             };
             
             const icon = iconMap[extension] || 'file';
@@ -950,10 +951,13 @@
         }
         
         function formatFileSize(bytes) {
+            if (isNaN(bytes) || bytes === undefined) return '0 Bytes';
             if (bytes === 0) return '0 Bytes';
+            
             const k = 1024;
             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
         
@@ -988,7 +992,6 @@
             }
         }
 
-        // renderFilesList function - Needs to be defined before displayPropertyFiles calls it
         function renderFilesList(files) {
             if (!filesListContainer) return;
             
@@ -1012,31 +1015,34 @@
                 }
                 
                 fileItem.innerHTML = `
-                    <input type="checkbox" class="file-checkbox" <span class="math-inline">\{isSelected ? 'checked' \: ''\} data\-file\-id\="</span>{file.id}">
-                    <span class="math-inline">\{getFileIcon\(fileExtension, file\.filename\)\}
-<div class\="file\-info flex\-grow"\>
-<a href\="</span>{file.file_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${file.filename}</a>
+                    <input type="checkbox" class="file-checkbox" ${isSelected ? 'checked' : ''} data-file-id="${file.id}">
+                    ${getFileIcon(fileExtension, file.filename)}
+                    <div class="file-info flex-grow">
+                        <a href="${file.file_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${file.filename}</a>
                         <div class="text-xs text-gray-500">
-                            ${formatFileSize(file.size)} • <span class="math-inline">\{new Date\(file\.uploaded\_at\)\.toLocaleString\(\)\}
-</div\>
-</div\>
-<div class\="file\-actions"\>
-<button class\="edit\-file\-btn bg\-gray\-400 text\-gray\-800 py\-1 px\-2 rounded\-md hover\:bg\-gray\-500" 
-data\-file\-id\="</span>{file.id}" data-file-name="<span class="math-inline">\{file\.filename\}"\>
-Edit
-</button\>
-<button class\="delete\-file\-btn bg\-red\-500 text\-white py\-1 px\-2 rounded\-md hover\:bg\-red\-600" 
-data\-file\-id\="</span>{file.id}" data-file-name="${file.filename}">
+                            ${formatFileSize(file.size)} • ${new Date(file.uploaded_at).toLocaleString()}
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="edit-file-btn bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500" 
+                            data-file-id="${file.id}" data-file-name="${file.filename}">
+                            Edit
+                        </button>
+                        <button class="delete-file-btn bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600" 
+                            data-file-id="${file.id}" data-file-name="${file.filename}">
                             Delete
                         </button>
                     </div>
                 `;
                 
+                // Add event listeners
                 const checkbox = fileItem.querySelector('.file-checkbox');
-                checkbox.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    toggleFileSelection(file.id);
-                });
+                if (checkbox) {
+                    checkbox.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleFileSelection(file.id);
+                    });
+                }
                 
                 fileItem.addEventListener('click', (e) => {
                     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
@@ -1044,10 +1050,27 @@ data\-file\-id\="</span>{file.id}" data-file-name="${file.filename}">
                     }
                 });
                 
+                // Add edit and delete button event listeners
+                const editBtn = fileItem.querySelector('.edit-file-btn');
+                if (editBtn) {
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Your edit file logic here
+                    });
+                }
+                
+                const deleteBtn = fileItem.querySelector('.delete-file-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Your delete file logic here
+                    });
+                }
+                
                 filesListContainer.appendChild(fileItem);
             });
         }
-
+        
         // renderFoldersList function - Needs to be defined before displayPropertyFiles calls it
         function renderFoldersList() {
             const foldersList = document.getElementById('folders-list');
