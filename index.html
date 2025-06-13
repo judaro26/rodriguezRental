@@ -927,7 +927,6 @@
         }
 
         // --- Initial Load: Show Login Page ---
-        // This is crucial to hide all other pages immediately upon DOMContentLoaded
         showPage(loginPage);
 
 
@@ -2264,7 +2263,7 @@
                             const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                             if (addVendorButton) addVendorButton.style.display = 'none';
                             
-                            displayPropertyFiles();
+                            displayPropertyFiles(); // This will now fetch folders first
                         } else {
                             if (currentSelectedCategoryName) {
                                 displayCategoryDetails(currentSelectedCategoryName);
@@ -2305,7 +2304,7 @@
             
                 const file = fileUploadInput.files[0];
                 
-                // File type validation (NOW IN CORRECT PLACE)
+                // File type validation
                 const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
                 if (!allowedTypes.includes(file.type)) {
                     if (fileUploadStatus) {
@@ -2346,7 +2345,7 @@
                         if (fileUploadStatus) {
                             fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
                             fileUploadStatus.textContent = 'Error: Property not selected or user not logged in.';
-                            fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Clear progress
+                            fileUploadStatus.innerHTML = fileUploadStatus.textContent;
                         }
                         return;
                     }
@@ -2406,14 +2405,13 @@
             });
         }
 
-        // New: Display Property Files function
+        // New: Display Property Files function - UPDATED TO FETCH FOLDERS SEPARATELY
         async function displayPropertyFiles(folderId = 'all') {
             currentFolder = folderId;
             
-            if (!filesListContainer) return;
-            if (!currentSelectedProperty) return;
+            if (!filesListContainer || !currentSelectedProperty) return;
         
-            filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
+            filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`;
             
             if (document.getElementById('current-folder-title')) {
                 document.getElementById('current-folder-title').textContent = 
@@ -2421,103 +2419,57 @@
             }
         
             try {
-                const response = await fetch(`/.netlify/functions/getFiles?property_id=${currentSelectedProperty.id}`);
-                if (!response.ok) throw new Error('Failed to load files');
+                // 1. Fetch ALL folders for the current property
+                const foldersResponse = await fetch('/.netlify/functions/getFolders', {
+                    method: 'POST', // getFolders function expects POST with auth
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        property_id: currentSelectedProperty.id,
+                        username: currentLoggedInUsername,
+                        password: currentLoggedInPassword
+                    })
+                });
+
+                if (!foldersResponse.ok) {
+                    const errorBody = await foldersResponse.json();
+                    throw new Error(`Failed to load folders: ${errorBody.message || foldersResponse.statusText}`);
+                }
+                const fetchedFolders = await foldersResponse.json();
                 
-                const allFiles = await response.json();
+                // Update the global folders array with all fetched folders
+                folders = fetchedFolders;
+                renderFoldersList(); // Render folders based on the global 'folders' array
+
+                // 2. Fetch files for the current property (and optionally filter by folder_id)
+                const filesResponse = await fetch(`/.netlify/functions/getFiles?property_id=${currentSelectedProperty.id}`);
+                if (!filesResponse.ok) {
+                    const errorBody = await filesResponse.json();
+                    throw new Error(`Failed to load files: ${errorBody.message || filesResponse.statusText}`);
+                }
                 
-                // Filter files by folder if not viewing 'all'
+                const allFiles = await filesResponse.json();
+                
                 const filesToDisplay = folderId === 'all' 
                     ? allFiles 
                     : allFiles.filter(file => file.folder_id === folderId);
         
                 renderFilesList(filesToDisplay);
-                renderFoldersList(allFiles); // This will extract folders from files
                 
                 selectedFiles.clear();
                 updateSelectionUI();
                 
             } catch (error) {
-                console.error('Error loading files:', error);
-                filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Error loading files: ${error.message}</p>`;
+                console.error('Error loading files/folders:', error);
+                filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Error loading files and folders: ${error.message}</p>`;
             }
         }
 
-        function renderFilesList(files) {
-            if (!filesListContainer) return;
-            
-            if (files.length === 0) {
-                filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files found in this folder.</p>`;
-                return;
-            }
-        
-            filesListContainer.innerHTML = '';
-            
-            files.forEach(file => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.dataset.fileId = file.id;
-                
-                const fileExtension = file.filename.split('.').pop().toLowerCase();
-                const isSelected = selectedFiles.has(file.id);
-                
-                if (isSelected) {
-                    fileItem.classList.add('selected');
-                }
-                
-                fileItem.innerHTML = `
-                    <input type="checkbox" class="file-checkbox" ${isSelected ? 'checked' : ''} data-file-id="${file.id}">
-                    ${getFileIcon(fileExtension, file.filename)}
-                    <div class="file-info flex-grow">
-                        <a href="${file.file_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${file.filename}</a>
-                        <div class="text-xs text-gray-500">
-                            ${formatFileSize(file.size)} • ${new Date(file.uploaded_at).toLocaleString()}
-                        </div>
-                    </div>
-                    <div class="file-actions">
-                        <button class="edit-file-btn bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500" 
-                            data-file-id="${file.id}" data-file-name="${file.filename}">
-                            Edit
-                        </button>
-                        <button class="delete-file-btn bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600" 
-                            data-file-id="${file.id}" data-file-name="${file.filename}">
-                            Delete
-                        </button>
-                    </div>
-                `;
-                
-                const checkbox = fileItem.querySelector('.file-checkbox');
-                checkbox.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    toggleFileSelection(file.id);
-                });
-                
-                fileItem.addEventListener('click', (e) => {
-                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
-                        toggleFileSelection(file.id);
-                    }
-                });
-                
-                filesListContainer.appendChild(fileItem);
-            });
-        }
-        
-        function renderFoldersList(files) {
+        // renderFoldersList function - UPDATED TO USE GLOBAL 'folders' array
+        function renderFoldersList() {
             const foldersList = document.getElementById('folders-list');
             if (!foldersList) return;
             
-            const folderSet = new Set();
-            files.forEach(file => {
-                // Only add files that explicitly have a non-empty folder_id and not "all"
-                if (file.folder_id && file.folder_id !== 'all' && file.folder_id.trim() !== '') {
-                    folderSet.add(JSON.stringify({ id: file.folder_id, name: file.folder_name || file.folder_id }));
-                }
-            });
-            
-            folders = Array.from(folderSet).map(f => JSON.parse(f));
-            // Sort folders alphabetically by name
-            folders.sort((a, b) => a.name.localeCompare(b.name));
-            
+            // Clear and rebuild folder list based on the global 'folders' array
             foldersList.innerHTML = `
                 <li class="folder-item ${currentFolder === 'all' ? 'active' : ''}" data-folder-id="all">
                     <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2569,7 +2521,6 @@
             };
             
             const icon = iconMap[extension] || 'file';
-            // You might need to ensure FontAwesome or a similar icon library is loaded for these classes to work.
             return `<i class="fas fa-${icon} file-icon text-blue-500"></i>`;
         }
         
@@ -2592,7 +2543,7 @@
         
         function updateSelectionUI() {
             document.querySelectorAll('.file-item').forEach(item => {
-                const fileId = parseInt(item.dataset.fileId); // Ensure fileId is a number for Set comparison
+                const fileId = parseInt(item.dataset.fileId);
                 if (selectedFiles.has(fileId)) {
                     item.classList.add('selected');
                     item.querySelector('.file-checkbox').checked = true;
@@ -2661,9 +2612,8 @@
                         return;
                     }
                     targetFolderId = targetFolderName.toLowerCase().replace(/\s+/g, '-');
-                    // No need to locally push to 'folders' here, the backend will manage
                 } else if (targetFolderId === 'all') {
-                    targetFolderName = 'All Files'; // Special case for 'All Files' folder
+                    targetFolderName = 'All Files';
                 } else {
                     const selectedExistingFolder = folders.find(f => f.id === targetFolderId);
                     if (selectedExistingFolder) {
@@ -2701,8 +2651,8 @@
                     
                     showCustomAlert(data.message);
                     
-                    await displayPropertyFiles(currentFolder); // Re-fetch and display files in the current folder
-                    document.body.removeChild(modal); // Close the modal
+                    await displayPropertyFiles(currentFolder);
+                    document.body.removeChild(modal);
                     
                 } catch (error) {
                     console.error('Error moving files:', error);
@@ -2717,8 +2667,8 @@
                 return;
             }
 
-            const folderName = prompt('Enter folder name:'); // Using prompt for simplicity
-            if (folderName === null) { // User clicked cancel
+            const folderName = prompt('Enter folder name:');
+            if (folderName === null) {
                 return;
             }
             if (folderName.trim() === '') {
@@ -2744,9 +2694,7 @@
 
                 if (response.ok) {
                     showCustomAlert(`Folder "${newFolderName}" created successfully!`);
-                    // Re-fetch all files to regenerate the folder list from the server,
-                    // ensuring it includes the newly created one.
-                    await displayPropertyFiles(currentFolder);
+                    await displayPropertyFiles(currentFolder); // Re-fetch and display files/folders
                 } else {
                     showCustomAlert(`Failed to create folder: ${data.message || 'An unknown error occurred.'}`);
                     console.error('Error creating folder:', data.details || data.message);
@@ -2778,7 +2726,7 @@
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     file_ids: Array.from(selectedFiles).map(id => parseInt(id)),
-                                    property_id: currentSelectedProperty.id, // Pass property_id for scoping deletion
+                                    property_id: currentSelectedProperty.id,
                                     username: username,
                                     password: password
                                 })
@@ -2791,9 +2739,9 @@
                                     verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                                     verificationStatus.textContent = data.message;
                                 }
-                                setTimeout(async () => { // Made async to await displayPropertyFiles
+                                setTimeout(async () => {
                                     hideModal(verificationModal);
-                                    await displayPropertyFiles(currentFolder); // Refresh the file list
+                                    await displayPropertyFiles(currentFolder);
                                 }, 1500);
                             } else {
                                 if (verificationStatus) {
