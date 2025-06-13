@@ -779,7 +779,6 @@
         const dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
         const categoryLoadingMessage = document.getElementById('category-loading-message');
         const backToPropertiesBtn = document.getElementById('back-to-properties-btn');
-        // addCategoryDetailButton will be accessed directly via its new ID
         const addNewCategoryButton = document.getElementById('add-new-category-button');
         const deleteCategoryButton = document.getElementById('delete-category-button');
         const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
@@ -879,11 +878,11 @@
         let currentUserForeignApprovedStatus = false;
         let currentUserDomesticApprovedStatus = false;
         let currentLoggedInUsername = '';
-        let currentLoggedInPassword = '';
+        let currentLoggedInPassword = ''; // WARNING: Storing plain-text password is a HIGH SECURITY RISK for production.
 
         let selectedFiles = new Set();
         let currentFolder = 'all';
-        let folders = [];
+        let folders = []; // This array will hold logical folder data for the UI
 
         // --- Data Definitions ---
         let properties = [];
@@ -906,8 +905,28 @@
             { name: 'Streaming', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/television-fill.svg' }
         ];
 
-        // --- Initial Load: Show Login Page ---
-        // MOVED THIS LINE TO THE BEGINNING OF THE DOMContentLoaded LISTENER
+        // --- Custom Alert/Modal Function (Replaces alert()) ---
+        function showCustomAlert(message) {
+            const existingAlert = document.getElementById('custom-alert-modal');
+            if (existingAlert) existingAlert.remove(); // Remove any previous alerts
+
+            const alertModal = document.createElement('div');
+            alertModal.id = 'custom-alert-modal';
+            alertModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            alertModal.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center">
+                    <p class="text-lg font-semibold mb-4">${message}</p>
+                    <button id="custom-alert-close-btn" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">OK</button>
+                </div>
+            `;
+            document.body.appendChild(alertModal);
+
+            document.getElementById('custom-alert-close-btn').addEventListener('click', () => {
+                alertModal.remove();
+            });
+        }
+
+        // --- Initial Load: Show Login Page (MOVED HERE) ---
         showPage(loginPage);
 
 
@@ -1027,7 +1046,7 @@
                 if (currentUserForeignApprovedStatus) {
                     displayedProperties = properties.filter(p => p.is_foreign === true);
                 } else {
-                    alert('You are not approved to view foreign properties. Please contact an administrator.');
+                    showCustomAlert('You are not approved to view foreign properties. Please contact an administrator.');
                     displayedProperties = properties.filter(p => p.is_foreign === false); // Fallback to domestic
                     currentPropertyFilter = false; // Reset filter to domestic
                 }
@@ -1036,7 +1055,7 @@
                 if (currentUserDomesticApprovedStatus) {
                     displayedProperties = properties.filter(p => p.is_foreign === false);
                 } else {
-                    alert('You are not approved to view domestic properties. Please contact an administrator.');
+                    showCustomAlert('You are not approved to view domestic properties. Please contact an administrator.');
                     displayedProperties = properties.filter(p => p.is_foreign === true); // Fallback to foreign
                     currentPropertyFilter = true; // Reset filter to foreign
                 }
@@ -1046,16 +1065,16 @@
                     displayedProperties = [...properties];
                 } else if (currentUserDomesticApprovedStatus) {
                     displayedProperties = properties.filter(p => p.is_foreign === false);
-                    alert('You are not approved to view foreign properties. Displaying domestic only.');
+                    showCustomAlert('You are not approved to view foreign properties. Displaying domestic only.');
                     currentPropertyFilter = false; // Update filter state to reflect actual display
                 } else if (currentUserForeignApprovedStatus) {
                     displayedProperties = properties.filter(p => p.is_foreign === true);
-                    alert('You are not approved to view domestic properties. Displaying foreign only.');
+                    showCustomAlert('You are not approved to view domestic properties. Displaying foreign only.');
                     currentPropertyFilter = true; // Update filter state to reflect actual display
                 } else {
                        // User not approved for either, show empty list
                     displayedProperties = [];
-                    alert('You are not approved to view any properties. Please contact an administrator.');
+                    showCustomAlert('You are not approved to view any properties. Please contact an administrator.');
                 }
             }
             renderPropertyCards(); // Render the filtered list
@@ -1135,17 +1154,17 @@
             const allPages = [
                 loginPage, registerPage, propertySelectionPage, addPropertyPage,
                 propertyCategoriesPage, addCategoryDetailPage, addNewCategoryPage,
-                updatePropertyPage, updateCategoryDetailPage, propertyFilesPage // Include new files page
+                updatePropertyPage, updateCategoryDetailPage, propertyFilesPage
             ];
 
             allPages.forEach(page => {
-                if (page) { // Check if the element exists before trying to access its style
+                if (page) {
                     page.style.display = 'none';
                 }
             });
 
             // Show the requested main page
-            if (pageElement) { // Add null check here
+            if (pageElement) {
                 pageElement.style.display = 'flex';
             }
 
@@ -1156,17 +1175,15 @@
         }
 
         // --- Show/Hide Modal Function ---
-        // Now accepts a callback function and a message for the modal
-        function showModal(modalElement, itemName, actionType, callback) { // Renamed confirmationMessage to itemName for clarity
+        function showModal(modalElement, itemName, actionType, callback) {
             modalElement.classList.remove('hidden');
-            if (modalItemToDeleteNameSpan) modalItemToDeleteNameSpan.textContent = itemName; // Update modal message dynamically
+            if (modalItemToDeleteNameSpan) modalItemToDeleteNameSpan.textContent = itemName;
             if (modalPromptActionSpan) {
-                modalPromptActionSpan.textContent = `Please enter your credentials to confirm ${actionType} `; // Dynamic prompt text
+                modalPromptActionSpan.textContent = `Please enter your credentials to confirm ${actionType} `;
             }
 
-            if (confirmActionButton) { // Null check
-                confirmActionButton.textContent = `Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`; // Dynamic button text
-                // Reset button classes and apply new ones based on actionType
+            if (confirmActionButton) {
+                confirmActionButton.textContent = `Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`;
                 confirmActionButton.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
                 if (actionType === 'deleting') {
                     confirmActionButton.classList.add('bg-red-600', 'hover:bg-red-700');
@@ -1175,18 +1192,18 @@
                 }
             }
 
-            currentVerificationCallback = callback; // Store the callback
+            currentVerificationCallback = callback;
             if (modalUsernameInput) modalUsernameInput.value = '';
             if (modalPasswordInput) modalPasswordInput.value = '';
-            if (verificationStatus) { // Null check
-                verificationStatus.classList.add('hidden'); // Clear status from previous attempts
+            if (verificationStatus) {
+                verificationStatus.classList.add('hidden');
                 verificationStatus.textContent = '';
             }
         }
 
         function hideModal(modalElement) {
             modalElement.classList.add('hidden');
-            currentVerificationCallback = null; // Clear the callback
+            currentVerificationCallback = null;
         }
 
         // --- Login Logic ---
@@ -1194,7 +1211,7 @@
             event.preventDefault();
 
             const username = usernameInput.value.trim();
-            const const_password = passwordInput.value.trim(); // Use a local const for the submitted password
+            const const_password = passwordInput.value.trim();
 
             if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
             if (loginErrorText) loginErrorText.textContent = '';
@@ -1209,22 +1226,21 @@
                 const response = await fetch('/.netlify/functions/loginUser', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password: const_password }) // Pass the local const
+                    body: JSON.stringify({ username, password: const_password })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
                     console.log("Login successful:", data.message);
-                    currentUserForeignApprovedStatus = data.foreign_approved; // Store user's foreign approval status
-                    currentUserDomesticApprovedStatus = data.domestic_approved; // Store user's domestic approval status
-                    currentLoggedInUsername = username; // Store username
-                    currentLoggedInPassword = const_password; // Store password (WARNING: For demo purposes only)
+                    currentUserForeignApprovedStatus = data.foreign_approved;
+                    currentUserDomesticApprovedStatus = data.domestic_approved;
+                    currentLoggedInUsername = username;
+                    currentLoggedInPassword = const_password; // WARNING: This is a high security risk in production!
 
                     showPage(propertySelectionPage);
-                    // Fetch properties after successful login, applying default filter (all)
                     await fetchProperties(null);
-                    updateFilterButtonsHighlight(); // Highlight "All Properties" and manage foreign/domestic button state
+                    updateFilterButtonsHighlight();
                 } else {
                     if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
                     if (loginErrorText) loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
@@ -1239,7 +1255,7 @@
         });
 
         // --- Registration Logic ---
-        if (showRegisterFormBtn) { // Null check
+        if (showRegisterFormBtn) {
             showRegisterFormBtn.addEventListener('click', () => {
                 showPage(registerPage);
                 if (regUsernameInput) regUsernameInput.value = '';
@@ -1249,7 +1265,7 @@
             });
         }
 
-        if (registerForm) { // Null check
+        if (registerForm) {
             registerForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
@@ -1297,11 +1313,11 @@
         // --- Property Selection Logic ---
         function renderPropertyCards() {
             if (propertyCardsContainer) propertyCardsContainer.innerHTML = '';
-            if (displayedProperties.length === 0) { // Use displayedProperties
+            if (displayedProperties.length === 0) {
                 if (propertyCardsContainer) propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found matching this filter. Add a new one!</p>`;
                 return;
             }
-            displayedProperties.forEach(property => { // Iterate over displayedProperties
+            displayedProperties.forEach(property => {
                 const propertyCard = document.createElement('div');
                 propertyCard.classList.add(
                     'bg-white', 'rounded-xl', 'shadow-md', 'overflow-hidden', 'cursor-pointer',
@@ -1326,7 +1342,6 @@
 
                 propertyCard.querySelector('[data-action="view-property-details"]').addEventListener('click', (e) => {
                     e.stopPropagation();
-                    // Find the full property object from the 'properties' array
                     currentSelectedProperty = properties.find(p => p.id == e.target.dataset.propertyId);
                     showPage(propertyCategoriesPage);
                     renderPropertyCategories();
@@ -1337,16 +1352,16 @@
                     const propertyIdToEdit = e.target.dataset.propertyId;
                     const propertyToEdit = properties.find(p => p.id == propertyIdToEdit);
                     if (propertyToEdit) {
-                        showPage(updatePropertyPage); // Show the new update property page
+                        showPage(updatePropertyPage);
                         if (updatePropertyIdInput) updatePropertyIdInput.value = propertyToEdit.id;
                         if (updatePropertyTitleInput) updatePropertyTitleInput.value = propertyToEdit.title;
                         if (updatePropertyImageInput) updatePropertyImageInput.value = propertyToEdit.image;
                         if (updatePropertyDescriptionInput) updatePropertyDescriptionInput.value = propertyToEdit.description;
                         if (updatePropertyCategoriesInput) updatePropertyCategoriesInput.value = propertyToEdit.categories.join(', ');
                         if (updatePropertyIsForeignInput) updatePropertyIsForeignInput.checked = propertyToEdit.is_foreign;
-                        if (updatePropertyStatus) updatePropertyStatus.classList.add('hidden'); // Clear status
+                        if (updatePropertyStatus) updatePropertyStatus.classList.add('hidden');
                     } else {
-                        alert('Property not found for editing.');
+                        showCustomAlert('Property not found for editing.');
                     }
                 });
 
@@ -1361,22 +1376,22 @@
             if (currentUserForeignApprovedStatus) {
                 applyPropertyFilter(true);
             } else {
-                alert('You are not approved to view foreign properties. Please contact an administrator.');
-                applyPropertyFilter(false); // Default to domestic if not approved for foreign
+                showCustomAlert('You are not approved to view foreign properties. Please contact an administrator.');
+                applyPropertyFilter(false);
             }
         });
 
-        if (addPropertyButton) { // Null check
+        if (addPropertyButton) {
             addPropertyButton.addEventListener('click', () => {
                 showPage(addPropertyPage);
                 if (addPropertyForm) addPropertyForm.reset();
-                if (propertyIsForeignInput) propertyIsForeignInput.checked = false; // Reset checkbox
+                if (propertyIsForeignInput) propertyIsForeignInput.checked = false;
                 if (addPropertyStatus) addPropertyStatus.classList.add('hidden');
             });
         }
 
         // --- Add New Property Form Logic ---
-        if (addPropertyForm) { // Null check
+        if (addPropertyForm) {
             addPropertyForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
@@ -1442,7 +1457,7 @@
             });
         }
 
-        if (cancelAddPropertyButton) { // Null check
+        if (cancelAddPropertyButton) {
             cancelAddPropertyButton.addEventListener('click', () => {
                 showPage(propertySelectionPage);
             });
@@ -1465,24 +1480,17 @@
 
             if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
                 if (propertyCategoriesNav) propertyCategoriesNav.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
-                // Hide buttons if no categories
-                // addCategoryDetailButton is not used directly here, but addCategoryDetailButtonAtBottom is
                 if (deleteCategoryButton) deleteCategoryButton.style.display = 'none';
-                // Show Add New Category and Refresh
                 if (addNewCategoryButton) addNewCategoryButton.style.display = 'block';
                 if (refreshCategoriesButtonOnCategoriesPage) refreshCategoriesButtonOnCategoriesPage.style.display = 'block';
-                // Ensure addVendorButtonAtBottom is hidden if no categories
                 const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                 if (addVendorButton) addVendorButton.style.display = 'none';
                 return;
             }
 
-            // Initial state for buttons if categories exist
-            // addCategoryDetailButton is not used directly here, but addCategoryDetailButtonAtBottom is
             if (deleteCategoryButton) deleteCategoryButton.style.display = 'block';
             if (addNewCategoryButton) addNewCategoryButton.style.display = 'block';
             if (refreshCategoriesButtonOnCategoriesPage) refreshCategoriesButtonOnCategoriesPage.style.display = 'block';
-            // Hide addVendorButtonAtBottom here, it will be shown by displayCategoryDetails if a category is selected
             const addVendorButton = document.getElementById('add-category-detail-button-bottom');
             if (addVendorButton) addVendorButton.style.display = 'none';
 
@@ -1494,7 +1502,6 @@
                 categoryDiv.textContent = categoryName;
                 categoryDiv.dataset.categoryName = categoryName;
                 categoryDiv.addEventListener('click', () => {
-                    // Ensure files view is hidden and category details are shown
                     if (propertyFilesContent) propertyFilesContent.style.display = 'none';
                     if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
                     
@@ -1527,25 +1534,20 @@
 
         // --- Display Category Details / Dynamic Buttons (now tiles) ---
         async function displayCategoryDetails(selectedCategoryName) {
-            // Always hide files content and show category details when selecting a category
             if (propertyFilesContent) propertyFilesContent.style.display = 'none';
             if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
             
-            // IMPORTANT: Re-get securityWarningDiv here as categoryDetailsContent.innerHTML resets its children
             const securityWarningDiv = document.getElementById('security-warning');
             
             if (categoryDetailsContent) categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
             
-            // Only append if it exists and is not already a child
             if (categoryDetailsContent && securityWarningDiv) {
                 categoryDetailsContent.appendChild(securityWarningDiv); 
             }
             
-            // Rest of your existing displayCategoryDetails code...
             const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
             const loadingMessage = document.getElementById('category-loading-message');
             
-            // Show "Add Vendor's Details" button when viewing categories
             const addVendorButton = document.getElementById('add-category-detail-button-bottom');
             if (addVendorButton) addVendorButton.style.display = 'block';
             
@@ -1565,7 +1567,7 @@
                     const noDetailsMessage = document.createElement('p');
                     noDetailsMessage.classList.add('text-gray-600', 'mt-4');
                     noDetailsMessage.textContent = `No details found for category: "${selectedCategoryName}".`;
-                    if (buttonsContainer) buttonsContainer.appendChild(noDetailsMessage); // Append to buttonsContainer
+                    if (buttonsContainer) buttonsContainer.appendChild(noDetailsMessage);
                 } else {
                     details.forEach(detail => {
                         const detailTile = document.createElement('div');
@@ -1609,7 +1611,7 @@
 
                         detailTile.querySelector(`.password-toggle-btn[data-target="${passwordInputId}"]`).addEventListener('click', (e) => {
                             const targetInput = document.getElementById(e.target.dataset.target);
-                            if (targetInput) { // Null check
+                            if (targetInput) {
                                 if (targetInput.type === 'password') {
                                     targetInput.type = 'text';
                                     e.target.textContent = '🙈';
@@ -1621,15 +1623,15 @@
                         });
 
                         detailTile.querySelectorAll('.copy-btn').forEach(button => {
-                            button.addEventListener('click', async (e) => { // Made async to use await navigator.clipboard
+                            button.addEventListener('click', async (e) => { // Made async for navigator.clipboard
                                 const targetInput = document.getElementById(e.target.dataset.target);
-                                if (targetInput) { // Null check
+                                if (targetInput) {
                                     try {
                                         await navigator.clipboard.writeText(targetInput.value);
-                                        alert('Copied to clipboard!');
+                                        showCustomAlert('Copied to clipboard!');
                                     } catch (err) {
                                         console.error('Failed to copy: ', err);
-                                        alert('Failed to copy to clipboard. Please copy manually.');
+                                        showCustomAlert('Failed to copy to clipboard. Please copy manually.');
                                     }
                                 }
                             });
@@ -1642,7 +1644,7 @@
                             if (url) {
                                 window.open(url, '_blank');
                             } else {
-                                alert(`Detail: "${detail.detail_name}" has no URL.`);
+                                showCustomAlert(`Detail: "${detail.detail_name}" has no URL.`);
                             }
                         });
 
@@ -1653,17 +1655,16 @@
 
                             showModal(
                                 verificationModal,
-                                `"${detailName}"`, // Item name
-                                `updating`, // Action type for prompt
-                                async (username, password) => { // Callback for edit detail
-                                    if (verificationStatus) { // Null check
+                                `"${detailName}"`,
+                                `updating`,
+                                async (username, password) => {
+                                    if (verificationStatus) {
                                         verificationStatus.classList.remove('hidden');
                                         verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                                         verificationStatus.textContent = 'Verifying credentials...';
                                     }
 
                                     try {
-                                        // Authenticate against Netlify function using the provided credentials
                                         const authResponse = await fetch('/.netlify/functions/loginUser', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
@@ -1688,14 +1689,14 @@
                                             if (updateDetailStatus) updateDetailStatus.classList.add('hidden');
 
                                         } else {
-                                            if (verificationStatus) { // Null check
+                                            if (verificationStatus) {
                                                 verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                                                 verificationStatus.textContent = authData.message || 'Authentication failed. Please check credentials.';
                                             }
                                         }
                                     } catch (error) {
                                         console.error('Error during authentication for edit:', error);
-                                        if (verificationStatus) { // Null check
+                                        if (verificationStatus) {
                                             verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                                             verificationStatus.textContent = `Network error: ${error.message}`;
                                         }
@@ -1718,10 +1719,9 @@
         }
 
         // --- Add Category Detail Button & Form Logic ---
-        const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom'); // Get the new button reference
-        const mainTag = document.querySelector('main'); // Get reference to the main tag
-        if (addCategoryDetailButtonAtBottom && mainTag) { // Ensure button and mainTag exist
-            // Initially hide this button until a category is selected (handled in renderPropertyCategories/displayCategoryDetails)
+        const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom');
+        const mainTag = document.querySelector('main');
+        if (addCategoryDetailButtonAtBottom && mainTag) {
             addCategoryDetailButtonAtBottom.style.display = 'none';
 
             addCategoryDetailButtonAtBottom.addEventListener('click', () => {
@@ -1736,25 +1736,25 @@
                     selectedPresetLogoUrl = null;
                     if (customLogoUrlInput) customLogoUrlInput.value = '';
                 } else {
-                    alert('Please select a property category first to add details to it.');
+                    showCustomAlert('Please select a property category first to add details to it.');
                 }
             });
         }
 
-        if (addDetailForm) { // Null check
+        if (addDetailForm) {
             addDetailForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
                 const detailName = detailNameInput.value.trim();
                 const detailUrl = detailUrlInput.value.trim();
                 const detailDescription = detailDescriptionInput.value.trim();
-                const logoUrlToSend = selectedPresetLogoUrl || (customLogoUrlInput ? customLogoUrlInput.value.trim() : null); // Null check
-                const usernameToSave = detailUsernameAddInput ? detailUsernameAddInput.value.trim() : ''; // Null check
-                const passwordToSave = detailPasswordAddInput ? detailPasswordAddInput.value.trim() : ''; // Null check
+                const logoUrlToSend = selectedPresetLogoUrl || (customLogoUrlInput ? customLogoUrlInput.value.trim() : null);
+                const usernameToSave = detailUsernameAddInput ? detailUsernameAddInput.value.trim() : '';
+                const passwordToSave = detailPasswordAddInput ? detailPasswordAddInput.value.trim() : '';
 
 
                 if (!detailName || !detailUrl) {
-                    if (addDetailStatus) { // Null check
+                    if (addDetailStatus) {
                         addDetailStatus.classList.remove('hidden');
                         addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
                         addDetailStatus.textContent = 'Detail Name and URL are required.';
@@ -1762,7 +1762,7 @@
                     return;
                 }
 
-                if (addDetailStatus) { // Null check
+                if (addDetailStatus) {
                     addDetailStatus.classList.remove('hidden');
                     addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                     addDetailStatus.textContent = 'Saving detail...';
@@ -1792,7 +1792,7 @@
                     const savedDetail = await response.json();
                     console.log('Category detail saved:', savedDetail);
 
-                    if (addDetailStatus) { // Null check
+                    if (addDetailStatus) {
                         addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         addDetailStatus.textContent = 'Detail saved successfully!';
                     }
@@ -1804,9 +1804,9 @@
 
                 } catch (error) {
                     console.error('Error saving detail:', error);
-                    if (addDetailStatus) { // Null check
+                    if (addDetailStatus) {
                         addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                        if (error.message && error.message.includes('duplicate key value violates unique constraint')) { // More specific error check
+                        if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
                             addDetailStatus.textContent = 'Detail with this name already exists for this category.';
                         } else {
                             addDetailStatus.textContent = `Error saving detail: ${error.message}`;
@@ -1816,7 +1816,7 @@
             });
         }
 
-        if (cancelAddDetailButton) { // Null check
+        if (cancelAddDetailButton) {
             cancelAddDetailButton.addEventListener('click', () => {
                 showPage(propertyCategoriesPage);
             });
@@ -1824,27 +1824,27 @@
 
 
         // --- Add New Category Button & Form Logic ---
-        if (addNewCategoryButton) { // Null check
+        if (addNewCategoryButton) {
             addNewCategoryButton.addEventListener('click', () => {
                 if (currentSelectedProperty) {
-                    if (categoryPropertyTitleSpan) categoryPropertyTitleSpan.textContent = `"${currentSelectedProperty.title}"`; // Show property title in form
+                    if (categoryPropertyTitleSpan) categoryPropertyTitleSpan.textContent = `"${currentSelectedProperty.title}"`;
                     showPage(addNewCategoryPage);
                     if (addNewCategoryForm) addNewCategoryForm.reset();
                     if (addNewCategoryStatus) addNewCategoryStatus.classList.add('hidden');
                 } else {
-                    alert('Please select a property first to add a new category.');
+                    showCustomAlert('Please select a property first to add a new category.');
                 }
             });
         }
 
-        if (addNewCategoryForm) { // Null check
+        if (addNewCategoryForm) {
             addNewCategoryForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
                 const newCategoryName = newCategoryNameInput.value.trim();
 
                 if (!newCategoryName) {
-                    if (addNewCategoryStatus) { // Null check
+                    if (addNewCategoryStatus) {
                         addNewCategoryStatus.classList.remove('hidden');
                         addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
                         addNewCategoryStatus.textContent = 'Please enter a category name.';
@@ -1852,7 +1852,7 @@
                     return;
                 }
 
-                if (addNewCategoryStatus) { // Null check
+                if (addNewCategoryStatus) {
                     addNewCategoryStatus.classList.remove('hidden');
                     addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                     addNewCategoryStatus.textContent = 'Adding category...';
@@ -1876,7 +1876,7 @@
                     const result = await response.json();
                     console.log('Category added successfully:', result.message);
 
-                    if (addNewCategoryStatus) { // Null check
+                    if (addNewCategoryStatus) {
                         addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         addNewCategoryStatus.textContent = 'Category added successfully!';
                     }
@@ -1888,9 +1888,9 @@
 
                 } catch (error) {
                             console.error('Error adding new category:', error);
-                            if (addNewCategoryStatus) { // Null check
+                            if (addNewCategoryStatus) {
                                 addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                if (error.message && error.message.includes('duplicate key value violates unique constraint')) { // More specific error check
+                                if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
                                     addNewCategoryStatus.textContent = 'Category with this name already exists for this property.';
                                 } else {
                                     addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
@@ -1900,7 +1900,7 @@
             });
         }
 
-        if (cancelNewCategoryButton) { // Null check
+        if (cancelNewCategoryButton) {
             cancelNewCategoryButton.addEventListener('click', () => {
                 showPage(propertyCategoriesPage);
             });
@@ -1908,7 +1908,7 @@
 
 
         // --- Update Property Logic ---
-        if (updatePropertyForm) { // Null check
+        if (updatePropertyForm) {
             updatePropertyForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
@@ -1920,7 +1920,7 @@
                 const isForeign = updatePropertyIsForeignInput.checked;
 
                 if (!title || !image || !description || !categoriesString) {
-                    if (updatePropertyStatus) { // Null check
+                    if (updatePropertyStatus) {
                         updatePropertyStatus.classList.remove('hidden');
                         updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
                         updatePropertyStatus.textContent = 'All fields except Username/Password are required.';
@@ -1930,7 +1930,7 @@
 
                 const parsedCategories = categoriesString.split(',').map(cat => cat.trim()).filter(cat => cat !== '');
 
-                if (updatePropertyStatus) { // Null check
+                if (updatePropertyStatus) {
                     updatePropertyStatus.classList.remove('hidden');
                     updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                     updatePropertyStatus.textContent = 'Updating property...';
@@ -1958,7 +1958,7 @@
                     const result = await response.json();
                     console.log('Property updated successfully:', result.message);
 
-                    if (updatePropertyStatus) { // Null check
+                    if (updatePropertyStatus) {
                         updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         updatePropertyStatus.textContent = 'Property updated successfully!';
                     }
@@ -1970,7 +1970,7 @@
 
                 } catch (error) {
                     console.error('Error updating property:', error);
-                    if (updatePropertyStatus) { // Null check
+                    if (updatePropertyStatus) {
                         updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                         updatePropertyStatus.textContent = `Error updating property: ${error.message}`;
                     }
@@ -1978,7 +1978,7 @@
             });
         }
 
-        if (cancelUpdatePropertyButton) { // Null check
+        if (cancelUpdatePropertyButton) {
             cancelUpdatePropertyButton.addEventListener('click', () => {
                 showPage(propertySelectionPage);
             });
@@ -1986,7 +1986,7 @@
 
 
         // --- Update Category Detail Logic ---
-        if (updateDetailForm) { // Null check
+        if (updateDetailForm) {
             updateDetailForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
@@ -1994,13 +1994,13 @@
                 const detailName = updateDetailNameInput.value.trim();
                 const detailUrl = updateDetailUrlInput.value.trim();
                 const detailDescription = updateDetailDescriptionInput.value.trim();
-                const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput ? updateCustomLogoUrlInput.value.trim() : null); // Null check
-                const usernameToSave = updateDetailUsernameInput ? updateDetailUsernameInput.value.trim() : ''; // Null check
-                const passwordToSave = updateDetailPasswordInput ? updateDetailPasswordInput.value.trim() : ''; // Null check
+                const logoUrlToSend = selectedUpdatePresetLogoUrl || (updateCustomLogoUrlInput ? updateCustomLogoUrlInput.value.trim() : null);
+                const usernameToSave = updateDetailUsernameInput ? updateDetailUsernameInput.value.trim() : '';
+                const passwordToSave = updateDetailPasswordInput ? updateDetailPasswordInput.value.trim() : '';
 
 
                 if (!detailName || !detailUrl) {
-                    if (updateDetailStatus) { // Null check
+                    if (updateDetailStatus) {
                         updateDetailStatus.classList.remove('hidden');
                         updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-yellow-100 text-yellow-700';
                         updateDetailStatus.textContent = 'Detail Name and URL are required.';
@@ -2008,7 +2008,7 @@
                     return;
                 }
 
-                if (updateDetailStatus) { // Null check
+                if (updateDetailStatus) {
                     updateDetailStatus.classList.remove('hidden');
                     updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                     updateDetailStatus.textContent = 'Updating detail...';
@@ -2026,8 +2026,8 @@
                             detail_logo_url: logoUrlToSend,
                             detail_username: usernameToSave,
                             detail_password: passwordToSave,
-                            username: currentLoggedInUsername, // Pass current logged-in username
-                            password: currentLoggedInPassword  // Pass current logged-in password
+                            username: currentLoggedInUsername,
+                            password: currentLoggedInPassword
                         })
                     });
 
@@ -2039,7 +2039,7 @@
                     const updatedDetail = await response.json();
                     console.log('Category detail updated:', updatedDetail);
 
-                    if (updateDetailStatus) { // Null check
+                    if (updateDetailStatus) {
                         updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         updateDetailStatus.textContent = 'Detail updated successfully!';
                     }
@@ -2051,9 +2051,9 @@
 
                 } catch (error) {
                     console.error('Error updating detail:', error);
-                    if (updateDetailStatus) { // Null check
+                    if (updateDetailStatus) {
                         updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                        if (error.message && error.message.includes('duplicate key value violates unique constraint')) { // More specific error check
+                        if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
                             updateDetailStatus.textContent = 'Detail with this name and URL already exists for this category.';
                         } else {
                             updateDetailStatus.textContent = `Error updating detail: ${error.message}`;
@@ -2063,7 +2063,7 @@
             });
         }
 
-        if (cancelUpdateDetailButton) { // Null check
+        if (cancelUpdateDetailButton) {
             cancelUpdateDetailButton.addEventListener('click', () => {
                 showPage(propertyCategoriesPage);
             });
@@ -2071,18 +2071,18 @@
 
 
         // --- Delete Category Logic ---
-        if (deleteCategoryButton) { // Null check
+        if (deleteCategoryButton) {
             deleteCategoryButton.addEventListener('click', () => {
                 if (!currentSelectedProperty || !currentSelectedCategoryName) {
-                    alert('Please select a property and a category to delete.');
+                    showCustomAlert('Please select a property and a category to delete.');
                     return;
                 }
                 showModal(
                     verificationModal,
-                    `category: "${currentSelectedCategoryName}"`, // Item name
-                    `deleting`, // Action type for prompt
-                    async (username, password) => { // Callback for delete category
-                        if (verificationStatus) { // Null check
+                    `category: "${currentSelectedCategoryName}"`,
+                    `deleting`,
+                    async (username, password) => {
+                        if (verificationStatus) {
                             verificationStatus.classList.remove('hidden');
                             verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                             verificationStatus.textContent = 'Verifying and deleting category...';
@@ -2102,7 +2102,7 @@
                             const data = await response.json();
 
                             if (response.ok) {
-                                if (verificationStatus) { // Null check
+                                if (verificationStatus) {
                                     verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                                     verificationStatus.textContent = data.message;
                                 }
@@ -2121,7 +2121,7 @@
                                 }, 1500);
 
                             } else {
-                                if (verificationStatus) { // Null check
+                                if (verificationStatus) {
                                     verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                                     verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
                                     if (modalPasswordInput) modalPasswordInput.value = '';
@@ -2129,7 +2129,7 @@
                             }
                         } catch (error) {
                             console.error('Error during delete verification:', error);
-                            if (verificationStatus) { // Null check
+                            if (verificationStatus) {
                                 verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
                                 verificationStatus.textContent = `Network error: ${error.message}`;
                             }
@@ -2140,17 +2140,17 @@
         }
 
         // --- Manual Refresh Categories Button Logic ---
-        if (refreshCategoriesButtonOnCategoriesPage) { // Null check
+        if (refreshCategoriesButtonOnCategoriesPage) {
             refreshCategoriesButtonOnCategoriesPage.addEventListener('click', () => {
                 if (currentSelectedProperty) {
-                    renderPropertyCategories(); // Re-render categories for the currently selected property
+                    renderPropertyCategories();
                 } else {
-                    alert('Please select a property first.');
+                    showCustomAlert('Please select a property first.');
                 }
             });
         }
 
-        if (refreshPropertiesButton) { // Null check
+        if (refreshPropertiesButton) {
             refreshPropertiesButton.addEventListener('click', async () => {
                 await fetchProperties(currentPropertyFilter);
             });
@@ -2158,7 +2158,7 @@
 
 
         // --- Verification Modal Form Submission Handler ---
-        if (verificationForm) { // Null check
+        if (verificationForm) {
             verificationForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 if (currentVerificationCallback) {
@@ -2167,7 +2167,7 @@
             });
         }
 
-        if (cancelVerificationBtn) { // Null check
+        if (cancelVerificationBtn) {
             cancelVerificationBtn.addEventListener('click', () => {
                 hideModal(verificationModal);
             });
@@ -2175,7 +2175,7 @@
 
 
         // --- Back Button Event Listeners ---
-        if (backToLoginBtn) { // Null check
+        if (backToLoginBtn) {
             backToLoginBtn.addEventListener('click', () => {
                 showPage(loginPage);
                 if (usernameInput) usernameInput.value = '';
@@ -2184,7 +2184,7 @@
             });
         }
 
-        if (backToLoginFromRegisterBtn) { // Null check
+        if (backToLoginFromRegisterBtn) {
             backToLoginFromRegisterBtn.addEventListener('click', () => {
                 showPage(loginPage);
                 if (regUsernameInput) regUsernameInput.value = '';
@@ -2193,7 +2193,7 @@
             });
         }
 
-        if (backFromAddPropertyBtn) { // Null check
+        if (backFromAddPropertyBtn) {
             backFromAddPropertyBtn.addEventListener('click', () => {
                 showPage(propertySelectionPage);
                 if (addPropertyForm) addPropertyForm.reset();
@@ -2201,55 +2201,48 @@
             });
         }
 
-        if (backToPropertiesBtn) { // Null check
+        if (backToPropertiesBtn) {
             backToPropertiesBtn.addEventListener('click', () => {
                 showPage(propertySelectionPage);
                 currentSelectedProperty = null;
                 currentSelectedCategoryName = null;
                 if (categoryDetailsHeading) categoryDetailsHeading.textContent = 'Category Details';
-                // Also reset property header when going back to properties list
-                if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details'; // Default text
-                if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // Default placeholder
+                if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details';
+                if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
             });
         }
 
-        if (backFromAddDetailBtn) { // Null check
+        if (backFromAddDetailBtn) {
             backFromAddDetailBtn.addEventListener('click', () => {
                 showPage(propertyCategoriesPage);
-                // Ensure only category content is visible when returning from Add Detail
                 if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
                 if (propertyFilesPage) propertyFilesPage.style.display = 'none';
-                // Ensure "Add Vendor's Details" button is shown
                 const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                 if (addVendorButton) addVendorButton.style.display = 'block';
             });
         }
 
-        if (backFromAddNewCategoryBtn) { // Null check
+        if (backFromAddNewCategoryBtn) {
             backFromAddNewCategoryBtn.addEventListener('click', () => {
                 showPage(propertyCategoriesPage);
-                // Ensure only category content is visible when returning from Add New Category
                 if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
                 if (propertyFilesPage) propertyFilesPage.style.display = 'none';
-                // Ensure "Add Vendor's Details" button is shown
                 const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                 if (addVendorButton) addVendorButton.style.display = 'block';
             });
         }
 
-        if (backFromUpdateDetailBtn) { // Null check
+        if (backFromUpdateDetailBtn) {
             backFromUpdateDetailBtn.addEventListener('click', () => {
                 showPage(propertyCategoriesPage);
-                // Ensure only category content is visible when returning from Update Detail
                 if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
                 if (propertyFilesPage) propertyFilesPage.style.display = 'none';
-                // Ensure "Add Vendor's Details" button is shown
                 const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                 if (addVendorButton) addVendorButton.style.display = 'block';
             });
         }
 
-        if (backFromUpdatePropertyBtn) { // Null check
+        if (backFromUpdatePropertyBtn) {
             backFromUpdatePropertyBtn.addEventListener('click', () => {
                 showPage(propertySelectionPage);
                 fetchProperties(currentPropertyFilter);
@@ -2262,24 +2255,19 @@
                 if (currentSelectedProperty) {
                     if (categoryDetailsContent && propertyFilesContent) {
                         if (categoryDetailsContent.style.display !== 'none') {
-                            // Switching to files view
                             categoryDetailsContent.style.display = 'none';
                             propertyFilesContent.style.display = 'flex';
                             
-                            // Update the files property title
                             if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
                             
-                            // Hide "Add Vendor's Details" button when viewing files
                             const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                             if (addVendorButton) addVendorButton.style.display = 'none';
                             
                             displayPropertyFiles();
                         } else {
-                            // Switching back to category details
                             if (currentSelectedCategoryName) {
                                 displayCategoryDetails(currentSelectedCategoryName);
                             } else if (currentSelectedProperty.categories.length > 0) {
-                                // Select the first category if none is selected
                                 const firstCategory = currentSelectedProperty.categories[0];
                                 currentSelectedCategoryName = firstCategory;
                                 displayCategoryDetails(firstCategory);
@@ -2287,7 +2275,7 @@
                         }
                     }
                 } else {
-                    alert('Please select a property to view files.');
+                    showCustomAlert('Please select a property to view files.');
                 }
             });
         }
@@ -2295,10 +2283,8 @@
         // New: Back from Files button functionality
         if (backFromFilesButton) {
             backFromFilesButton.addEventListener('click', () => {
-                showPage(propertyCategoriesPage); // Directly show the categories page
-                // Re-render categories to ensure correct state if any files were added/deleted
+                showPage(propertyCategoriesPage);
                 renderPropertyCategories();
-                // Ensure "Add Vendor's Details" button is shown
                 const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                 if (addVendorButton) addVendorButton.style.display = 'block';
             });
@@ -2318,7 +2304,7 @@
             
                 const file = fileUploadInput.files[0];
                 
-                // File type validation (MOVED HERE)
+                // File type validation (NOW IN CORRECT PLACE)
                 const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
                 if (!allowedTypes.includes(file.type)) {
                     if (fileUploadStatus) {
@@ -2340,12 +2326,11 @@
                     const progress = document.createElement('progress');
                     progress.max = file.size;
                     progress.value = 0;
-                    fileUploadStatus.appendChild(progress); // Appending the progress bar here
+                    fileUploadStatus.appendChild(progress);
                 }
             
                 reader.onprogress = (event) => {
                     if (event.lengthComputable) {
-                        // Ensure progress element exists before updating
                         const progressElement = fileUploadStatus?.querySelector('progress');
                         if (progressElement) {
                             progressElement.value = event.loaded;
@@ -2354,13 +2339,13 @@
                 };
             
                 reader.onloadend = async () => {
-                    const base64data = reader.result.split(',')[1]; // Get only the Base64 part
+                    const base64data = reader.result.split(',')[1];
             
                     if (!currentSelectedProperty || !currentLoggedInUsername || !currentLoggedInPassword) {
                         if (fileUploadStatus) {
                             fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
                             fileUploadStatus.textContent = 'Error: Property not selected or user not logged in.';
-                            fileUploadStatus.innerHTML = ''; // Clear progress
+                            fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Clear progress
                         }
                         return;
                     }
@@ -2389,10 +2374,10 @@
                             if (fileUploadStatus) {
                                 fileUploadStatus.className = 'mt-3 text-center text-sm bg-green-100 text-green-700';
                                 fileUploadStatus.textContent = 'File uploaded successfully!';
-                                fileUploadStatus.innerHTML = 'File uploaded successfully!'; // Clear progress but keep success message
+                                fileUploadStatus.innerHTML = fileUploadStatus.textContent;
                             }
-                            if (fileUploadInput) fileUploadInput.value = ''; // Clear file input
-                            displayPropertyFiles(); // Refresh file list
+                            if (fileUploadInput) fileUploadInput.value = '';
+                            displayPropertyFiles();
                         } else {
                             if (fileUploadStatus) {
                                 fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
@@ -2401,7 +2386,7 @@
                                 } else {
                                     fileUploadStatus.textContent = `Upload failed: ${data.details || data.message}`;
                                 }
-                                fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Clear progress but keep error message
+                                fileUploadStatus.innerHTML = fileUploadStatus.textContent;
                             }
                         }
                     } catch (error) {
@@ -2409,14 +2394,13 @@
                         if (fileUploadStatus) {
                             fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
                             fileUploadStatus.textContent = `Network error during upload: ${error.message}`;
-                            fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Clear progress but keep error message
+                            fileUploadStatus.innerHTML = fileUploadStatus.textContent;
                         }
                     }
                 };
             
-                // Ensure the file is not empty before reading
                 if (file) {
-                    reader.readAsDataURL(file); // Read file as Base64
+                    reader.readAsDataURL(file);
                 }
             });
         }
@@ -2430,7 +2414,6 @@
         
             filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
             
-            // Update folder title
             if (document.getElementById('current-folder-title')) {
                 document.getElementById('current-folder-title').textContent = 
                     folderId === 'all' ? 'All Files' : `Folder: ${folders.find(f => f.id === folderId)?.name || folderId}`;
@@ -2450,7 +2433,6 @@
                 renderFilesList(filesToDisplay);
                 renderFoldersList(allFiles); // This will extract folders from files
                 
-                // Clear selection when changing folders
                 selectedFiles.clear();
                 updateSelectionUI();
                 
@@ -2503,14 +2485,12 @@
                     </div>
                 `;
                 
-                // Add click handler for selection
                 const checkbox = fileItem.querySelector('.file-checkbox');
                 checkbox.addEventListener('click', (e) => {
                     e.stopPropagation();
                     toggleFileSelection(file.id);
                 });
                 
-                // Whole row is clickable
                 fileItem.addEventListener('click', (e) => {
                     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
                         toggleFileSelection(file.id);
@@ -2525,17 +2505,18 @@
             const foldersList = document.getElementById('folders-list');
             if (!foldersList) return;
             
-            // Extract unique folders from files
             const folderSet = new Set();
             files.forEach(file => {
-                if (file.folder_id && file.folder_id !== 'all') {
+                // Only add files that explicitly have a non-empty folder_id and not "all"
+                if (file.folder_id && file.folder_id !== 'all' && file.folder_id.trim() !== '') {
                     folderSet.add(JSON.stringify({ id: file.folder_id, name: file.folder_name || file.folder_id }));
                 }
             });
             
             folders = Array.from(folderSet).map(f => JSON.parse(f));
+            // Sort folders alphabetically by name
+            folders.sort((a, b) => a.name.localeCompare(b.name));
             
-            // Clear and rebuild folder list
             foldersList.innerHTML = `
                 <li class="folder-item ${currentFolder === 'all' ? 'active' : ''}" data-folder-id="all">
                     <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2566,7 +2547,7 @@
             });
         }
         
-        // Helper functions
+        // Helper functions for files
         function getFileIcon(extension, filename) {
             const iconMap = {
                 pdf: 'file-pdf',
@@ -2587,6 +2568,7 @@
             };
             
             const icon = iconMap[extension] || 'file';
+            // You might need to ensure FontAwesome or a similar icon library is loaded for these classes to work.
             return `<i class="fas fa-${icon} file-icon text-blue-500"></i>`;
         }
         
@@ -2608,9 +2590,8 @@
         }
         
         function updateSelectionUI() {
-            // Update selected state of file items
             document.querySelectorAll('.file-item').forEach(item => {
-                const fileId = item.dataset.fileId;
+                const fileId = parseInt(item.dataset.fileId); // Ensure fileId is a number for Set comparison
                 if (selectedFiles.has(fileId)) {
                     item.classList.add('selected');
                     item.querySelector('.file-checkbox').checked = true;
@@ -2620,7 +2601,6 @@
                 }
             });
             
-            // Update action buttons state
             const moveButton = document.getElementById('move-to-folder-button');
             const deleteButton = document.getElementById('delete-selected-files-button');
             
@@ -2631,15 +2611,12 @@
             }
         }
         
-        // Add these event listeners
-        // This entire block of event listeners for file management was *already* nested inside DOMContentLoaded.
-        // The issue was with the single `showPage(loginPage);` call.
+        // Add these event listeners for file actions
         
         // Move to folder functionality
         document.getElementById('move-to-folder-button')?.addEventListener('click', () => {
             if (selectedFiles.size === 0) return;
             
-            // Create a modal or dropdown to select target folder
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             modal.innerHTML = `
@@ -2662,18 +2639,15 @@
             
             document.body.appendChild(modal);
             
-            // Show/hide new folder input
             modal.querySelector('#target-folder-select').addEventListener('change', (e) => {
                 modal.querySelector('#new-folder-input').style.display = 
                     e.target.value === 'new' ? 'block' : 'none';
             });
             
-            // Cancel button
             modal.querySelector('#cancel-move').addEventListener('click', () => {
                 document.body.removeChild(modal);
             });
             
-            // Confirm button
             modal.querySelector('#confirm-move').addEventListener('click', async () => {
                 const select = modal.querySelector('#target-folder-select');
                 let targetFolderId = select.value;
@@ -2682,28 +2656,35 @@
                 if (targetFolderId === 'new') {
                     targetFolderName = modal.querySelector('#new-folder-name').value.trim();
                     if (!targetFolderName) {
-                        alert('Please enter a folder name');
+                        showCustomAlert('Please enter a folder name.');
                         return;
                     }
                     targetFolderId = targetFolderName.toLowerCase().replace(/\s+/g, '-');
-                    
-                    // In a real app, you would save this new folder to your database
-                    folders.push({ id: targetFolderId, name: targetFolderName });
-                    renderFoldersList([]); // Refresh folder list
+                    // No need to locally push to 'folders' here, the backend will manage
+                } else if (targetFolderId === 'all') {
+                    targetFolderName = 'All Files'; // Special case for 'All Files' folder
+                } else {
+                    const selectedExistingFolder = folders.find(f => f.id === targetFolderId);
+                    if (selectedExistingFolder) {
+                        targetFolderName = selectedExistingFolder.name;
+                    } else {
+                        // Fallback if folder not found in local list (shouldn't happen if list is fresh)
+                        targetFolderName = targetFolderId; 
+                    }
                 }
-                
+
                 if (!targetFolderId) {
-                    alert('Please select a folder');
+                    showCustomAlert('Please select a folder.');
                     return;
                 }
                 
                 try {
-                    // Call your backend to move files
                     const response = await fetch('/.netlify/functions/moveFiles', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            file_ids: Array.from(selectedFiles),
+                            file_ids: Array.from(selectedFiles).map(id => parseInt(id)), // Ensure IDs are numbers
+                            property_id: currentSelectedProperty.id,
                             folder_id: targetFolderId,
                             folder_name: targetFolderName,
                             username: currentLoggedInUsername,
@@ -2711,26 +2692,43 @@
                         })
                     });
                     
-                    if (!response.ok) throw new Error('Failed to move files');
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        showCustomAlert(`Error moving files: ${data.message || 'An unknown error occurred.'}`);
+                        throw new Error(data.message || 'Failed to move files');
+                    }
                     
-                    // Refresh the file list
-                    displayPropertyFiles(currentFolder);
-                    document.body.removeChild(modal);
+                    showCustomAlert(data.message);
+                    
+                    displayPropertyFiles(currentFolder); // Re-fetch and display files in the current folder
+                    document.body.removeChild(modal); // Close the modal
                     
                 } catch (error) {
                     console.error('Error moving files:', error);
-                    alert(`Error moving files: ${error.message}`);
+                    // showCustomAlert should have already displayed the error message
                 }
             });
         });
         
-        // Create folder button
+        // Create folder button (client-side only for prompt, backend handles persistence)
         document.getElementById('create-folder-button')?.addEventListener('click', () => {
+            // A simple prompt is used here, but for consistency, you might want a custom modal input.
             const folderName = prompt('Enter folder name:');
             if (folderName && folderName.trim()) {
+                // If you have a separate Netlify function for creating folders, call it here.
+                // For now, this is only used for the move modal. If a folder is created this way,
+                // it's only added to the local 'folders' list; it needs to be persisted to DB.
+                // If a user creates a folder outside of the move modal and then tries to move files,
+                // the folder will be "re-created" via the moveFiles function if it doesn't exist in DB.
                 const newFolderId = folderName.trim().toLowerCase().replace(/\s+/g, '-');
-                folders.push({ id: newFolderId, name: folderName.trim() });
-                renderFoldersList([]); // Refresh folder list
+                // Check if folder already exists locally before adding
+                if (!folders.some(f => f.id === newFolderId)) {
+                    folders.push({ id: newFolderId, name: folderName.trim() });
+                    renderFoldersList([]); // Refresh folder list to show new local folder
+                } else {
+                    showCustomAlert('Folder with this name already exists locally.');
+                }
             }
         });
         
@@ -2739,31 +2737,59 @@
             if (selectedFiles.size === 0) return;
             
             if (confirm(`Are you sure you want to delete ${selectedFiles.size} selected file(s)?`)) {
-                // Call your backend to delete files
-                fetch('/.netlify/functions/deleteFiles', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        file_ids: Array.from(selectedFiles),
-                        username: currentLoggedInUsername,
-                        password: currentLoggedInPassword
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Failed to delete files');
-                    return response.json();
-                })
-                .then(() => {
-                    // Refresh the file list
-                    displayPropertyFiles(currentFolder);
-                })
-                .catch(error => {
-                    console.error('Error deleting files:', error);
-                    alert(`Error deleting files: ${error.message}`);
-                });
+                // This callback will be handled by the verification modal logic
+                showModal(
+                    verificationModal,
+                    `${selectedFiles.size} selected file(s)`,
+                    `deleting`,
+                    async (username, password) => {
+                        if (verificationStatus) {
+                            verificationStatus.classList.remove('hidden');
+                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                            verificationStatus.textContent = 'Verifying and deleting files...';
+                        }
+                        try {
+                            const response = await fetch('/.netlify/functions/deleteFiles', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    file_ids: Array.from(selectedFiles).map(id => parseInt(id)), // Ensure IDs are numbers
+                                    property_id: currentSelectedProperty.id, // Pass property_id for scoping deletion
+                                    username: username,
+                                    password: password
+                                })
+                            });
+            
+                            const data = await response.json();
+            
+                            if (response.ok) {
+                                if (verificationStatus) {
+                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                    verificationStatus.textContent = data.message;
+                                }
+                                setTimeout(() => {
+                                    hideModal(verificationModal);
+                                    displayPropertyFiles(currentFolder); // Refresh the file list
+                                }, 1500);
+                            } else {
+                                if (verificationStatus) {
+                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                    verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                    if (modalPasswordInput) modalPasswordInput.value = '';
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error during delete verification:', error);
+                            if (verificationStatus) {
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                verificationStatus.textContent = `Network error: ${error.message}`;
+                            }
+                        }
+                    }
+                );
             }
         });
-    }); // This closing bracket for DOMContentLoaded was previously at the very end.
+    });
 </script>
 </body>
 </html>
