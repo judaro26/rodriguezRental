@@ -377,7 +377,7 @@
             <form id="add-property-form" class="space-y-4">
                 <div>
                     <label for="property-title" class="block text-gray-700 text-sm font-semibold mb-2">Property Title</label>
-                    <input type="text" id="property-title" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                    <input type="text" id="property-title" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Modern City Apartment" required>
                 </div>
                 <div>
                     <label for="property-image" class="block text-gray-700 text-sm font-semibold mb-2">Image URL</label>
@@ -444,15 +444,15 @@
             </div>
 
             <!-- This is the container for dynamically toggled content -->
-            <div class="flex-grow flex flex-col"> <!-- Added flex-col here -->
-                <div id="category-details-content" class="flex-grow overflow-y-auto pr-2">
+            <div class="flex-grow relative">
+                <div id="category-details-content" class="absolute inset-0 flex-grow overflow-y-auto pr-2">
                     <p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p>
                     <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                         <!-- Dynamic buttons related to the selected category will be inserted here -->
                     </div>
                 </div>
                 
-                <div id="property-files-content" class="flex-grow flex flex-col p-4 hidden">
+                <div id="property-files-content" class="absolute inset-0 flex-grow flex flex-col p-4 hidden">
                     <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
 
                     <div class="bg-gray-100 p-4 rounded-lg mb-6">
@@ -475,7 +475,7 @@
                         <p class="text-sm" id="files-error-text"></p>
                     </div>
                 </div>
-            </div> <!-- End of flex-grow flex-col container -->
+            </div> <!-- End of flex-grow relative container -->
 
             <!-- The "Add Vendor's Details" button has been moved here -->
             <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
@@ -971,7 +971,7 @@
                     } else {
                         alert('You are not approved to view foreign properties. Please contact an administrator.');
                         displayedProperties = properties.filter(p => p.is_foreign === false); // Fallback to domestic
-                        currentPropertyFilter = true; // Reset filter to foreign
+                        currentPropertyFilter = false; // Reset filter to domestic
                     }
                 } else if (filter === false) {
                     // Only show domestic properties if user is approved
@@ -1476,9 +1476,7 @@
                 
                 // Only append if it exists and is not already a child (though innerHTML wipes it, so re-append is safe)
                 if (categoryDetailsContent && securityWarningDiv) {
-                    // It's already in the HTML structure under main, we just need to ensure it's visible.
-                    // This line moved to be after the main content area in the HTML structure, so no need to append here.
-                    // securityWarningDiv.style.display = 'block'; // Make sure it's visible if it was hidden
+                    categoryDetailsContent.appendChild(securityWarningDiv); 
                 }
                 
                 const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
@@ -2315,9 +2313,6 @@
 
             // New: Display Property Files function
             async function displayPropertyFiles() {
-                // The "Existing Files" container is initially empty or shows "No files uploaded yet".
-                // The "Upload New File" section should always be visible within the propertyFilesPage.
-
                 if (!currentSelectedProperty || !filesListContainer) {
                     if (filesListContainer) filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">Select a property to view files.</p>`;
                     return;
@@ -2358,4 +2353,103 @@
                             filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-red-500 mr-3"><path d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25z" /><path fill-rule="evenodd" d="M12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zm0 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V4.5a.75.75 0 01.75-.75zM12 9a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V9.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // PDF icon
                             isEmbeddable = true; // PDFs are often embeddable in iframes
                         } else if (['doc', 'docx'].includes(fileExtension)) {
-                             filePreviewH
+                             filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-blue-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zM12 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V2.25a.75.75 0 01.75-.75zM12 6.75a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V7.5a.75.75 0 01.75-.75zM12 13.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0v-3.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // Document icon
+                        } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-green-500 mr-3"><path fill-rule="evenodd" d="M3.75 12a.75.75 0 01.75-.75h14.25a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75zM3.75 6.75a.75.75 0 01.75-.75h14.25a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75zM4.5 18a.75.75 0 000 1.5h14.25a.75.75 0 000-1.5H4.5z" clip-rule="evenodd" /></svg>`; // Spreadsheet icon
+                        } else if (['txt'].includes(fileExtension)) {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-gray-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25a.75.75 0 01.75-.75h6a.75.75 0 01.75.75v6a.75.75 0 01-.75.75h-6a.75.75 0 01-.75-.75v-6zM5.25 11.25a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5H5.25zM5.25 16.5a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5H5.25z" clip-rule="evenodd" /></svg>`; // Text file icon
+                        } else {
+                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-gray-400 mr-3"><path fill-rule="evenodd" d="M1.5 8.25a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM1.5 12a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM1.5 15.75a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>`; // Generic file icon
+                        }
+
+
+                        fileItem.innerHTML = `
+                            <div class="flex items-center flex-grow">
+                                ${filePreviewHtml}
+                                <div class="file-info">
+                                    <a href="${file.file_url}" target="_blank" rel="noopener noreferrer">${file.filename}</a>
+                                    <span>Uploaded by ${file.uploaded_by_username} on ${new Date(file.uploaded_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 flex gap-2">
+                                <button class="bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500 transition-colors edit-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Edit</button>
+                                <button class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors delete-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Delete</button>
+                            </div>
+                        `;
+
+                        fileItem.querySelector('.delete-file-btn').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const fileIdToDelete = e.target.dataset.fileId;
+                            const fileNameToDelete = e.target.dataset.fileName;
+
+                            showModal(
+                                verificationModal,
+                                `file: "${fileNameToDelete}"`,
+                                `deleting`,
+                                async (username, password) => {
+                                    if (verificationStatus) {
+                                        verificationStatus.classList.remove('hidden');
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                        verificationStatus.textContent = 'Verifying and deleting file...';
+                                    }
+                                    try {
+                                        const response = await fetch('/.netlify/functions/deleteFile', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                username: username,
+                                                password: password,
+                                                file_id_to_delete: fileIdToDelete
+                                            })
+                                        });
+
+                                        const data = await response.json();
+
+                                        if (response.ok) {
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                                verificationStatus.textContent = 'File deleted successfully!';
+                                            }
+                                            setTimeout(() => {
+                                                hideModal(verificationModal);
+                                                displayPropertyFiles(); // Refresh file list
+                                            }, 1500);
+                                        } else {
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error('Error during file deletion:', error);
+                                        if (verificationStatus) {
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                            verificationStatus.textContent = `Network error: ${error.message}`;
+                                        }
+                                    }
+                                }
+                            );
+                        });
+
+                        fileItem.querySelector('.edit-file-btn').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            alert(`Edit functionality for file "${file.filename}" is coming soon! For now, you can only delete or re-upload.`);
+                            // Future: Implement full edit modal/page for file metadata
+                            // showModal(verificationModal, `"${file.filename}"`, `editing file details`, async (username, password) => { /* ... */ });
+                        });
+
+                        filesListContainer.appendChild(fileItem);
+                    });
+                } catch (error) {
+                    console.error('Error fetching files:', error);
+                    if (filesListContainer) filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Failed to load files: ${error.message}</p>`;
+                }
+            }
+
+
+            // --- Initial Load: Show Login Page ---
+            showPage(loginPage);
+        });
+    </script>
+</body>
+</html>
