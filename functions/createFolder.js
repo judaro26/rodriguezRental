@@ -77,7 +77,7 @@ exports.handler = async (event) => {
         const folder_id = folder_name.trim().toLowerCase().replace(/\s+/g, '-');
 
         await client.query(
-            'INSERT INTO folders (id, name, property_id) VALUES ($1, $2, $3) ON CONFLICT (id, property_id) DO NOTHING',
+            'INSERT INTO folders (id, name, property_id) VALUES ($1, $2, $3) ON CONFLICT (name, property_id) DO NOTHING', // <-- CHANGED HERE
             [folder_id, folder_name.trim(), property_id]
         );
 
