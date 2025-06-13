@@ -372,7 +372,7 @@
             </svg>
             Back
         </button>
-        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-sm"> <!-- Changed to max-w-sm -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md"> <!-- Changed to max-w-sm -->
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Create New Property</h2>
             <form id="add-property-form" class="space-y-4">
                 <div>
@@ -2289,7 +2289,11 @@
                             } else {
                                 if (fileUploadStatus) {
                                     fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
-                                    fileUploadStatus.textContent = `Upload failed: ${data.details || data.message}`;
+                                    if (data.details && data.details.includes('account type does not allow `raw` files')) {
+                                        fileUploadStatus.textContent = `Upload failed: Your Cloudinary free tier might not support 'raw' file uploads (e.g., PDF, TXT). Please try an image file (JPG, PNG).`;
+                                    } else {
+                                        fileUploadStatus.textContent = `Upload failed: ${data.details || data.message}`;
+                                    }
                                 }
                             }
                         } catch (error) {
@@ -2309,12 +2313,18 @@
 
             // New: Display Property Files function
             async function displayPropertyFiles() {
-                if (!currentSelectedProperty || !filesListContainer) {
-                    if (filesListContainer) filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">Select a property to view files.</p>`;
+                // Ensure filesListContainer is correctly initialized
+                if (!filesListContainer) {
+                    console.error("filesListContainer not found in displayPropertyFiles. Cannot display files.");
                     return;
                 }
 
-                if (filesListContainer) filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
+                if (!currentSelectedProperty) {
+                    filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">Select a property to view files.</p>`;
+                    return;
+                }
+
+                filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
 
                 try {
                     const response = await fetch(`/.netlify/functions/getFiles?property_id=${currentSelectedProperty.id}`);
@@ -2325,10 +2335,10 @@
                     const files = await response.json();
                     console.log(`Files for property ${currentSelectedProperty.id}:`, files);
 
-                    if (filesListContainer) filesListContainer.innerHTML = ''; // Clear loading message
+                    filesListContainer.innerHTML = ''; // Clear loading message
 
                     if (files.length === 0) {
-                        if (filesListContainer) filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files uploaded yet for this property. Use the section above to add your first file!</p>`;
+                        filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files uploaded yet for this property. Use the section above to add your first file!</p>`;
                         return;
                     }
 
@@ -2413,7 +2423,11 @@
                                         } else {
                                             if (verificationStatus) {
                                                 verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                                if (data.details && data.details.includes('account type does not allow `raw` files')) {
+                                                    verificationStatus.textContent = `Upload failed: Your Cloudinary free tier might not support 'raw' file uploads (e.g., PDF, TXT). Please try an image file (JPG, PNG).`;
+                                                } else {
+                                                    verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                                }
                                             }
                                         }
                                     } catch (error) {
