@@ -226,44 +226,73 @@
         .credential-field button:hover {
             background-color: #d1d5db;
         }
-        /* File List Styling */
+        /* Enhanced file list styles */
+        #files-list-container {
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+        
         .file-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             padding: 0.75rem;
             border-bottom: 1px solid #e2e8f0;
-            font-size: 0.9rem;
+            transition: background-color 0.2s;
         }
-        .file-item:last-child {
-            border-bottom: none;
+        
+        .file-item:hover {
+            background-color: #f8fafc;
         }
-        .file-item a {
-            color: #3b82f6;
-            text-decoration: none;
-            font-weight: 500;
-            word-break: break-all;
-            flex-grow: 1;
-            margin-right: 1rem;
+        
+        .file-item.selected {
+            background-color: #ebf4ff;
         }
-        .file-item a:hover {
-            text-decoration: underline;
-        }
-        .file-item img {
-            width: 40px;
-            height: 40px;
-            object-fit: cover;
-            border-radius: 4px;
+        
+        .file-checkbox {
             margin-right: 0.75rem;
         }
-        .file-item .file-info {
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
+        
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            margin-right: 0.75rem;
         }
-        .file-item .file-info span {
-            color: #6b7280;
-            font-size: 0.75rem;
+        
+        .file-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        /* Folder list styles */
+        #folders-list {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        .folder-item {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .folder-item:hover {
+            background-color: #e2e8f0;
+        }
+        
+        .folder-item.active {
+            background-color: #bee3f8;
+            font-weight: 600;
+        }
+        
+        .folder-icon {
+            width: 20px;
+            height: 20px;
+            color: #4a5568;
         }
     </style>
 </head>
@@ -452,29 +481,56 @@
                     </div>
                 </div>
                 
-                <div id="property-files-content" class="absolute inset-0 flex-grow flex flex-col p-4" style="display: none;">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
-
-                    <div class="bg-gray-100 p-4 rounded-lg mb-6 flex flex-col">
-                        <h4 class="text-lg font-semibold text-gray-700 mb-3">Upload New File</h4>
-                        <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-md mb-3">
-                        <button type="submit" id="upload-file-button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-semibold w-full">
-                            Upload File
-                        </button>
-                        <div id="file-upload-status" class="mt-3 text-center text-sm hidden"></div>
+            <div id="property-files-content" class="absolute inset-0 flex-grow flex flex-col p-4" style="display: none;">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
+            
+                <div class="flex flex-col md:flex-row gap-6 flex-grow overflow-hidden">
+                    <!-- Folder sidebar -->
+                    <div class="w-full md:w-1/4 bg-gray-100 p-4 rounded-lg overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-lg font-semibold">Folders</h4>
+                            <button id="create-folder-button" class="bg-green-600 text-white p-1 rounded-md hover:bg-green-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="folders-list" class="space-y-2">
+                            <li class="p-2 rounded hover:bg-gray-200 cursor-pointer font-medium" data-folder-id="all">All Files</li>
+                            <!-- Folders will be dynamically added here -->
+                        </ul>
                     </div>
-
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Existing Files</h4>
-                    <div id="files-list-container" class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-                        <p class="text-gray-500 p-4 text-center">No files uploaded yet for this property. Use the section above to add your first file!</p>
-                        <!-- Existing files will be dynamically loaded here -->
-                    </div>
-                    <div id="files-loading-message" class="text-gray-600 text-lg my-4 hidden">Loading files...</div>
-                    <div id="files-error-message" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4 rounded-md hidden" role="alert">
-                        <p class="font-bold">Error loading files:</p>
-                        <p class="text-sm" id="files-error-text"></p>
+            
+                    <!-- Main files area -->
+                    <div class="flex-grow bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                            <h4 class="text-lg font-semibold" id="current-folder-title">All Files</h4>
+                            <div class="flex gap-2">
+                                <button id="move-to-folder-button" class="bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 disabled:opacity-50" disabled>
+                                    Move to Folder
+                                </button>
+                                <button id="delete-selected-files-button" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 disabled:opacity-50" disabled>
+                                    Delete Selected
+                                </button>
+                            </div>
+                        </div>
+                        <div id="files-list-container" class="flex-grow overflow-y-auto">
+                            <p class="text-gray-500 p-4 text-center">No files uploaded yet for this property.</p>
+                            <!-- Existing files will be dynamically loaded here -->
+                        </div>
                     </div>
                 </div>
+            
+                <!-- Upload section -->
+                <div class="bg-gray-100 p-4 rounded-lg mt-4">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Upload New File</h4>
+                    <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-md mb-3">
+                    <button type="submit" id="upload-file-button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-semibold w-full">
+                        Upload File
+                    </button>
+                    <div id="file-upload-status" class="mt-3 text-center text-sm hidden"></div>
+                </div>
+            </div>
             </div> <!-- End of flex-grow relative container -->
 
             <!-- The "Add Vendor's Details" button has been moved here -->
@@ -826,6 +882,9 @@
             let currentLoggedInUsername = '';
             let currentLoggedInPassword = '';
 
+            let selectedFiles = new Set();
+            let currentFolder = 'all';
+            let folders = [];
 
             // --- Data Definitions ---
             let properties = [];
@@ -2320,150 +2379,345 @@
             }
 
             // New: Display Property Files function
-            async function displayPropertyFiles() {
-                // Ensure filesListContainer is correctly initialized
-                if (!filesListContainer) {
-                    console.error("filesListContainer not found in displayPropertyFiles. Cannot display files.");
-                    return;
+        async function displayPropertyFiles(folderId = 'all') {
+            currentFolder = folderId;
+            
+            if (!filesListContainer) return;
+            if (!currentSelectedProperty) return;
+        
+            filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
+            
+            // Update folder title
+            if (document.getElementById('current-folder-title')) {
+                document.getElementById('current-folder-title').textContent = 
+                    folderId === 'all' ? 'All Files' : `Folder: ${folders.find(f => f.id === folderId)?.name || folderId}`;
+            }
+        
+            try {
+                const response = await fetch(`/.netlify/functions/getFiles?property_id=${currentSelectedProperty.id}`);
+                if (!response.ok) throw new Error('Failed to load files');
+                
+                const allFiles = await response.json();
+                
+                // Filter files by folder if not viewing 'all'
+                const filesToDisplay = folderId === 'all' 
+                    ? allFiles 
+                    : allFiles.filter(file => file.folder_id === folderId);
+        
+                renderFilesList(filesToDisplay);
+                renderFoldersList(allFiles); // This will extract folders from files
+                
+                // Clear selection when changing folders
+                selectedFiles.clear();
+                updateSelectionUI();
+                
+            } catch (error) {
+                console.error('Error loading files:', error);
+                filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Error loading files: ${error.message}</p>`;
+            }
+        }
+
+        function renderFilesList(files) {
+            if (!filesListContainer) return;
+            
+            if (files.length === 0) {
+                filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files found in this folder.</p>`;
+                return;
+            }
+        
+            filesListContainer.innerHTML = '';
+            
+            files.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.dataset.fileId = file.id;
+                
+                const fileExtension = file.filename.split('.').pop().toLowerCase();
+                const isSelected = selectedFiles.has(file.id);
+                
+                if (isSelected) {
+                    fileItem.classList.add('selected');
                 }
-
-                if (!currentSelectedProperty) {
-                    filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">Select a property to view files.</p>`;
-                    return;
-                }
-
-                filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files...</p>`;
-
-                try {
-                    const response = await fetch(`/.netlify/functions/getFiles?property_id=${currentSelectedProperty.id}`);
-                    if (!response.ok) {
-                        const errorBody = await response.json();
-                        throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                
+                fileItem.innerHTML = `
+                    <input type="checkbox" class="file-checkbox" ${isSelected ? 'checked' : ''} data-file-id="${file.id}">
+                    ${getFileIcon(fileExtension, file.filename)}
+                    <div class="file-info flex-grow">
+                        <a href="${file.file_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${file.filename}</a>
+                        <div class="text-xs text-gray-500">
+                            ${formatFileSize(file.size)} • ${new Date(file.uploaded_at).toLocaleString()}
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="edit-file-btn bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500" 
+                            data-file-id="${file.id}" data-file-name="${file.filename}">
+                            Edit
+                        </button>
+                        <button class="delete-file-btn bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600" 
+                            data-file-id="${file.id}" data-file-name="${file.filename}">
+                            Delete
+                        </button>
+                    </div>
+                `;
+                
+                // Add click handler for selection
+                const checkbox = fileItem.querySelector('.file-checkbox');
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFileSelection(file.id);
+                });
+                
+                // Whole row is clickable
+                fileItem.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+                        toggleFileSelection(file.id);
                     }
-                    const files = await response.json();
-                    console.log(`Files for property ${currentSelectedProperty.id}:`, files);
-
-                    filesListContainer.innerHTML = ''; // Clear loading message
-
-                    if (files.length === 0) {
-                        filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files uploaded yet for this property. Use the section above to add your first file!</p>`;
+                });
+                
+                filesListContainer.appendChild(fileItem);
+            });
+        }
+        
+        function renderFoldersList(files) {
+            const foldersList = document.getElementById('folders-list');
+            if (!foldersList) return;
+            
+            // Extract unique folders from files
+            const folderSet = new Set();
+            files.forEach(file => {
+                if (file.folder_id && file.folder_id !== 'all') {
+                    folderSet.add(JSON.stringify({ id: file.folder_id, name: file.folder_name || file.folder_id }));
+                }
+            });
+            
+            folders = Array.from(folderSet).map(f => JSON.parse(f));
+            
+            // Clear and rebuild folder list
+            foldersList.innerHTML = `
+                <li class="folder-item ${currentFolder === 'all' ? 'active' : ''}" data-folder-id="all">
+                    <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    </svg>
+                    All Files
+                </li>
+            `;
+            
+            folders.forEach(folder => {
+                const folderItem = document.createElement('li');
+                folderItem.className = `folder-item ${currentFolder === folder.id ? 'active' : ''}`;
+                folderItem.dataset.folderId = folder.id;
+                
+                folderItem.innerHTML = `
+                    <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    ${folder.name}
+                `;
+                
+                folderItem.addEventListener('click', () => {
+                    currentFolder = folder.id;
+                    displayPropertyFiles(folder.id);
+                });
+                
+                foldersList.appendChild(folderItem);
+            });
+        }
+        
+        // Helper functions
+        function getFileIcon(extension, filename) {
+            const iconMap = {
+                pdf: 'file-pdf',
+                doc: 'file-word',
+                docx: 'file-word',
+                xls: 'file-excel',
+                xlsx: 'file-excel',
+                ppt: 'file-powerpoint',
+                pptx: 'file-powerpoint',
+                jpg: 'file-image',
+                jpeg: 'file-image',
+                png: 'file-image',
+                gif: 'file-image',
+                txt: 'file-alt',
+                zip: 'file-archive',
+                mp3: 'file-audio',
+                mp4: 'file-video'
+            };
+            
+            const icon = iconMap[extension] || 'file';
+            return `<i class="fas fa-${icon} file-icon text-blue-500"></i>`;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function toggleFileSelection(fileId) {
+            if (selectedFiles.has(fileId)) {
+                selectedFiles.delete(fileId);
+            } else {
+                selectedFiles.add(fileId);
+            }
+            updateSelectionUI();
+        }
+        
+        function updateSelectionUI() {
+            // Update selected state of file items
+            document.querySelectorAll('.file-item').forEach(item => {
+                const fileId = item.dataset.fileId;
+                if (selectedFiles.has(fileId)) {
+                    item.classList.add('selected');
+                    item.querySelector('.file-checkbox').checked = true;
+                } else {
+                    item.classList.remove('selected');
+                    item.querySelector('.file-checkbox').checked = false;
+                }
+            });
+            
+            // Update action buttons state
+            const moveButton = document.getElementById('move-to-folder-button');
+            const deleteButton = document.getElementById('delete-selected-files-button');
+            
+            if (moveButton && deleteButton) {
+                const hasSelection = selectedFiles.size > 0;
+                moveButton.disabled = !hasSelection;
+                deleteButton.disabled = !hasSelection;
+            }
+        }
+        
+        // Add these event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Move to folder functionality
+            document.getElementById('move-to-folder-button')?.addEventListener('click', () => {
+                if (selectedFiles.size === 0) return;
+                
+                // Create a modal or dropdown to select target folder
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                modal.innerHTML = `
+                    <div class="bg-white p-6 rounded-lg w-96">
+                        <h3 class="text-xl font-bold mb-4">Move ${selectedFiles.size} file(s) to:</h3>
+                        <select id="target-folder-select" class="w-full p-2 border rounded mb-4">
+                            <option value="">-- Select Folder --</option>
+                            <option value="new">+ Create New Folder</option>
+                            ${folders.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
+                        </select>
+                        <div id="new-folder-input" class="hidden mb-4">
+                            <input type="text" id="new-folder-name" class="w-full p-2 border rounded" placeholder="New folder name">
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button id="cancel-move" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+                            <button id="confirm-move" class="bg-blue-600 text-white px-4 py-2 rounded">Move</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Show/hide new folder input
+                modal.querySelector('#target-folder-select').addEventListener('change', (e) => {
+                    modal.querySelector('#new-folder-input').style.display = 
+                        e.target.value === 'new' ? 'block' : 'none';
+                });
+                
+                // Cancel button
+                modal.querySelector('#cancel-move').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+                
+                // Confirm button
+                modal.querySelector('#confirm-move').addEventListener('click', async () => {
+                    const select = modal.querySelector('#target-folder-select');
+                    let targetFolderId = select.value;
+                    let targetFolderName = '';
+                    
+                    if (targetFolderId === 'new') {
+                        targetFolderName = modal.querySelector('#new-folder-name').value.trim();
+                        if (!targetFolderName) {
+                            alert('Please enter a folder name');
+                            return;
+                        }
+                        targetFolderId = targetFolderName.toLowerCase().replace(/\s+/g, '-');
+                        
+                        // In a real app, you would save this new folder to your database
+                        folders.push({ id: targetFolderId, name: targetFolderName });
+                    }
+                    
+                    if (!targetFolderId) {
+                        alert('Please select a folder');
                         return;
                     }
-
-                    files.forEach(file => {
-                        const fileItem = document.createElement('div');
-                        fileItem.classList.add('file-item');
-                        fileItem.dataset.fileId = file.id; // Store file ID for deletion
-
-                        const fileExtension = file.filename.split('.').pop().toLowerCase();
-                        let filePreviewHtml = '';
-                        let isEmbeddable = false;
-
-                        // Simple heuristic for file preview/icon and embeddability
-                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
-                            filePreviewHtml = `<img src="${file.file_url}" alt="${file.filename}" class="object-cover rounded-sm mr-3">`;
-                            isEmbeddable = true; // Images are directly embeddable
-                        } else if (fileExtension === 'pdf') {
-                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-red-500 mr-3"><path d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25z" /><path fill-rule="evenodd" d="M12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zm0 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V4.5a.75.75 0 01.75-.75zM12 9a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V9.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // PDF icon
-                            isEmbeddable = true; // PDFs are often embeddable in iframes
-                        } else if (['doc', 'docx'].includes(fileExtension)) {
-                             filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-blue-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25A2.25 2.25 0 009.75 0H7.5A2.25 2.25 0 005.25 2.25v19.5A2.25 2.25 0 007.5 24h4.5a2.25 2.25 0 002.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25zM12 1.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V2.25a.75.75 0 01.75-.75zM12 6.75a.75.75 0 01.75.75v6a.75.75 0 01-1.5 0V7.5a.75.75 0 01.75-.75zM12 13.5a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0v-3.75a.75.75 0 01.75-.75z" clip-rule="evenodd" /></svg>`; // Document icon
-                        } else if (['xls', 'xlsx'].includes(fileExtension)) {
-                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-green-500 mr-3"><path fill-rule="evenodd" d="M3.75 12a.75.75 0 01.75-.75h14.25a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75zM3.75 6.75a.75.75 0 01.75-.75h14.25a.75.75 0 010 1.5H4.5a.75.75 0 01-.75-.75zM4.5 18a.75.75 0 000 1.5h14.25a.75.75 0 000-1.5H4.5z" clip-rule="evenodd" /></svg>`; // Spreadsheet icon
-                        } else if (['txt'].includes(fileExtension)) {
-                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-gray-500 mr-3"><path fill-rule="evenodd" d="M19.5 22.5a.75.75 0 000-1.5H2.25a.75.75 0 000 1.5h17.25zM12 2.25a.75.75 0 01.75-.75h6a.75.75 0 01.75.75v6a.75.75 0 01-.75.75h-6a.75.75 0 01-.75-.75v-6zM5.25 11.25a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5H5.25zM5.25 16.5a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5H5.25z" clip-rule="evenodd" /></svg>`; // Text file icon
-                        } else {
-                            filePreviewHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-gray-400 mr-3"><path fill-rule="evenodd" d="M1.5 8.25a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM1.5 12a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75zM1.5 15.75a.75.75 0 01.75-.75h18a.75.75 0 010 1.5H2.25a.75.75 0 01-.75-.75z" clip-rule="evenodd" /></svg>`; // Generic file icon
-                        }
-
-
-                        fileItem.innerHTML = `
-                            <div class="flex items-center flex-grow">
-                                ${filePreviewHtml}
-                                <div class="file-info">
-                                    <a href="${file.file_url}" target="_blank" rel="noopener noreferrer">${file.filename}</a>
-                                    <span>Uploaded by ${file.uploaded_by_username} on ${new Date(file.uploaded_at).toLocaleDateString()}</span>
-                                </div>
-                            </div>
-                            <div class="flex-shrink-0 flex gap-2">
-                                <button class="bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500 transition-colors edit-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Edit</button>
-                                <button class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition-colors delete-file-btn" data-file-id="${file.id}" data-file-name="${file.filename}">Delete</button>
-                            </div>
-                        `;
-
-                        fileItem.querySelector('.delete-file-btn').addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            const fileIdToDelete = e.target.dataset.fileId;
-                            const fileNameToDelete = e.target.dataset.fileName;
-
-                            showModal(
-                                verificationModal,
-                                `file: "${fileNameToDelete}"`,
-                                `deleting`,
-                                async (username, password) => {
-                                    if (verificationStatus) {
-                                        verificationStatus.classList.remove('hidden');
-                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                                        verificationStatus.textContent = 'Verifying and deleting file...';
-                                    }
-                                    try {
-                                        const response = await fetch('/.netlify/functions/deleteFile', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                username: username,
-                                                password: password,
-                                                file_id_to_delete: fileIdToDelete
-                                            })
-                                        });
-
-                                        const data = await response.json();
-
-                                        if (response.ok) {
-                                            if (verificationStatus) {
-                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                                                verificationStatus.textContent = 'File deleted successfully!';
-                                            }
-                                            setTimeout(() => {
-                                                hideModal(verificationModal);
-                                                displayPropertyFiles(); // Refresh file list
-                                            }, 1500);
-                                        } else {
-                                            if (verificationStatus) {
-                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                                if (data.details && data.details.includes('account type does not allow `raw` files')) {
-                                                    verificationStatus.textContent = `Upload failed: Your Cloudinary free tier might not support 'raw' file uploads (e.g., PDF, TXT). Please try an image file (JPG, PNG).`;
-                                                } else {
-                                                    verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
-                                                }
-                                            }
-                                        }
-                                    } catch (error) {
-                                        console.error('Error during file deletion:', error);
-                                        if (verificationStatus) {
-                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                            verificationStatus.textContent = `Network error: ${error.message}`;
-                                        }
-                                    }
-                                }
-                            );
+                    
+                    try {
+                        // Call your backend to move files
+                        const response = await fetch('/.netlify/functions/moveFiles', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                file_ids: Array.from(selectedFiles),
+                                folder_id: targetFolderId,
+                                folder_name: targetFolderName,
+                                username: currentLoggedInUsername,
+                                password: currentLoggedInPassword
+                            })
                         });
-
-                        fileItem.querySelector('.edit-file-btn').addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            alert(`Edit functionality for file "${file.filename}" is coming soon! For now, you can only delete or re-upload.`);
-                            // Future: Implement full edit modal/page for file metadata
-                            // showModal(verificationModal, `"${file.filename}"`, `editing file details`, async (username, password) => { /* ... */ });
-                        });
-
-                        filesListContainer.appendChild(fileItem);
-                    });
-                } catch (error) {
-                    console.error('Error fetching files:', error);
-                    if (filesListContainer) filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Failed to load files: ${error.message}</p>`;
+                        
+                        if (!response.ok) throw new Error('Failed to move files');
+                        
+                        // Refresh the file list
+                        displayPropertyFiles(currentFolder);
+                        document.body.removeChild(modal);
+                        
+                    } catch (error) {
+                        console.error('Error moving files:', error);
+                        alert(`Error moving files: ${error.message}`);
+                    }
+                });
+            });
+            
+            // Create folder button
+            document.getElementById('create-folder-button')?.addEventListener('click', () => {
+                const folderName = prompt('Enter folder name:');
+                if (folderName && folderName.trim()) {
+                    const newFolderId = folderName.trim().toLowerCase().replace(/\s+/g, '-');
+                    folders.push({ id: newFolderId, name: folderName.trim() });
+                    renderFoldersList([]); // Refresh folder list
                 }
-            }
-
+            });
+            
+            // Delete selected files button
+            document.getElementById('delete-selected-files-button')?.addEventListener('click', () => {
+                if (selectedFiles.size === 0) return;
+                
+                if (confirm(`Are you sure you want to delete ${selectedFiles.size} selected file(s)?`)) {
+                    // Call your backend to delete files
+                    fetch('/.netlify/functions/deleteFiles', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            file_ids: Array.from(selectedFiles),
+                            username: currentLoggedInUsername,
+                            password: currentLoggedInPassword
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to delete files');
+                        return response.json();
+                    })
+                    .then(() => {
+                        // Refresh the file list
+                        displayPropertyFiles(currentFolder);
+                    })
+                    .catch(error => {
+                        console.error('Error deleting files:', error);
+                        alert(`Error deleting files: ${error.message}`);
+                    });
+                }
+            });
+        });
 
             // --- Initial Load: Show Login Page ---
             showPage(loginPage);
