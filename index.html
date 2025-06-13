@@ -1181,6 +1181,78 @@
             });
         }
         
+        // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
+        // MOVED UP for proper function definition order
+        async function fetchProperties(isForeignFilter = null) {
+            if (propertiesLoadingMessage) propertiesLoadingMessage.style.display = 'block';
+            if (propertiesErrorMessage) propertiesErrorMessage.classList.add('hidden');
+            if (propertyCardsContainer) propertyCardsContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/.netlify/functions/getProperties');
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
+                }
+                properties = await response.json();
+                properties.sort((a, b) => a.id - b.id);
+                console.log('All Properties loaded from Neon DB (sorted by ID):', properties);
+
+                applyPropertyFilter(isForeignFilter);
+            }
+            catch (error) {
+                console.error('Error fetching properties from Netlify Function:', error);
+                if (propertiesErrorMessage) propertiesErrorMessage.classList.remove('hidden');
+                if (propertiesErrorText) propertiesErrorText.textContent = error.message;
+            } finally {
+                if (propertiesLoadingMessage) propertiesLoadingMessage.style.display = 'none';
+            }
+        }
+
+        // --- Apply Property Filter and Render Cards ---
+        // MOVED UP for proper function definition order
+        let displayedProperties = []; 
+        let currentPropertyFilter = null; 
+
+        function applyPropertyFilter(filter) {
+            currentPropertyFilter = filter;
+
+            if (filter === true) {
+                if (currentUserForeignApprovedStatus) {
+                    displayedProperties = properties.filter(p => p.is_foreign === true);
+                } else {
+                    showCustomAlert('You are not approved to view foreign properties. Please contact an administrator.');
+                    displayedProperties = properties.filter(p => p.is_foreign === false);
+                    currentPropertyFilter = false;
+                }
+            } else if (filter === false) {
+                if (currentUserDomesticApprovedStatus) {
+                    displayedProperties = properties.filter(p => p.is_foreign === false);
+                } else {
+                    showCustomAlert('You are not approved to view domestic properties. Please contact an administrator.');
+                    displayedProperties = properties.filter(p => p.is_foreign === true);
+                    currentPropertyFilter = true;
+                }
+            } else {
+                if (currentUserDomesticApprovedStatus && currentUserForeignApprovedStatus) {
+                    displayedProperties = [...properties];
+                } else if (currentUserDomesticApprovedStatus) {
+                    displayedProperties = properties.filter(p => p.is_foreign === false);
+                    showCustomAlert('You are not approved to view foreign properties. Displaying domestic only.');
+                    currentPropertyFilter = false;
+                } else if (currentUserForeignApprovedStatus) {
+                    displayedProperties = properties.filter(p => p.is_foreign === true);
+                    showCustomAlert('You are not approved to view domestic properties. Displaying foreign only.');
+                    currentPropertyFilter = true;
+                } else {
+                    displayedProperties = [];
+                    showCustomAlert('You are not approved to view any properties. Please contact an administrator.');
+                }
+            }
+            renderPropertyCards();
+            updateFilterButtonsHighlight();
+        }
+
         // --- Page Navigation Functions ---
         function showPage(pageElement) {
             // List all possible page elements here to ensure they are hidden
@@ -1293,7 +1365,7 @@
                     currentLoggedInPassword = const_password;
 
                     showPage(propertySelectionPage);
-                    await fetchProperties(null);
+                    await fetchProperties(null); // This call is now safe because fetchProperties is defined earlier
                     updateFilterButtonsHighlight();
                 } else {
                     if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
@@ -2474,7 +2546,7 @@
                             property_id: currentSelectedProperty.id,
                             filename: fileToUpload.name,
                             file_data_base64: base64DataToUpload,
-                            file_mime_type: mimeTypeToUpload,
+                            file_mime_type: mimeTypeToUpload, // Pass MIME type (though Cloudinary 'auto' is robust)
                             uploaded_by_username: currentLoggedInUsername,
                             username: currentLoggedInUsername,
                             password: currentLoggedInPassword,
@@ -2847,7 +2919,7 @@
             }
         });
 
-        // --- Initial Load: Show Login Page (Moved to end to ensure all elements are defined) ---
+        // --- Initial Load: Show Login Page (Crucially placed at the very end of DOMContentLoaded) ---
         showPage(loginPage);
     });
 </script>
