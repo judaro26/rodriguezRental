@@ -30,7 +30,7 @@ exports.handler = async (event) => {
         });
         client = await pool.connect();
 
-        // 1. Authenticate user: Corrected column names here
+        // 1. Authenticate user
         const authResult = await client.query(
             'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1',
             [username]
@@ -44,7 +44,7 @@ exports.handler = async (event) => {
             };
         }
 
-        // 2. Authorize user
+        // 2. Authorize user for the property
         const propertyResult = await client.query(
             'SELECT is_foreign FROM properties WHERE id = $1',
             [property_id]
@@ -78,7 +78,7 @@ exports.handler = async (event) => {
 
         const updatePromises = file_ids.map(fileId =>
             client.query(
-                `UPDATE property_files -- Corrected table name here
+                `UPDATE property_files
                  SET folder_id = $1, folder_name = $2
                  WHERE id = $3 AND property_id = $4 RETURNING id`,
                 [folder_id, effectiveFolderName, fileId, property_id]
@@ -87,7 +87,6 @@ exports.handler = async (event) => {
 
         const updatedFiles = await Promise.all(updatePromises);
 
-        // Check if all files were found and updated
         if (updatedFiles.some(res => res.rowCount === 0)) {
             await client.query('ROLLBACK');
             return {
