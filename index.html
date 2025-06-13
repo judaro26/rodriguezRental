@@ -1432,6 +1432,10 @@
                     categoryDiv.textContent = categoryName;
                     categoryDiv.dataset.categoryName = categoryName;
                     categoryDiv.addEventListener('click', () => {
+                        // Ensure files view is hidden and category details are shown
+                        if (propertyFilesContent) propertyFilesContent.style.display = 'none';
+                        if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
+                        
                         currentSelectedCategoryName = categoryName;
                         displayCategoryDetails(categoryName);
                         if (categoryDetailsHeading) categoryDetailsHeading.textContent = `Your ${categoryName} Details`;
@@ -2190,7 +2194,6 @@
             if (viewFilesButton) {
                 viewFilesButton.addEventListener('click', () => {
                     if (currentSelectedProperty) {
-                        // Toggle between files and category details
                         if (categoryDetailsContent && propertyFilesContent) {
                             if (categoryDetailsContent.style.display !== 'none') {
                                 // Switching to files view
@@ -2204,15 +2207,17 @@
                                 const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                                 if (addVendorButton) addVendorButton.style.display = 'none';
                                 
-                                displayPropertyFiles(); // Load files for the current property
+                                displayPropertyFiles();
                             } else {
                                 // Switching back to category details
-                                categoryDetailsContent.style.display = 'flex';
-                                propertyFilesContent.style.display = 'none';
-                                
-                                // Show "Add Vendor's Details" button when viewing categories
-                                const addVendorButton = document.getElementById('add-category-detail-button-bottom');
-                                if (addVendorButton) addVendorButton.style.display = 'block';
+                                if (currentSelectedCategoryName) {
+                                    displayCategoryDetails(currentSelectedCategoryName);
+                                } else if (currentSelectedProperty.categories.length > 0) {
+                                    // Select the first category if none is selected
+                                    const firstCategory = currentSelectedProperty.categories[0];
+                                    currentSelectedCategoryName = firstCategory;
+                                    displayCategoryDetails(firstCategory);
+                                }
                             }
                         }
                     } else {
