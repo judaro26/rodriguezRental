@@ -389,7 +389,7 @@
                 </div>
                  <div>
                     <label for="property-categories" class="block text-gray-700 text-sm font-semibold mb-2">Categories (comma-separated)</label>
-                    <input type="text" id="property-categories" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Utilities, Insurance, Banking" required>
+                    <input type="text" id="property-categories" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
                 <div>
                     <label for="property-is-foreign" class="flex items-center text-gray-700 text-sm font-semibold mb-2">
@@ -503,7 +503,7 @@
             <form id="add-new-category-form" class="space-y-4">
                 <div>
                     <label for="new-category-name" class="block text-gray-700 text-sm font-semibold mb-2">Category Name</label>
-                    <input type="text" id="new-category-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Utilities, Insurance" required>
+                    <input type="text" id="new-category-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
                 <div class="flex justify-between gap-4">
                     <button type="button" id="cancel-new-category" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
@@ -1474,6 +1474,10 @@
                 
                 if (categoryDetailsContent) categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
                 
+                // Only append if it exists and is not already a child (though innerHTML wipes it, so re-append is safe)
+                if (categoryDetailsContent && securityWarningDiv) {
+                    categoryDetailsContent.appendChild(securityWarningDiv); 
+                }
                 
                 const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
                 const loadingMessage = document.getElementById('category-loading-message');
