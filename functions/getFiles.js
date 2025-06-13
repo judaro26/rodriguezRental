@@ -1,72 +1,62 @@
-const { Client } = require('pg');
+// netlify/functions/getFiles.js
+const { Pool } = require('pg');
 
-exports.handler = async function(event, context) {
-  if (event.httpMethod !== "GET") {
-    return {
-      statusCode: 405,
-      headers: { "Allow": "GET", "Access-Control-Allow-Origin": "*" },
-      body: "Method Not Allowed"
-    };
-  }
+exports.handler = async (event) => {
+    // Only GET requests are expected for fetching files based on property_id
+    if (event.httpMethod !== 'GET') {
+        return {
+            statusCode: 405,
+            body: JSON.stringify({ message: 'Method Not Allowed', details: 'Only GET requests are accepted.' }),
+            headers: { 'Allow': 'GET' }
+        };
+    }
 
-  if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL environment variable is NOT set.");
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Database connection string missing." })
-    };
-  }
-
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
-
-  try {
-    await client.connect();
     const { property_id } = event.queryStringParameters;
 
     if (!property_id) {
-      return {
-        statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "property_id is required." })
-      };
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Missing required field: property_id.', details: 'property_id is required as a query parameter.' }),
+        };
     }
 
-    const queryText = `
-      SELECT id, property_id, filename, file_url, uploaded_by_username, uploaded_at, cloudinary_public_id
-      FROM property_files
-      WHERE property_id = $1
-      ORDER BY uploaded_at DESC;
-    `;
-    const result = await client.query(queryText, [property_id]);
-    const files = result.rows;
+    let client;
+    try {
+        const pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: {
+                rejectUnauthorized: false,
+            },
+        });
+        client = await pool.connect();
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(files)
-    };
-  } catch (error) {
-    console.error("Error fetching files from Neon DB:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ error: "Failed to fetch files", details: error.message })
-    };
-  } finally {
-    if (client) {
-      await client.end();
+        // Fetch all files for the given property_id
+        // Ensure your table name matches what's in your DB (e.g., property_files)
+        const result = await client.query(
+            `SELECT id, filename, file_url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
+             FROM property_files
+             WHERE property_id = $1
+             ORDER BY uploaded_at DESC`,
+            [property_id]
+        );
+
+        return {
+            statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(result.rows),
+        };
+
+    } catch (error) {
+        console.error('Error in getFiles function:', error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: 'Failed to retrieve files.', details: error.message }),
+        };
+    } finally {
+        if (client) {
+            client.release();
+        }
     }
-  }
 };
