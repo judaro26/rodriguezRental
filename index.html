@@ -1051,20 +1051,76 @@
                     }
                 });
                 
-                // Add edit and delete button event listeners
+                // Add edit button event listener
                 const editBtn = fileItem.querySelector('.edit-file-btn');
                 if (editBtn) {
                     editBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        // Your edit file logic here
+                        e.stopPropagation(); // Prevent toggling selection
+                        // === EDIT FILE LOGIC ===
+                        // For a full implementation, you'd typically show an edit modal
+                        // and pre-fill it with file.filename, file.folder_name, etc.
+                        // Then call a Netlify function to update the file details in the DB.
+                        showCustomAlert(`Edit functionality for file "${file.filename}" (ID: ${file.id}) is not yet fully implemented. You can implement a modal to edit file details here.`);
                     });
                 }
                 
+                // Add delete button event listener
                 const deleteBtn = fileItem.querySelector('.delete-file-btn');
                 if (deleteBtn) {
                     deleteBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        // Your delete file logic here
+                        e.stopPropagation(); // Prevent toggling selection
+                        // === DELETE FILE LOGIC ===
+                        if (confirm(`Are you sure you want to delete "${file.filename}"? This action cannot be undone.`)) {
+                            showModal(
+                                verificationModal,
+                                `file: "${file.filename}"`,
+                                `deleting`,
+                                async (username, password) => {
+                                    if (verificationStatus) {
+                                        verificationStatus.classList.remove('hidden');
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                        verificationStatus.textContent = 'Verifying and deleting file...';
+                                    }
+                                    try {
+                                        const response = await fetch('/.netlify/functions/deleteFiles', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                file_ids: [file.id], // Pass only the single file ID for deletion
+                                                property_id: currentSelectedProperty.id,
+                                                username: username,
+                                                password: password
+                                            })
+                                        });
+                                        
+                                        const data = await response.json();
+                                        
+                                        if (response.ok) {
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                                verificationStatus.textContent = data.message;
+                                            }
+                                            setTimeout(async () => {
+                                                hideModal(verificationModal);
+                                                await displayPropertyFiles(currentFolder); // Refresh the file list after deletion
+                                            }, 1500);
+                                        } else {
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                                if (modalPasswordInput) modalPasswordInput.value = ''; // Clear password field on failure
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error('Error during single file delete verification:', error);
+                                        if (verificationStatus) {
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                            verificationStatus.textContent = `Network error: ${error.message}`;
+                                        }
+                                    }
+                                }
+                            );
+                        }
                     });
                 }
                 
@@ -1108,7 +1164,7 @@
             });
         }
         
-        // --- Initial Load: Show Login Page (MOVED HERE) ---
+        // --- Initial Load: Show Login Page ---
         showPage(loginPage);
 
 
@@ -2420,7 +2476,7 @@
             });
         }
 
-        // New: Upload File button functionality (UPDATED)
+        // New: Upload File button functionality
         if (uploadFileButton) {
             uploadFileButton.addEventListener('click', async () => {
                 if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
