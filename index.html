@@ -1461,35 +1461,28 @@
 
             // --- Display Category Details / Dynamic Buttons (now tiles) ---
             async function displayCategoryDetails(selectedCategoryName) {
-                // Ensure only category content is visible when this is active
+                // Always hide files content and show category details when selecting a category
+                if (propertyFilesContent) propertyFilesContent.style.display = 'none';
                 if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
-                if (propertyFilesPage) propertyFilesPage.style.display = 'none';
-
+                
                 // IMPORTANT: Re-get securityWarningDiv here as categoryDetailsContent.innerHTML resets its children
                 const securityWarningDiv = document.getElementById('security-warning');
                 
                 if (categoryDetailsContent) categoryDetailsContent.innerHTML = `<p id="category-loading-message" class="text-gray-600">Loading details for <span class="font-bold">"${selectedCategoryName}"</span>...</p><div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>`;
                 
-                // Only append if it exists and is not already a child (though innerHTML wipes it, so re-append is safe)
+                // Only append if it exists and is not already a child
                 if (categoryDetailsContent && securityWarningDiv) {
                     categoryDetailsContent.appendChild(securityWarningDiv); 
                 }
                 
+                // Rest of your existing displayCategoryDetails code...
                 const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
                 const loadingMessage = document.getElementById('category-loading-message');
-
-                // Re-append "Add Vendor's Details" button to the bottom of the right column
-                const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom'); // Get the new button reference
-                const mainTag = document.querySelector('main'); // Get reference to the main tag
-                if (addCategoryDetailButtonAtBottom && mainTag) { // Ensure button and mainTag exist
-                    // Remove from its potential old parent (categoryDetailsContent) if it was appended there
-                    if (addCategoryDetailButtonAtBottom.parentNode && addCategoryDetailButtonAtBottom.parentNode !== mainTag) {
-                        addCategoryDetailButtonAtBottom.parentNode.removeChild(addCategoryDetailButtonAtBottom);
-                    }
-                    mainTag.appendChild(addCategoryDetailButtonAtBottom); // Append to the main tag
-                    addCategoryDetailButtonAtBottom.style.display = 'block'; // Make sure it's visible
-                }
-                
+            
+                // Show "Add Vendor's Details" button when viewing categories
+                const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+                if (addVendorButton) addVendorButton.style.display = 'block';
+            
                 try {
                     const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=${currentSelectedProperty.id}&category_name=${encodeURIComponent(selectedCategoryName)}`);
                     if (!response.ok) {
@@ -1644,10 +1637,9 @@
                             if (buttonsContainer) buttonsContainer.appendChild(detailTile);
                         });
                     }
-
                 } catch (error) {
                     console.error('Error fetching category details:', error);
-                    if (loadingMessage) { // Null check
+                    if (loadingMessage) {
                         loadingMessage.classList.add('text-red-600');
                         loadingMessage.textContent = `Failed to load details: ${error.message}`;
                     }
