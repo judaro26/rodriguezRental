@@ -1,7 +1,7 @@
 // netlify/functions/deleteFiles.js
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-const cloudinary = require('cloudinary').v2; // Make sure to install this
+const cloudinary = require('cloudinary').v2;
 
 // Configure Cloudinary
 cloudinary.config({
@@ -81,57 +81,55 @@ exports.handler = async (event) => {
 
         await client.query('BEGIN'); // Start transaction
 
-        // 3. Get public_ids from database for deletion in Cloudinary
+        // 3. Get file_url and filename (to derive public_id) from database for deletion in Cloudinary
         const filesToDeleteResult = await client.query(
-            `SELECT file_url, filename FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2`, // Corrected table name
+            `SELECT file_url, filename FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2`,
             [file_ids, property_id]
         );
 
         const cloudinaryPublicIds = filesToDeleteResult.rows.map(file => {
-            // Extract public_id from Cloudinary URL (e.g., 'property_files/1/image_name_without_extension')
-            const parts = file.file_url.split('/');
-            const uploadIndex = parts.indexOf('upload');
-            if (uploadIndex > -1 && parts.length > uploadIndex + 2) {
-                 // Check for version number (v123456789)
-                const publicIdWithVersion = parts.slice(uploadIndex + 2).join('/');
-                const publicIdParts = publicIdWithVersion.split('.'); // Remove file extension
-                return publicIdParts[0].split('/').slice(0, -1).join('/') + '/' + publicIdParts[0].split('/').pop().split('v')[0];
+            // Attempt to derive Cloudinary public_id from the stored file_url
+            // This assumes the Cloudinary public_id is part of the URL path after '/upload/'
+            const urlParts = file.file_url.split('/upload/');
+            if (urlParts.length > 1) {
+                const pathAfterUpload = urlParts[1];
+                // Remove version number (e.g., /v123456789/) and file extension
+                const publicIdWithPotentialVersionAndExtension = pathAfterUpload.split('/').slice(1).join('/');
+                return publicIdWithPotentialVersionAndExtension.split('.')[0]; // Get only the public ID part
             }
             return null;
         }).filter(Boolean); // Filter out any nulls
 
-        console.log("Public IDs to delete from Cloudinary:", cloudinaryPublicIds);
+        console.log("Derived Public IDs to delete from Cloudinary:", cloudinaryPublicIds);
 
         // 4. Delete files from Cloudinary
         if (cloudinaryPublicIds.length > 0) {
-            const deleteResult = await cloudinary.api.delete_resources(cloudinaryPublicIds, {
-                invalidate: true, // Invalidate CDN cache
-                resource_type: 'image' // Assuming mostly images, 'raw' for PDFs
-                                       // NOTE: Cloudinary delete_resources does not support mixed resource_types directly.
-                                       // You might need to make separate calls for 'image' and 'raw' types,
-                                       // or determine resource_type per public_id if you have mixed files.
-                                       // For simplicity, this assumes primarily images. If PDFs fail to delete from Cloudinary,
-                                       // this is where you'd need to refine.
+            // Cloudinary's destroy method attempts to auto-detect resource type if not specified.
+            // For batch deletion, it's safer to specify 'image' if most are images,
+            // or iterate and determine resource_type per file if highly mixed (e.g., pdfs are 'raw').
+            // Using 'image' as a common default. If PDFs fail, this is the area to investigate.
+            const deleteResult = await cloudinary.uploader.destroy(cloudinaryPublicIds, {
+                invalidate: true // Invalidate CDN cache
             });
             console.log('Cloudinary delete result:', deleteResult);
-            // Check deleteResult.deleted for successful deletions
+            // deleteResult.result will be 'ok' or 'not found' for each public_id
         }
 
         // 5. Delete file records from your database
         const deleteDbResult = await client.query(
-            `DELETE FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2 RETURNING id`, // Corrected table name
+            `DELETE FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2 RETURNING id`,
             [file_ids, property_id]
         );
 
         if (deleteDbResult.rowCount !== file_ids.length) {
-            await client.query('ROLLBACK'); // Rollback if not all requested files were deleted from DB
+            await client.query('ROLLBACK');
             return {
                 statusCode: 404,
                 body: JSON.stringify({ message: 'Some files could not be found or deleted from the database.', deletedCount: deleteDbResult.rowCount }),
             };
         }
 
-        await client.query('COMMIT'); // Commit transaction
+        await client.query('COMMIT');
 
         return {
             statusCode: 200,
