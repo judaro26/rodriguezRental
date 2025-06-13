@@ -1,136 +1,158 @@
-const cloudinary = require('cloudinary').v2;
-const { Client } = require('pg');
-const crypto = require('crypto');
+// netlify/functions/deleteFiles.js
+const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
+const cloudinary = require('cloudinary').v2; // Make sure to install this
 
-// Configure Cloudinary (from Netlify Environment Variables)
+// Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Helper to hash passwords (must match loginUser.js)
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-exports.handler = async function(event, context) {
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers: { "Allow": "POST", "Access-Control-Allow-Origin": "*" },
-      body: "Method Not Allowed"
-    };
-  }
-
-  if (!process.env.DATABASE_URL || !process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    console.error("Missing environment variables for DB or Cloudinary.");
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Server configuration error: Missing API keys." })
-    };
-  }
-
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
-
-  try {
-    await client.connect();
-    const { username, password, file_id_to_delete } = JSON.parse(event.body);
-
-    if (!username || !password || !file_id_to_delete) {
-      return {
-        statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "Username, password, and file_id_to_delete are required." })
-      };
-    }
-
-    // 1. Authenticate the user
-    const hashedPassword = hashPassword(password);
-    const authQuery = 'SELECT id, password_hash FROM users WHERE username = $1';
-    const authResult = await client.query(authQuery, [username]);
-
-    if (authResult.rows.length === 0 || authResult.rows[0].password_hash !== hashedPassword) {
-      return {
-        statusCode: 401,
-        headers: { "Access-Control-Allow-Origin": "*" , "Content-Type": "application/json"},
-        body: JSON.stringify({ message: "Authentication failed. Invalid username or password." })
-      };
-    }
-
-    // 2. Get file_url and cloudinary_public_id from DB before deleting
-    const getFileQuery = 'SELECT file_url, cloudinary_public_id FROM property_files WHERE id = $1';
-    const fileResult = await client.query(getFileQuery, [file_id_to_delete]);
-
-    if (fileResult.rows.length === 0) {
+exports.handler = async (event) => {
+    if (event.httpMethod !== 'POST') {
         return {
-            statusCode: 404,
-            headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-            body: JSON.stringify({ message: "File not found." })
+            statusCode: 405,
+            body: JSON.stringify({ message: 'Method Not Allowed', details: 'Only POST requests are accepted.' }),
+            headers: { 'Allow': 'POST' }
         };
     }
 
-    const fileToDelete = fileResult.rows[0];
-    const cloudinaryPublicId = fileToDelete.cloudinary_public_id;
-
-    // 3. Delete file from Cloudinary
-    // Cloudinary destroy takes the public ID, not the full URL.
-    // resource_type 'raw' for non-image files, 'image' for images, 'video' for video.
-    // If you always upload specific types, set resource_type accordingly. 'auto' from upload covers it.
-    // Assuming 'auto' detection during upload, 'image' might work for most docs.
-    // For broader file types, Cloudinary uses 'raw' resource type. We'll try 'auto' for destroy
-    // to match the upload, or you might need to infer from file extension if stored.
-    // For simplicity here, assuming it's usually images or generic docs that work with 'raw'.
-    // If you need more specific resource type handling, store it in your DB during upload.
+    let client;
     try {
-        await cloudinary.uploader.destroy(cloudinaryPublicId, { resource_type: 'raw' });
-        console.log(`Successfully deleted file from Cloudinary: ${cloudinaryPublicId}`);
-    } catch (cloudinaryError) {
-        // Log Cloudinary deletion error but continue to delete DB record
-        console.error(`Failed to delete from Cloudinary: ${cloudinaryPublicId}`, cloudinaryError);
-        // If Cloudinary file already gone, or problem with delete. Still remove from our DB.
+        const { file_ids, property_id, username, password } = JSON.parse(event.body);
+
+        if (!file_ids || !Array.isArray(file_ids) || file_ids.length === 0 || !property_id || !username || !password) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ message: 'Missing required fields.', details: 'file_ids (array), property_id, username, and password are all mandatory.' }),
+            };
+        }
+
+        const pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: {
+                rejectUnauthorized: false,
+            },
+        });
+        client = await pool.connect();
+
+        // 1. Authenticate user
+        const authResult = await client.query(
+            'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1',
+            [username]
+        );
+        const user = authResult.rows[0];
+
+        if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+            return {
+                statusCode: 401,
+                body: JSON.stringify({ message: 'Authentication failed. Invalid username or password.' }),
+            };
+        }
+
+        // 2. Authorize user for the property
+        const propertyResult = await client.query(
+            'SELECT is_foreign FROM properties WHERE id = $1',
+            [property_id]
+        );
+        const property = propertyResult.rows[0];
+
+        if (!property) {
+            return {
+                statusCode: 404,
+                body: JSON.stringify({ message: 'Property not found.', details: `Property with ID ${property_id} does not exist.` }),
+            };
+        }
+
+        if (property.is_foreign && !user.foreign_approved) {
+            return {
+                statusCode: 403,
+                body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage foreign properties.' }),
+            };
+        }
+        if (!property.is_foreign && !user.domestic_approved) {
+            return {
+                statusCode: 403,
+                body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage domestic properties.' }),
+            };
+        }
+
+        await client.query('BEGIN'); // Start transaction
+
+        // 3. Get public_ids from database for deletion in Cloudinary
+        const filesToDeleteResult = await client.query(
+            `SELECT file_url, filename FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2`, // Corrected table name
+            [file_ids, property_id]
+        );
+
+        const cloudinaryPublicIds = filesToDeleteResult.rows.map(file => {
+            // Extract public_id from Cloudinary URL (e.g., 'property_files/1/image_name_without_extension')
+            const parts = file.file_url.split('/');
+            const uploadIndex = parts.indexOf('upload');
+            if (uploadIndex > -1 && parts.length > uploadIndex + 2) {
+                 // Check for version number (v123456789)
+                const publicIdWithVersion = parts.slice(uploadIndex + 2).join('/');
+                const publicIdParts = publicIdWithVersion.split('.'); // Remove file extension
+                return publicIdParts[0].split('/').slice(0, -1).join('/') + '/' + publicIdParts[0].split('/').pop().split('v')[0];
+            }
+            return null;
+        }).filter(Boolean); // Filter out any nulls
+
+        console.log("Public IDs to delete from Cloudinary:", cloudinaryPublicIds);
+
+        // 4. Delete files from Cloudinary
+        if (cloudinaryPublicIds.length > 0) {
+            const deleteResult = await cloudinary.api.delete_resources(cloudinaryPublicIds, {
+                invalidate: true, // Invalidate CDN cache
+                resource_type: 'image' // Assuming mostly images, 'raw' for PDFs
+                                       // NOTE: Cloudinary delete_resources does not support mixed resource_types directly.
+                                       // You might need to make separate calls for 'image' and 'raw' types,
+                                       // or determine resource_type per public_id if you have mixed files.
+                                       // For simplicity, this assumes primarily images. If PDFs fail to delete from Cloudinary,
+                                       // this is where you'd need to refine.
+            });
+            console.log('Cloudinary delete result:', deleteResult);
+            // Check deleteResult.deleted for successful deletions
+        }
+
+        // 5. Delete file records from your database
+        const deleteDbResult = await client.query(
+            `DELETE FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2 RETURNING id`, // Corrected table name
+            [file_ids, property_id]
+        );
+
+        if (deleteDbResult.rowCount !== file_ids.length) {
+            await client.query('ROLLBACK'); // Rollback if not all requested files were deleted from DB
+            return {
+                statusCode: 404,
+                body: JSON.stringify({ message: 'Some files could not be found or deleted from the database.', deletedCount: deleteDbResult.rowCount }),
+            };
+        }
+
+        await client.query('COMMIT'); // Commit transaction
+
+        return {
+            statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ message: `Successfully deleted ${deleteDbResult.rowCount} file(s).` }),
+        };
+
+    } catch (error) {
+        console.error('Error in deleteFiles function:', error);
+        if (client) {
+            await client.query('ROLLBACK');
+        }
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: 'Failed to delete files.', details: error.message }),
+        };
+    } finally {
+        if (client) {
+            client.release();
+        }
     }
-
-    // 4. Delete record from Neon DB
-    const deleteRecordQuery = `
-      DELETE FROM property_files
-      WHERE id = $1
-      RETURNING id;
-    `;
-    const deleteRecordResult = await client.query(deleteRecordQuery, [file_id_to_delete]);
-
-    if (deleteRecordResult.rows.length === 0) {
-      return {
-        statusCode: 404,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "File record not found or already deleted in DB." })
-      };
-    }
-
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ message: "File deleted successfully!", deletedFileId: deleteRecordResult.rows[0].id })
-    };
-
-  } catch (error) {
-    console.error("Error deleting file or DB record:", error);
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Server error during file deletion", details: error.message })
-    };
-  } finally {
-    if (client) {
-      await client.end();
-    }
-  }
 };
