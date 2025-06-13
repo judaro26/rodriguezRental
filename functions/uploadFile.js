@@ -1,9 +1,9 @@
 // netlify/functions/uploadFile.js
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require('cloudinary').v2; // Import Cloudinary library
 
-// Configure Cloudinary (ensure these are set as Netlify Environment Variables)
+// Configure Cloudinary using environment variables
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -11,6 +11,7 @@ cloudinary.config({
 });
 
 exports.handler = async (event) => {
+    // Ensure the request method is POST
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
@@ -19,10 +20,12 @@ exports.handler = async (event) => {
         };
     }
 
-    let client;
+    let client; // Declare client variable to ensure it's accessible in finally block
     try {
+        // Parse the request body to get necessary data
         const { property_id, filename, file_data_base64, uploaded_by_username, username, password } = JSON.parse(event.body);
 
+        // Validate required fields
         if (!property_id || !filename || !file_data_base64 || !uploaded_by_username || !username || !password) {
             return {
                 statusCode: 400,
@@ -30,15 +33,16 @@ exports.handler = async (event) => {
             };
         }
 
+        // Initialize PostgreSQL connection pool
         const pool = new Pool({
             connectionString: process.env.DATABASE_URL,
             ssl: {
-                rejectUnauthorized: false,
+                rejectUnauthorized: false, // Required for secure connection to Neon DB
             },
         });
-        client = await pool.connect();
+        client = await pool.connect(); // Get a client from the pool
 
-        // 1. Authenticate user
+        // 1. Authenticate user credentials
         const authResult = await client.query(
             'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1',
             [username]
@@ -52,7 +56,7 @@ exports.handler = async (event) => {
             };
         }
 
-        // 2. Authorize user for the property
+        // 2. Authorize user access to the specific property
         const propertyResult = await client.query(
             'SELECT is_foreign FROM properties WHERE id = $1',
             [property_id]
@@ -66,6 +70,7 @@ exports.handler = async (event) => {
             };
         }
 
+        // Check user's approval status against property type (domestic/foreign)
         if (property.is_foreign && !user.foreign_approved) {
             return {
                 statusCode: 403,
@@ -80,33 +85,38 @@ exports.handler = async (event) => {
         }
 
         // 3. Upload file to Cloudinary
+        // Organize files in Cloudinary by property_id
         const cloudinaryFolder = `property_files/${property_id}`;
-        // Extract file extension to help Cloudinary if resource_type: 'auto' is ambiguous,
-        // or if you want to use it for custom public_id logic.
-        const fileExtension = filename.split('.').pop();
-        const publicId = `${filename.replace(/\.[^/.]+$/, "")}_${Date.now()}`; // Unique public_id
 
-        const uploadResult = await cloudinary.uploader.upload(`data:image/jpeg;base64,${file_data_base64}`, { // Client should send actual MIME type in base64 string
+        // Create a unique public_id for the file in Cloudinary to prevent overwrites and allow same filenames
+        // We append a timestamp to the original filename (without extension)
+        const baseFilename = filename.split('.').slice(0, -1).join('.'); // Get filename without extension
+        const publicId = `${baseFilename}_${Date.now()}`;
+
+        // Upload to Cloudinary using the base64 data
+        // resource_type: 'auto' allows Cloudinary to detect image, video, or raw (for documents)
+        const uploadResult = await cloudinary.uploader.upload(`data:image/jpeg;base64,${file_data_base64}`, { // NOTE: The `data:image/jpeg;base64,` prefix is an example. The actual prefix should come from client's FileReader result.
             folder: cloudinaryFolder,
             public_id: publicId,
-            resource_type: 'auto', // Auto-detect image, video, raw (for PDFs)
-            overwrite: false,
+            resource_type: 'auto', // Automatically detect file type (image, video, raw)
+            overwrite: false, // Do not overwrite existing assets
         });
 
-        const fileUrl = uploadResult.secure_url;
-        const fileSize = uploadResult.bytes; // Size in bytes from Cloudinary
+        const fileUrl = uploadResult.secure_url; // Get the secure URL of the uploaded file
+        const fileSize = uploadResult.bytes;    // Get the file size in bytes from Cloudinary
 
         // 4. Save file metadata to your database
-        await client.query('BEGIN'); // Start transaction
+        await client.query('BEGIN'); // Start a database transaction
 
         const insertResult = await client.query(
             `INSERT INTO property_files (property_id, filename, file_url, size, uploaded_by_username)
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`, // Insert into property_files table
             [property_id, filename, fileUrl, fileSize, uploaded_by_username]
         );
 
-        await client.query('COMMIT'); // Commit transaction
+        await client.query('COMMIT'); // Commit the transaction if everything was successful
 
+        // Return a success response
         return {
             statusCode: 200,
             headers: {
@@ -116,17 +126,30 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
+        // Log the error for debugging purposes in Netlify logs
         console.error('Error in uploadFile function:', error);
         if (client) {
-            await client.query('ROLLBACK'); // Rollback transaction on error
+            await client.query('ROLLBACK'); // Rollback the transaction on any error
         }
-        const details = error.http_code ? `Cloudinary Error: ${error.message} (Code: ${error.http_code})` : error.message;
+
+        // Provide a more descriptive error based on the error type
+        let errorMessage = 'Failed to upload file.';
+        if (error.http_code) { // Cloudinary-specific error
+            errorMessage = `Cloudinary Error: ${error.message} (Code: ${error.http_code})`;
+            // You can add more specific checks here for Cloudinary free tier limits for 'raw' files
+            if (error.message && error.message.includes('Raw file upload is not allowed')) {
+                errorMessage = `Upload failed: Your Cloudinary plan might not support this file type (e.g., PDF, DOC, XLS). Please try an image file (JPG, PNG).`;
+            }
+        } else if (error.message) { // General Node.js or PG error
+            errorMessage = `Error details: ${error.message}`;
+        }
 
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to upload file.', details: details }),
+            body: JSON.stringify({ message: errorMessage, details: error.message }),
         };
     } finally {
+        // Ensure the database client connection is released back to the pool
         if (client) {
             client.release();
         }
