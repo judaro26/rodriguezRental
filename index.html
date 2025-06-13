@@ -926,7 +926,8 @@
             });
         }
 
-        // --- Initial Load: Show Login Page (MOVED HERE) ---
+        // --- Initial Load: Show Login Page ---
+        // This is crucial to hide all other pages immediately upon DOMContentLoaded
         showPage(loginPage);
 
 
@@ -2668,7 +2669,6 @@
                     if (selectedExistingFolder) {
                         targetFolderName = selectedExistingFolder.name;
                     } else {
-                        // Fallback if folder not found in local list (shouldn't happen if list is fresh)
                         targetFolderName = targetFolderId; 
                     }
                 }
@@ -2683,7 +2683,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            file_ids: Array.from(selectedFiles).map(id => parseInt(id)), // Ensure IDs are numbers
+                            file_ids: Array.from(selectedFiles).map(id => parseInt(id)),
                             property_id: currentSelectedProperty.id,
                             folder_id: targetFolderId,
                             folder_name: targetFolderName,
@@ -2701,34 +2701,59 @@
                     
                     showCustomAlert(data.message);
                     
-                    displayPropertyFiles(currentFolder); // Re-fetch and display files in the current folder
+                    await displayPropertyFiles(currentFolder); // Re-fetch and display files in the current folder
                     document.body.removeChild(modal); // Close the modal
                     
                 } catch (error) {
                     console.error('Error moving files:', error);
-                    // showCustomAlert should have already displayed the error message
                 }
             });
         });
         
-        // Create folder button (client-side only for prompt, backend handles persistence)
-        document.getElementById('create-folder-button')?.addEventListener('click', () => {
-            // A simple prompt is used here, but for consistency, you might want a custom modal input.
-            const folderName = prompt('Enter folder name:');
-            if (folderName && folderName.trim()) {
-                // If you have a separate Netlify function for creating folders, call it here.
-                // For now, this is only used for the move modal. If a folder is created this way,
-                // it's only added to the local 'folders' list; it needs to be persisted to DB.
-                // If a user creates a folder outside of the move modal and then tries to move files,
-                // the folder will be "re-created" via the moveFiles function if it doesn't exist in DB.
-                const newFolderId = folderName.trim().toLowerCase().replace(/\s+/g, '-');
-                // Check if folder already exists locally before adding
-                if (!folders.some(f => f.id === newFolderId)) {
-                    folders.push({ id: newFolderId, name: folderName.trim() });
-                    renderFoldersList([]); // Refresh folder list to show new local folder
+        // --- Create folder button (now triggers an API call) ---
+        document.getElementById('create-folder-button')?.addEventListener('click', async () => {
+            if (!currentSelectedProperty) {
+                showCustomAlert('Please select a property first to create a folder.');
+                return;
+            }
+
+            const folderName = prompt('Enter folder name:'); // Using prompt for simplicity
+            if (folderName === null) { // User clicked cancel
+                return;
+            }
+            if (folderName.trim() === '') {
+                showCustomAlert('Folder name cannot be empty.');
+                return;
+            }
+            
+            const newFolderName = folderName.trim();
+            
+            try {
+                const response = await fetch('/.netlify/functions/createFolder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        property_id: currentSelectedProperty.id,
+                        folder_name: newFolderName,
+                        username: currentLoggedInUsername,
+                        password: currentLoggedInPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showCustomAlert(`Folder "${newFolderName}" created successfully!`);
+                    // Re-fetch all files to regenerate the folder list from the server,
+                    // ensuring it includes the newly created one.
+                    await displayPropertyFiles(currentFolder);
                 } else {
-                    showCustomAlert('Folder with this name already exists locally.');
+                    showCustomAlert(`Failed to create folder: ${data.message || 'An unknown error occurred.'}`);
+                    console.error('Error creating folder:', data.details || data.message);
                 }
+            } catch (error) {
+                console.error('Network error creating folder:', error);
+                showCustomAlert(`Network error: ${error.message}. Could not create folder.`);
             }
         });
         
@@ -2737,7 +2762,6 @@
             if (selectedFiles.size === 0) return;
             
             if (confirm(`Are you sure you want to delete ${selectedFiles.size} selected file(s)?`)) {
-                // This callback will be handled by the verification modal logic
                 showModal(
                     verificationModal,
                     `${selectedFiles.size} selected file(s)`,
@@ -2753,7 +2777,7 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    file_ids: Array.from(selectedFiles).map(id => parseInt(id)), // Ensure IDs are numbers
+                                    file_ids: Array.from(selectedFiles).map(id => parseInt(id)),
                                     property_id: currentSelectedProperty.id, // Pass property_id for scoping deletion
                                     username: username,
                                     password: password
@@ -2767,9 +2791,9 @@
                                     verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                                     verificationStatus.textContent = data.message;
                                 }
-                                setTimeout(() => {
+                                setTimeout(async () => { // Made async to await displayPropertyFiles
                                     hideModal(verificationModal);
-                                    displayPropertyFiles(currentFolder); // Refresh the file list
+                                    await displayPropertyFiles(currentFolder); // Refresh the file list
                                 }, 1500);
                             } else {
                                 if (verificationStatus) {
