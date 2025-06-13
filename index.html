@@ -939,14 +939,15 @@
                 jpeg: 'file-image',
                 png: 'file-image',
                 gif: 'file-image',
+                webp: 'file-image', // Added webp support
                 txt: 'file-alt',
+                csv: 'file-csv', // Added csv support
                 zip: 'file-archive',
                 mp3: 'file-audio',
-                mp4: 'file-video',
-                webp: 'file-image'  // Added webp support
+                mp4: 'file-video'
             };
             
-            const icon = iconMap[extension] || 'file';
+            const icon = iconMap[extension] || 'file'; // Default to 'file' if extension not found
             return `<i class="fas fa-${icon} file-icon text-blue-500"></i>`;
         }
         
@@ -999,7 +1000,7 @@
                 filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files found in this folder.</p>`;
                 return;
             }
-        
+            
             filesListContainer.innerHTML = '';
             
             files.forEach(file => {
@@ -1111,7 +1112,7 @@
         showPage(loginPage);
 
 
-        // --- Helper Function to Render Preset Logoss (for Add form) ---
+        // --- Helper Function to Render Preset Logos (for Add form) ---
         function renderPresetLogos(initialSelectionUrl = null) {
             if(presetLogoPicker) {
                 presetLogoPicker.innerHTML = '';
@@ -1699,155 +1700,153 @@
         }
 
         // --- Display Category Details / Dynamic Buttons (now tiles) ---
-// In your displayCategoryDetails function, replace with this:
+        async function displayCategoryDetails(selectedCategoryName) {
+            if (!categoryDetailsContent || !propertyFilesContent) return;
+            
+            propertyFilesContent.style.display = 'none';
+            categoryDetailsContent.style.display = 'flex';
+            
+            const securityWarningDiv = document.getElementById('security-warning');
+            const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
+            const loadingMessage = document.getElementById('category-loading-message');
+            const addVendorButton = document.getElementById('add-category-detail-button-bottom');
+            
+            if (!buttonsContainer || !loadingMessage) return;
+            
+            // Clear previous content
+            buttonsContainer.innerHTML = '';
+            loadingMessage.style.display = 'block';
+            loadingMessage.textContent = `Loading details for "${selectedCategoryName}"...`;
+            
+            if (addVendorButton) addVendorButton.style.display = 'block';
+            
+            try {
+                const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=${currentSelectedProperty.id}&category_name=${encodeURIComponent(selectedCategoryName)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const details = await response.json();
+                console.log(`Details for ${selectedCategoryName}:`, details);
 
-async function displayCategoryDetails(selectedCategoryName) {
-    if (!categoryDetailsContent || !propertyFilesContent) return;
-    
-    propertyFilesContent.style.display = 'none';
-    categoryDetailsContent.style.display = 'flex';
-    
-    const securityWarningDiv = document.getElementById('security-warning');
-    const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
-    const loadingMessage = document.getElementById('category-loading-message');
-    const addVendorButton = document.getElementById('add-category-detail-button-bottom');
-    
-    if (!buttonsContainer || !loadingMessage) return;
-    
-    // Clear previous content
-    buttonsContainer.innerHTML = '';
-    loadingMessage.style.display = 'block';
-    loadingMessage.textContent = `Loading details for "${selectedCategoryName}"...`;
-    
-    if (addVendorButton) addVendorButton.style.display = 'block';
-    
-    try {
-        const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=${currentSelectedProperty.id}&category_name=${encodeURIComponent(selectedCategoryName)}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const details = await response.json();
-        console.log(`Details for ${selectedCategoryName}:`, details);
+                loadingMessage.style.display = 'none';
+                buttonsContainer.innerHTML = '';
 
-        loadingMessage.style.display = 'none';
-        buttonsContainer.innerHTML = '';
+                if (details.length === 0) {
+                    const noDetailsMessage = document.createElement('p');
+                    noDetailsMessage.classList.add('text-gray-600', 'mt-4');
+                    noDetailsMessage.textContent = `No details found for category: "${selectedCategoryName}".`;
+                    buttonsContainer.appendChild(noDetailsMessage);
+                } else {
+                    details.forEach(detail => {
+                        const detailTile = document.createElement('div');
+                        detailTile.classList.add('detail-tile');
+                        detailTile.dataset.detailId = detail.id;
 
-        if (details.length === 0) {
-            const noDetailsMessage = document.createElement('p');
-            noDetailsMessage.classList.add('text-gray-600', 'mt-4');
-            noDetailsMessage.textContent = `No details found for category: "${selectedCategoryName}".`;
-            buttonsContainer.appendChild(noDetailsMessage);
-        } else {
-            details.forEach(detail => {
-                const detailTile = document.createElement('div');
-                detailTile.classList.add('detail-tile');
-                detailTile.dataset.detailId = detail.id;
+                        const logoHtml = detail.detail_logo_url
+                            ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain w-16 h-16 mb-2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
+                            : `<div class="logo-placeholder w-16 h-16 mb-2">${detail.detail_name.substring(0,3)}</div>`;
 
-                const logoHtml = detail.detail_logo_url
-                    ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain w-16 h-16 mb-2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
-                    : `<div class="logo-placeholder w-16 h-16 mb-2">${detail.detail_name.substring(0,3)}</div>`;
+                        const usernameInputId = `username-${detail.id}`;
+                        const passwordInputId = `password-${detail.id}`;
 
-                const usernameInputId = `username-${detail.id}`;
-                const passwordInputId = `password-${detail.id}`;
+                        detailTile.innerHTML = `
+                            ${logoHtml}
+                            <h3>${detail.detail_name}</h3>
+                            ${detail.detail_description ? `<p>${detail.detail_description}</p>` : ''}
+                            <div class="credential-container">
+                                <div class="credential-field">
+                                    <label for="${usernameInputId}">User:</label>
+                                    <input type="text" id="${usernameInputId}" value="${detail.detail_username || ''}" placeholder="Username" readonly>
+                                    <button class="copy-btn" data-target="${usernameInputId}">Copy</button>
+                                </div>
+                                <div class="credential-field">
+                                    <label for="${passwordInputId}">Pass:</label>
+                                    <input type="password" id="${passwordInputId}" value="${detail.detail_password || ''}" placeholder="Password" readonly>
+                                    <button class="password-toggle-btn" data-target="${passwordInputId}">👁️</button>
+                                    <button class="copy-btn" data-target="${passwordInputId}">Copy</button>
+                                </div>
+                                <p class="text-xs text-red-500 mt-1">
+                                    Note: Credentials are stored directly in your database. **This is a HIGH SECURITY RISK.**
+                                    Consider using a dedicated password manager for sensitive data.
+                                </p>
+                            </div>
+                            <div class="detail-tile-actions">
+                                <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View Site</button>
+                                <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="${detail.id}" data-name="${detail.detail_name}" data-url="${detail.detail_url}" data-description="${detail.detail_description || ''}" data-logo="${detail.detail_logo_url || ''}" data-username="${detail.detail_username || ''}" data-password="${detail.detail_password || ''}">Edit</button>
+                                <button class="bg-red-500 text-white hover:bg-red-600" data-action="delete-detail" data-id="${detail.id}" data-name="${detail.detail_name}">Delete</button>
+                            </div>
+                        `;
 
-                detailTile.innerHTML = `
-                    ${logoHtml}
-                    <h3>${detail.detail_name}</h3>
-                    ${detail.detail_description ? `<p>${detail.detail_description}</p>` : ''}
-                    <div class="credential-container">
-                        <div class="credential-field">
-                            <label for="${usernameInputId}">User:</label>
-                            <input type="text" id="${usernameInputId}" value="${detail.detail_username || ''}" placeholder="Username" readonly>
-                            <button class="copy-btn" data-target="${usernameInputId}">Copy</button>
-                        </div>
-                        <div class="credential-field">
-                            <label for="${passwordInputId}">Pass:</label>
-                            <input type="password" id="${passwordInputId}" value="${detail.detail_password || ''}" placeholder="Password" readonly>
-                            <button class="password-toggle-btn" data-target="${passwordInputId}">👁️</button>
-                            <button class="copy-btn" data-target="${passwordInputId}">Copy</button>
-                        </div>
-                        <p class="text-xs text-red-500 mt-1">
-                            Note: Credentials are stored directly in your database. **This is a HIGH SECURITY RISK.**
-                            Consider using a dedicated password manager for sensitive data.
-                        </p>
-                    </div>
-                    <div class="detail-tile-actions">
-                        <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View Site</button>
-                        <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="${detail.id}" data-name="${detail.detail_name}" data-url="${detail.detail_url}" data-description="${detail.detail_description || ''}" data-logo="${detail.detail_logo_url || ''}" data-username="${detail.detail_username || ''}" data-password="${detail.detail_password || ''}">Edit</button>
-                        <button class="bg-red-500 text-white hover:bg-red-600" data-action="delete-detail" data-id="${detail.id}" data-name="${detail.detail_name}">Delete</button>
-                    </div>
-                `;
-
-                // Add event listeners only if elements exist
-                const passwordToggleBtn = detailTile.querySelector(`.password-toggle-btn[data-target="${passwordInputId}"]`);
-                if (passwordToggleBtn) {
-                    passwordToggleBtn.addEventListener('click', (e) => {
-                        const targetInput = document.getElementById(e.target.dataset.target);
-                        if (targetInput) {
-                            targetInput.type = targetInput.type === 'password' ? 'text' : 'password';
-                            e.target.textContent = targetInput.type === 'password' ? '👁️' : '🙈';
+                        // Add event listeners only if elements exist
+                        const passwordToggleBtn = detailTile.querySelector(`.password-toggle-btn[data-target="${passwordInputId}"]`);
+                        if (passwordToggleBtn) {
+                            passwordToggleBtn.addEventListener('click', (e) => {
+                                const targetInput = document.getElementById(e.target.dataset.target);
+                                if (targetInput) {
+                                    targetInput.type = targetInput.type === 'password' ? 'text' : 'password';
+                                    e.target.textContent = targetInput.type === 'password' ? '👁️' : '🙈';
+                                }
+                            });
                         }
-                    });
-                }
 
-                detailTile.querySelectorAll('.copy-btn').forEach(button => {
-                    button.addEventListener('click', async (e) => {
-                        const targetInput = document.getElementById(e.target.dataset.target);
-                        if (targetInput) {
-                            try {
-                                await navigator.clipboard.writeText(targetInput.value);
-                                showCustomAlert('Copied to clipboard!');
-                            } catch (err) {
-                                console.error('Failed to copy: ', err);
-                                showCustomAlert('Failed to copy to clipboard. Please copy manually.');
-                            }
+                        detailTile.querySelectorAll('.copy-btn').forEach(button => {
+                            button.addEventListener('click', async (e) => {
+                                const targetInput = document.getElementById(e.target.dataset.target);
+                                if (targetInput) {
+                                    try {
+                                        await navigator.clipboard.writeText(targetInput.value);
+                                        showCustomAlert('Copied to clipboard!');
+                                    } catch (err) {
+                                        console.error('Failed to copy: ', err);
+                                        showCustomAlert('Failed to copy to clipboard. Please copy manually.');
+                                    }
+                                }
+                            });
+                        });
+
+                        const viewBtn = detailTile.querySelector('[data-action="view"]');
+                        if (viewBtn) {
+                            viewBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                const url = e.target.dataset.url;
+                                if (url) {
+                                    window.open(url, '_blank');
+                                } else {
+                                    showCustomAlert(`Detail: "${detail.detail_name}" has no URL.`);
+                                }
+                            });
                         }
-                    });
-                });
 
-                const viewBtn = detailTile.querySelector('[data-action="view"]');
-                if (viewBtn) {
-                    viewBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const url = e.target.dataset.url;
-                        if (url) {
-                            window.open(url, '_blank');
-                        } else {
-                            showCustomAlert(`Detail: "${detail.detail_name}" has no URL.`);
+                        const editBtn = detailTile.querySelector('[data-action="edit"]');
+                        if (editBtn) {
+                            editBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                // Your edit button logic here
+                            });
                         }
+
+                        const deleteBtn = detailTile.querySelector('[data-action="delete-detail"]');
+                        if (deleteBtn) {
+                            deleteBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                // Your delete button logic here
+                            });
+                        }
+
+                        buttonsContainer.appendChild(detailTile);
                     });
                 }
-
-                const editBtn = detailTile.querySelector('[data-action="edit"]');
-                if (editBtn) {
-                    editBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        // Your edit button logic here
-                    });
+            } catch (error) {
+                console.error('Error fetching category details:', error);
+                if (loadingMessage) {
+                    loadingMessage.classList.add('text-red-600');
+                    loadingMessage.textContent = `Failed to load details: ${error.message}`;
                 }
-
-                const deleteBtn = detailTile.querySelector('[data-action="delete-detail"]');
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        // Your delete button logic here
-                    });
-                }
-
-                buttonsContainer.appendChild(detailTile);
-            });
+                buttonsContainer.innerHTML = '';
+            }
         }
-    } catch (error) {
-        console.error('Error fetching category details:', error);
-        if (loadingMessage) {
-            loadingMessage.classList.add('text-red-600');
-            loadingMessage.textContent = `Failed to load details: ${error.message}`;
-        }
-        buttonsContainer.innerHTML = '';
-    }
-}
 
         // --- Add Category Detail Button & Form Logic ---
         const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom');
@@ -2421,7 +2420,7 @@ async function displayCategoryDetails(selectedCategoryName) {
             });
         }
 
-        // New: Upload File button functionality
+        // New: Upload File button functionality (UPDATED)
         if (uploadFileButton) {
             uploadFileButton.addEventListener('click', async () => {
                 if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
@@ -2432,22 +2431,34 @@ async function displayCategoryDetails(selectedCategoryName) {
                     }
                     return;
                 }
-            
+                
                 const file = fileUploadInput.files[0];
                 
-                // File type validation
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+                // File type validation (UPDATED to include more types)
+                const allowedTypes = [
+                    'image/jpeg',
+                    'image/png',
+                    'image/gif',
+                    'image/webp', // Added WebP
+                    'application/pdf',
+                    'application/vnd.ms-excel', // .xls
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+                    'text/csv', // .csv
+                    'application/msword', // .doc
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+                ];
                 if (!allowedTypes.includes(file.type)) {
                     if (fileUploadStatus) {
                         fileUploadStatus.classList.remove('hidden');
                         fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
-                        fileUploadStatus.textContent = 'Only JPEG, PNG, GIF, and PDF files are allowed.';
+                        // Updated error message to reflect all allowed types
+                        fileUploadStatus.textContent = 'Only images (JPEG, PNG, GIF, WebP), PDFs, Excel (XLS, XLSX), CSV, and Word (DOC, DOCX) files are allowed.';
                     }
                     return;
                 }
-            
+                
                 const reader = new FileReader();
-            
+                
                 // Add progress feedback for large files
                 if (fileUploadStatus) {
                     fileUploadStatus.classList.remove('hidden');
@@ -2459,7 +2470,7 @@ async function displayCategoryDetails(selectedCategoryName) {
                     progress.value = 0;
                     fileUploadStatus.appendChild(progress);
                 }
-            
+                
                 reader.onprogress = (event) => {
                     if (event.lengthComputable) {
                         const progressElement = fileUploadStatus?.querySelector('progress');
@@ -2468,23 +2479,28 @@ async function displayCategoryDetails(selectedCategoryName) {
                         }
                     }
                 };
-            
+                
                 reader.onloadend = async () => {
+                    // Ensure to use the correct MIME type prefix for base64
                     const base64data = reader.result.split(',')[1];
-            
+                    const mimeType = reader.result.split(',')[0].split(':')[1].split(';')[0]; // Extract MIME type from data URL
+
                     if (!currentSelectedProperty || !currentLoggedInUsername || !currentLoggedInPassword) {
                         if (fileUploadStatus) {
                             fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
                             fileUploadStatus.textContent = 'Error: Property not selected or user not logged in.';
-                            fileUploadStatus.innerHTML = fileUploadStatus.textContent;
+                            fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Refresh innerHTML to remove progress bar
                         }
                         return;
                     }
-            
+                    
                     if (fileUploadStatus) {
                         fileUploadStatus.textContent = 'Uploading file...';
+                        // Optionally remove progress bar here if you want to show only 'Uploading...' text
+                        // const progressElement = fileUploadStatus?.querySelector('progress');
+                        // if (progressElement) progressElement.remove();
                     }
-            
+                    
                     try {
                         const response = await fetch('/.netlify/functions/uploadFile', {
                             method: 'POST',
@@ -2493,31 +2509,32 @@ async function displayCategoryDetails(selectedCategoryName) {
                                 property_id: currentSelectedProperty.id,
                                 filename: file.name,
                                 file_data_base64: base64data,
+                                file_mime_type: mimeType, // Pass MIME type to Netlify function if needed for Cloudinary
                                 uploaded_by_username: currentLoggedInUsername,
                                 username: currentLoggedInUsername,
                                 password: currentLoggedInPassword
                             })
                         });
-            
+                        
                         const data = await response.json();
-            
+                        
                         if (response.ok) {
                             if (fileUploadStatus) {
                                 fileUploadStatus.className = 'mt-3 text-center text-sm bg-green-100 text-green-700';
                                 fileUploadStatus.textContent = 'File uploaded successfully!';
-                                fileUploadStatus.innerHTML = fileUploadStatus.textContent;
+                                fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Refresh innerHTML to remove progress bar
                             }
-                            if (fileUploadInput) fileUploadInput.value = '';
-                            displayPropertyFiles();
+                            if (fileUploadInput) fileUploadInput.value = ''; // Clear file input
+                            displayPropertyFiles(currentFolder); // Refresh files in current folder
                         } else {
                             if (fileUploadStatus) {
                                 fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
                                 if (data.details && data.details.includes('Raw file upload is not allowed')) {
-                                    fileUploadStatus.textContent = `Upload failed: Your Cloudinary free tier might not support 'raw' file uploads (e.g., PDF, TXT). Please try an image file (JPG, PNG).`;
+                                    fileUploadStatus.textContent = `Upload failed: Your Cloudinary free tier might not support 'raw' file uploads (e.g., PDF, DOC, XLS). Please try an image file (JPG, PNG).`;
                                 } else {
                                     fileUploadStatus.textContent = `Upload failed: ${data.details || data.message}`;
                                 }
-                                fileUploadStatus.innerHTML = fileUploadStatus.textContent;
+                                fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Refresh innerHTML to remove progress bar
                             }
                         }
                     } catch (error) {
@@ -2525,13 +2542,13 @@ async function displayCategoryDetails(selectedCategoryName) {
                         if (fileUploadStatus) {
                             fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
                             fileUploadStatus.textContent = `Network error during upload: ${error.message}`;
-                            fileUploadStatus.innerHTML = fileUploadStatus.textContent;
+                            fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Refresh innerHTML to remove progress bar
                         }
                     }
                 };
-            
+                
                 if (file) {
-                    reader.readAsDataURL(file);
+                    reader.readAsDataURL(file); // Reads the file and encodes it as a base64 data URL
                 }
             });
         }
@@ -2541,14 +2558,14 @@ async function displayCategoryDetails(selectedCategoryName) {
             currentFolder = folderId;
             
             if (!filesListContainer || !currentSelectedProperty) return;
-        
+            
             filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`;
             
             if (document.getElementById('current-folder-title')) {
                 document.getElementById('current-folder-title').textContent = 
                     folderId === 'all' ? 'All Files' : `Folder: ${folders.find(f => f.id === folderId)?.name || folderId}`;
             }
-        
+            
             try {
                 // 1. Fetch ALL folders for the current property
                 const foldersResponse = await fetch('/.netlify/functions/getFolders', {
@@ -2583,7 +2600,7 @@ async function displayCategoryDetails(selectedCategoryName) {
                 const filesToDisplay = folderId === 'all' 
                     ? allFiles 
                     : allFiles.filter(file => file.folder_id === folderId);
-        
+                
                 renderFilesList(filesToDisplay);
                 
                 selectedFiles.clear();
@@ -2596,12 +2613,7 @@ async function displayCategoryDetails(selectedCategoryName) {
         }
         
         // --- All other event listeners and main logic ---
-        // These remain in their current positions after all necessary functions are defined.
         
-        // Login and Registration form event listeners, property add/update/delete logic, etc.
-        // ... (all other existing event listeners, e.g., loginForm.addEventListener, showRegisterFormBtn.addEventListener, addPropertyForm.addEventListener, etc.)
-        // ... (continue from your original script, including all the event listeners at the end)
-
         // Move to folder functionality
         document.getElementById('move-to-folder-button')?.addEventListener('click', () => {
             if (selectedFiles.size === 0) return;
@@ -2768,9 +2780,9 @@ async function displayCategoryDetails(selectedCategoryName) {
                                     password: password
                                 })
                             });
-            
+                            
                             const data = await response.json();
-            
+                            
                             if (response.ok) {
                                 if (verificationStatus) {
                                     verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
