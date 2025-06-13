@@ -2,7 +2,6 @@
 const { Pool } = require('pg');
 
 exports.handler = async (event) => {
-    // Only GET requests are expected for fetching files based on property_id
     if (event.httpMethod !== 'GET') {
         return {
             statusCode: 405,
@@ -30,8 +29,7 @@ exports.handler = async (event) => {
         });
         client = await pool.connect();
 
-        // Fetch all files for the given property_id
-        // Ensure your table name matches what's in your DB (e.g., property_files)
+        // Fetch all files for the given property_id from the 'property_files' table
         const result = await client.query(
             `SELECT id, filename, file_url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
              FROM property_files
