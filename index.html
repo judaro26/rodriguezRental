@@ -756,7 +756,7 @@
         const backToLoginBtn = document.getElementById('back-to-login-btn'); // Moved up for visibility
         const filterAllPropertiesBtn = document.getElementById('filter-all-properties'); // Filter button
         const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties'); // Filter button
-        const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties'); // Filter button
+        const filterForeignPropertiesBtn = document = document.getElementById('filter-foreign-properties'); // Filter button
 
 
         const addPropertyPage = document.getElementById('add-property-page');
@@ -840,7 +840,7 @@
         let selectedUpdatePresetLogoUrl = null;
         const cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
         const updateDetailStatus = document.getElementById('update-detail-status');
-        const backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn');
+        const backFromUpdateDetailBtn = document.getElementById('back-from-add-detail-btn');
         const updateDetailCategoryNameSpan = document.getElementById('update-detail-category-name');
         const updateDetailUsernameInput = document.getElementById('update-detail-username');
         const updateDetailPasswordInput = document.getElementById('update-detail-password');
@@ -871,6 +871,15 @@
 
         const propertyFilesContent = document.getElementById('property-files-content');
 
+        // New elements for Upload Folder Selection Modal
+        const uploadFolderModal = document.getElementById('upload-folder-modal');
+        const folderSelectDropdown = document.getElementById('folder-select-dropdown');
+        const newFolderNameContainer = document.getElementById('new-folder-name-container');
+        const newFolderNameInput = document.getElementById('new-folder-name-input');
+        const cancelFolderSelectionBtn = document.getElementById('cancel-folder-selection-btn');
+        const confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
+        const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
+
 
         // --- Global variables ---
         let currentVerificationCallback = null;
@@ -882,6 +891,12 @@
         let selectedFiles = new Set();
         let currentFolder = 'all';
         let folders = []; // This array will hold logical folder data for the UI
+
+        // Variables to temporarily hold file data during folder selection flow
+        let fileToUpload = null;
+        let base64DataToUpload = null;
+        let mimeTypeToUpload = null;
+
 
         // --- Data Definitions ---
         let properties = [];
@@ -1379,7 +1394,8 @@
             const allPages = [
                 loginPage, registerPage, propertySelectionPage, addPropertyPage,
                 propertyCategoriesPage, addCategoryDetailPage, addNewCategoryPage,
-                updatePropertyPage, updateCategoryDetailPage, propertyFilesPage
+                updatePropertyPage, updateCategoryDetailPage, propertyFilesPage,
+                uploadFolderModal // Include the new modal here
             ];
 
             allPages.forEach(page => {
@@ -2072,7 +2088,7 @@
                     showPage(propertyCategoriesPage);
                     renderPropertyCategories();
 
-                } catch (error) {
+                } => {
                             console.error('Error adding new category:', error);
                             if (addNewCategoryStatus) {
                                 addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
@@ -2476,7 +2492,219 @@
             });
         }
 
-        // New: Upload File button functionality
+        // Helper function to show the folder selection modal for upload
+        async function showUploadFolderSelectionModal(file, base64data, mimeType) {
+            if (!uploadFolderModal || !currentSelectedProperty) {
+                showCustomAlert('Cannot open folder selection. Please select a property and ensure the modal elements are present.');
+                return;
+            }
+
+            fileToUpload = file;
+            base64DataToUpload = base64data;
+            mimeTypeToUpload = mimeType;
+
+            uploadFolderModalStatus.classList.add('hidden');
+            uploadFolderModalStatus.textContent = '';
+            newFolderNameContainer.classList.add('hidden');
+            newFolderNameInput.value = '';
+            folderSelectDropdown.innerHTML = '<option value="none">-- No Folder (All Files) --</option>';
+            folderSelectDropdown.value = 'none'; // Reset to default
+
+            uploadFolderModal.classList.remove('hidden');
+
+            try {
+                // Fetch folders from the server
+                uploadFolderModalStatus.classList.remove('hidden', 'bg-red-100', 'text-red-700');
+                uploadFolderModalStatus.classList.add('bg-blue-100', 'text-blue-700');
+                uploadFolderModalStatus.textContent = 'Loading folders...';
+
+                const foldersResponse = await fetch('/.netlify/functions/getFolders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        property_id: currentSelectedProperty.id,
+                        username: currentLoggedInUsername,
+                        password: currentLoggedInPassword
+                    })
+                });
+
+                if (!foldersResponse.ok) {
+                    const errorBody = await foldersResponse.json();
+                    throw new Error(errorBody.message || 'Failed to fetch folders.');
+                }
+                const fetchedFolders = await foldersResponse.json();
+                
+                // Add existing folders to the dropdown
+                fetchedFolders.forEach(folder => {
+                    const option = document.createElement('option');
+                    option.value = folder.id;
+                    option.textContent = folder.name;
+                    folderSelectDropdown.appendChild(option);
+                });
+
+                // Add "Create New Folder" option after existing ones
+                const newFolderOption = document.createElement('option');
+                newFolderOption.value = 'new';
+                newFolderOption.textContent = '+ Create New Folder';
+                folderSelectDropdown.appendChild(newFolderOption);
+
+                uploadFolderModalStatus.classList.add('hidden'); // Hide status message on success
+
+            } catch (error) {
+                console.error('Error fetching folders for upload modal:', error);
+                uploadFolderModalStatus.classList.remove('hidden', 'bg-blue-100', 'text-blue-700');
+                uploadFolderModalStatus.classList.add('bg-red-100', 'text-red-700');
+                uploadFolderModalStatus.textContent = `Error loading folders: ${error.message}`;
+            }
+        }
+
+        // Event listener for dropdown change in upload folder modal
+        if (folderSelectDropdown) {
+            folderSelectDropdown.addEventListener('change', (e) => {
+                if (e.target.value === 'new') {
+                    newFolderNameContainer.classList.remove('hidden');
+                    newFolderNameInput.focus();
+                } else {
+                    newFolderNameContainer.classList.add('hidden');
+                    newFolderNameInput.value = '';
+                }
+                uploadFolderModalStatus.classList.add('hidden'); // Clear status when selection changes
+            });
+        }
+
+        // Event listener for cancel button in upload folder modal
+        if (cancelFolderSelectionBtn) {
+            cancelFolderSelectionBtn.addEventListener('click', () => {
+                uploadFolderModal.classList.add('hidden');
+                fileUploadInput.value = ''; // Clear selected file from main input
+                fileToUpload = null;
+                base64DataToUpload = null;
+                mimeTypeToUpload = null;
+                if (fileUploadStatus) fileUploadStatus.classList.add('hidden'); // Clear main status
+            });
+        }
+
+        // Event listener for confirm button in upload folder modal
+        if (confirmFolderSelectionBtn) {
+            confirmFolderSelectionBtn.addEventListener('click', async () => {
+                const selectedFolderId = folderSelectDropdown.value;
+                let finalFolderId = null;
+                let finalFolderName = null;
+
+                if (selectedFolderId === 'new') {
+                    const newName = newFolderNameInput.value.trim();
+                    if (!newName) {
+                        uploadFolderModalStatus.classList.remove('hidden');
+                        uploadFolderModalStatus.className = 'mt-3 text-center text-sm bg-yellow-100 text-yellow-700';
+                        uploadFolderModalStatus.textContent = 'Please enter a name for the new folder.';
+                        return;
+                    }
+                    finalFolderName = newName;
+                    finalFolderId = newName.toLowerCase().replace(/\s+/g, '-'); // Generate ID from name
+                } else if (selectedFolderId !== 'none') {
+                    // Existing folder selected
+                    finalFolderId = selectedFolderId;
+                    const selectedOption = folderSelectDropdown.options[folderSelectDropdown.selectedIndex];
+                    finalFolderName = selectedOption ? selectedOption.textContent : selectedFolderId;
+                }
+                // If selectedFolderId is 'none', finalFolderId and finalFolderName remain null
+
+                uploadFolderModalStatus.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-yellow-100', 'text-yellow-700');
+                uploadFolderModalStatus.classList.add('bg-blue-100', 'text-blue-700');
+                uploadFolderModalStatus.textContent = 'Processing folder selection...';
+
+                try {
+                    // If 'new' folder, create it first
+                    if (selectedFolderId === 'new') {
+                        const createFolderResponse = await fetch('/.netlify/functions/createFolder', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                property_id: currentSelectedProperty.id,
+                                folder_name: finalFolderName,
+                                username: currentLoggedInUsername,
+                                password: currentLoggedInPassword
+                            })
+                        });
+
+                        const createFolderData = await createFolderResponse.json();
+                        if (!createFolderResponse.ok) {
+                            throw new Error(createFolderData.message || 'Failed to create new folder.');
+                        }
+                        // Use the ID returned by createFolder (or the generated one if it's consistent)
+                        // For consistency with your createFolder function, assuming it returns the ID or you use the generated one.
+                        // If your createFolder returns the actual new folder object, you might want to use createFolderData.folder.id
+                        // For now, we'll stick to the one we generated and sent.
+                        console.log('New folder created:', createFolderData.message);
+                    }
+
+                    // Proceed with file upload now that folder is determined/created
+                    uploadFolderModal.classList.add('hidden'); // Hide folder modal
+
+                    // Show main upload status
+                    if (fileUploadStatus) {
+                        fileUploadStatus.classList.remove('hidden');
+                        fileUploadStatus.className = 'mt-3 text-center text-sm bg-blue-100 text-blue-700';
+                        fileUploadStatus.textContent = 'Uploading file...';
+                    }
+
+                    // Make the actual file upload call
+                    const uploadResponse = await fetch('/.netlify/functions/uploadFile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            property_id: currentSelectedProperty.id,
+                            filename: fileToUpload.name,
+                            file_data_base64: base64DataToUpload,
+                            file_mime_type: mimeTypeToUpload,
+                            uploaded_by_username: currentLoggedInUsername,
+                            username: currentLoggedInUsername,
+                            password: currentLoggedInPassword,
+                            folder_id: finalFolderId, // Pass the selected/new folder ID
+                            folder_name: finalFolderName // Pass the selected/new folder name
+                        })
+                    });
+
+                    const uploadData = await uploadResponse.json();
+
+                    if (uploadResponse.ok) {
+                        if (fileUploadStatus) {
+                            fileUploadStatus.className = 'mt-3 text-center text-sm bg-green-100 text-green-700';
+                            fileUploadStatus.textContent = 'File uploaded successfully!';
+                        }
+                        fileUploadInput.value = ''; // Clear file input
+                        fileToUpload = null; base64DataToUpload = null; mimeTypeToUpload = null;
+                        displayPropertyFiles(currentFolder); // Refresh files in current folder
+                    } else {
+                        throw new Error(uploadData.details || uploadData.message || 'Unknown upload error.');
+                    }
+
+                } catch (error) {
+                    console.error('Error in folder selection or upload:', error);
+                    // Display error in the upload folder modal status or main status
+                    if (uploadFolderModalStatus.style.display !== 'none') {
+                        uploadFolderModalStatus.classList.remove('hidden', 'bg-blue-100', 'text-blue-700', 'bg-yellow-100');
+                        uploadFolderModalStatus.classList.add('bg-red-100', 'text-red-700');
+                        uploadFolderModalStatus.textContent = `Upload failed: ${error.message}`;
+                    } else if (fileUploadStatus) {
+                        fileUploadStatus.classList.remove('hidden');
+                        fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
+                        fileUploadStatus.textContent = `Upload failed: ${error.message}`;
+                    }
+                    fileUploadInput.value = ''; // Clear file input on error
+                    fileToUpload = null; base64DataToUpload = null; mimeTypeToUpload = null;
+                } finally {
+                    // Hide any temporary status messages after a short delay
+                    setTimeout(() => {
+                        uploadFolderModalStatus.classList.add('hidden');
+                        if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
+                    }, 3000);
+                }
+            });
+        }
+
+
+        // New: Upload File button functionality (Initial Trigger)
         if (uploadFileButton) {
             uploadFileButton.addEventListener('click', async () => {
                 if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
@@ -2490,46 +2718,28 @@
                 
                 const file = fileUploadInput.files[0];
                 
-                // File type validation (UPDATED to include more types)
+                // File type validation
                 const allowedTypes = [
-                    'image/jpeg',
-                    'image/png',
-                    'image/gif',
-                    'image/webp', // Added WebP
+                    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
                     'application/pdf',
-                    'application/vnd.ms-excel', // .xls
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-                    'text/csv', // .csv
-                    'application/msword', // .doc
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+                    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'text/csv',
+                    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                 ];
                 if (!allowedTypes.includes(file.type)) {
                     if (fileUploadStatus) {
                         fileUploadStatus.classList.remove('hidden');
                         fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
-                        // Updated error message to reflect all allowed types
                         fileUploadStatus.textContent = 'Only images (JPEG, PNG, GIF, WebP), PDFs, Excel (XLS, XLSX), CSV, and Word (DOC, DOCX) files are allowed.';
                     }
                     return;
                 }
                 
+                // Read the file as Data URL
                 const reader = new FileReader();
-                
-                // Add progress feedback for large files
-                if (fileUploadStatus) {
-                    fileUploadStatus.classList.remove('hidden');
-                    fileUploadStatus.className = 'mt-3 text-center text-sm bg-blue-100 text-blue-700';
-                    fileUploadStatus.textContent = 'Preparing file for upload...';
-                    
-                    const progress = document.createElement('progress');
-                    progress.max = file.size;
-                    progress.value = 0;
-                    fileUploadStatus.appendChild(progress);
-                }
-                
                 reader.onprogress = (event) => {
-                    if (event.lengthComputable) {
-                        const progressElement = fileUploadStatus?.querySelector('progress');
+                    if (event.lengthComputable && fileUploadStatus) {
+                        const progressElement = fileUploadStatus.querySelector('progress');
                         if (progressElement) {
                             progressElement.value = event.loaded;
                         }
@@ -2537,77 +2747,28 @@
                 };
                 
                 reader.onloadend = async () => {
-                    // Ensure to use the correct MIME type prefix for base64
                     const base64data = reader.result.split(',')[1];
-                    const mimeType = reader.result.split(',')[0].split(':')[1].split(';')[0]; // Extract MIME type from data URL
-
-                    if (!currentSelectedProperty || !currentLoggedInUsername || !currentLoggedInPassword) {
-                        if (fileUploadStatus) {
-                            fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
-                            fileUploadStatus.textContent = 'Error: Property not selected or user not logged in.';
-                            fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Refresh innerHTML to remove progress bar
-                        }
-                        return;
-                    }
+                    const mimeType = reader.result.split(',')[0].split(':')[1].split(';')[0];
                     
-                    if (fileUploadStatus) {
-                        fileUploadStatus.textContent = 'Uploading file...';
-                        // Optionally remove progress bar here if you want to show only 'Uploading...' text
-                        // const progressElement = fileUploadStatus?.querySelector('progress');
-                        // if (progressElement) progressElement.remove();
-                    }
-                    
-                    try {
-                        const response = await fetch('/.netlify/functions/uploadFile', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                property_id: currentSelectedProperty.id,
-                                filename: file.name,
-                                file_data_base64: base64data,
-                                file_mime_type: mimeType, // Pass MIME type to Netlify function if needed for Cloudinary
-                                uploaded_by_username: currentLoggedInUsername,
-                                username: currentLoggedInUsername,
-                                password: currentLoggedInPassword
-                            })
-                        });
-                        
-                        const data = await response.json();
-                        
-                        if (response.ok) {
-                            if (fileUploadStatus) {
-                                fileUploadStatus.className = 'mt-3 text-center text-sm bg-green-100 text-green-700';
-                                fileUploadStatus.textContent = 'File uploaded successfully!';
-                                fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Refresh innerHTML to remove progress bar
-                            }
-                            if (fileUploadInput) fileUploadInput.value = ''; // Clear file input
-                            displayPropertyFiles(currentFolder); // Refresh files in current folder
-                        } else {
-                            if (fileUploadStatus) {
-                                fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
-                                if (data.details && data.details.includes('Raw file upload is not allowed')) {
-                                    fileUploadStatus.textContent = `Upload failed: Your Cloudinary free tier might not support 'raw' file uploads (e.g., PDF, DOC, XLS). Please try an image file (JPG, PNG).`;
-                                } else {
-                                    fileUploadStatus.textContent = `Upload failed: ${data.details || data.message}`;
-                                }
-                                fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Refresh innerHTML to remove progress bar
-                            }
-                        }
-                    } catch (error) {
-                        console.error('File upload error:', error);
-                        if (fileUploadStatus) {
-                            fileUploadStatus.className = 'mt-3 text-center text-sm bg-red-100 text-red-700';
-                            fileUploadStatus.textContent = `Network error during upload: ${error.message}`;
-                            fileUploadStatus.innerHTML = fileUploadStatus.textContent; // Refresh innerHTML to remove progress bar
-                        }
-                    }
+                    // Now, show the folder selection modal with the file data
+                    await showUploadFolderSelectionModal(file, base64data, mimeType);
                 };
                 
+                // Show initial status and progress bar
+                if (fileUploadStatus) {
+                    fileUploadStatus.classList.remove('hidden');
+                    fileUploadStatus.className = 'mt-3 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                    fileUploadStatus.innerHTML = 'Preparing file for upload... <progress value="0" max="100"></progress>';
+                    const progress = fileUploadStatus.querySelector('progress');
+                    if (progress) progress.max = file.size;
+                }
+
                 if (file) {
-                    reader.readAsDataURL(file); // Reads the file and encodes it as a base64 data URL
+                    reader.readAsDataURL(file);
                 }
             });
         }
+
 
         // New: Display Property Files function - UPDATED TO FETCH FOLDERS SEPARATELY
         async function displayPropertyFiles(folderId = 'all') {
@@ -2708,8 +2869,8 @@
             modal.querySelector('#confirm-move').addEventListener('click', async () => {
                 const select = modal.querySelector('#target-folder-select');
                 let targetFolderId = select.value;
-                let targetFolderName = '';
-                
+                let targetFolderName = null; // Initialize as null
+
                 if (targetFolderId === 'new') {
                     targetFolderName = modal.querySelector('#new-folder-name').value.trim();
                     if (!targetFolderName) {
@@ -2717,8 +2878,12 @@
                         return;
                     }
                     targetFolderId = targetFolderName.toLowerCase().replace(/\s+/g, '-');
-                } else if (targetFolderId === 'all') {
-                    targetFolderName = 'All Files';
+                } else if (targetFolderId === 'all') { // If "All Files" option is meant to clear folder assignment
+                    targetFolderId = null; // Set to null to indicate no specific folder
+                    targetFolderName = null;
+                } else if (targetFolderId === 'none') { // If "No Folder" option
+                    targetFolderId = null;
+                    targetFolderName = null;
                 } else {
                     const selectedExistingFolder = folders.find(f => f.id === targetFolderId);
                     if (selectedExistingFolder) {
@@ -2726,11 +2891,6 @@
                     } else {
                         targetFolderName = targetFolderId; 
                     }
-                }
-
-                if (!targetFolderId) {
-                    showCustomAlert('Please select a folder.');
-                    return;
                 }
                 
                 try {
