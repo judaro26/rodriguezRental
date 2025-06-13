@@ -1,9 +1,8 @@
 // netlify/functions/createFolder.js
 const { Pool } = require('pg');
-const bcrypt = require('bcryptjs'); // For comparing hashed passwords
+const bcrypt = require('bcryptjs');
 
 exports.handler = async (event) => {
-    // Only allow POST requests
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
@@ -16,7 +15,6 @@ exports.handler = async (event) => {
     try {
         const { property_id, folder_name, username, password } = JSON.parse(event.body);
 
-        // Input validation
         if (!property_id || !folder_name || !username || !password) {
             return {
                 statusCode: 400,
@@ -27,18 +25,17 @@ exports.handler = async (event) => {
             };
         }
 
-        // Initialize PostgreSQL Pool
         const pool = new Pool({
             connectionString: process.env.DATABASE_URL,
             ssl: {
-                rejectUnauthorized: false, // Required for Neon DB connections
+                rejectUnauthorized: false,
             },
         });
         client = await pool.connect();
 
-        // 1. Authenticate user
+        // 1. Authenticate user: Corrected column names here
         const authResult = await client.query(
-            'SELECT password_hash, is_foreign_approved, is_domestic_approved FROM users WHERE username = $1',
+            'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1', // <-- CORRECTED COLUMN NAMES
             [username]
         );
         const user = authResult.rows[0];
@@ -50,7 +47,7 @@ exports.handler = async (event) => {
             };
         }
 
-        // 2. Authorize user (same logic as moveFiles)
+        // 2. Authorize user: Corrected property access here
         const propertyResult = await client.query(
             'SELECT is_foreign FROM properties WHERE id = $1',
             [property_id]
@@ -64,25 +61,21 @@ exports.handler = async (event) => {
             };
         }
 
-        if (property.is_foreign && !user.is_foreign_approved) {
+        if (property.is_foreign && !user.foreign_approved) { // <-- CORRECTED PROPERTY ACCESS
             return {
                 statusCode: 403,
                 body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage foreign properties.' }),
             };
         }
-        if (!property.is_foreign && !user.is_domestic_approved) {
+        if (!property.is_foreign && !user.domestic_approved) { // <-- CORRECTED PROPERTY ACCESS
             return {
                 statusCode: 403,
                 body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage domestic properties.' }),
             };
         }
 
-        // 3. Create folder (generate a simple ID, consider UUID for production)
         const folder_id = folder_name.trim().toLowerCase().replace(/\s+/g, '-');
 
-        // Assuming a 'folders' table: CREATE TABLE folders (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, property_id INT NOT NULL);
-        // Add a unique constraint to ensure unique folder names per property:
-        // ALTER TABLE folders ADD CONSTRAINT unique_folder_name_per_property UNIQUE (name, property_id);
         await client.query(
             'INSERT INTO folders (id, name, property_id) VALUES ($1, $2, $3) ON CONFLICT (id, property_id) DO NOTHING',
             [folder_id, folder_name.trim(), property_id]
@@ -95,7 +88,6 @@ exports.handler = async (event) => {
 
     } catch (error) {
         console.error('Error in createFolder function:', error);
-        // Check for specific unique constraint violation for better error message
         if (error.code === '23505' && error.constraint === 'unique_folder_name_per_property') {
              return {
                 statusCode: 409, // Conflict
