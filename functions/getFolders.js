@@ -3,8 +3,7 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
 exports.handler = async (event) => {
-    // This function can accept GET for simplicity, but if you pass auth, POST is safer
-    if (event.httpMethod !== 'POST') { // Your client-side calls this with POST, so let's stick to POST
+    if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
             body: JSON.stringify({ message: 'Method Not Allowed', details: 'Only POST requests are accepted.' }),
@@ -14,7 +13,6 @@ exports.handler = async (event) => {
 
     let client;
     try {
-        // --- Potentially problematic line if event.body is not valid JSON ---
         const { property_id, username, password } = JSON.parse(event.body);
 
         if (!property_id || !username || !password) {
@@ -73,12 +71,11 @@ exports.handler = async (event) => {
             };
         }
 
-        // --- Most likely area for DB error if not connection/auth related ---
-        // Verify 'property_files' is the correct table name in your database
+        // --- CORRECTED SQL QUERY: Querying the 'folders' table directly ---
         const result = await client.query(
-            `SELECT DISTINCT folder_id as id, folder_name as name
-             FROM property_files
-             WHERE property_id = $1 AND folder_id IS NOT NULL
+            `SELECT id, name
+             FROM folders
+             WHERE property_id = $1
              ORDER BY name`,
             [property_id]
         );
@@ -95,7 +92,7 @@ exports.handler = async (event) => {
         console.error('Error in getFolders function:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to retrieve folders.', details: error.message }), // This is what you're seeing
+            body: JSON.stringify({ message: 'Failed to retrieve folders.', details: error.message }),
         };
     } finally {
         if (client) {
