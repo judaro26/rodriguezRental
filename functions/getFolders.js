@@ -1,6 +1,6 @@
 // netlify/functions/getFolders.js
 const { Pool } = require('pg');
-const bcrypt = require('bcryptjs'); // Needed for authentication
+const bcrypt = require('bcryptjs');
 
 exports.handler = async (event) => {
     // This function can accept GET for simplicity, but if you pass auth, POST is safer
@@ -14,6 +14,7 @@ exports.handler = async (event) => {
 
     let client;
     try {
+        // --- Potentially problematic line if event.body is not valid JSON ---
         const { property_id, username, password } = JSON.parse(event.body);
 
         if (!property_id || !username || !password) {
@@ -72,11 +73,8 @@ exports.handler = async (event) => {
             };
         }
 
-
-        // Fetch distinct folder_id and folder_name from property_files table
-        // Only include folders that actually have files in them (folder_id IS NOT NULL)
-        // You might consider querying a separate 'folders' table if you created one,
-        // but this approach directly reflects existing file folders.
+        // --- Most likely area for DB error if not connection/auth related ---
+        // Verify 'property_files' is the correct table name in your database
         const result = await client.query(
             `SELECT DISTINCT folder_id as id, folder_name as name
              FROM property_files
@@ -97,7 +95,7 @@ exports.handler = async (event) => {
         console.error('Error in getFolders function:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to retrieve folders.', details: error.message }),
+            body: JSON.stringify({ message: 'Failed to retrieve folders.', details: error.message }), // This is what you're seeing
         };
     } finally {
         if (client) {
