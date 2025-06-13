@@ -853,7 +853,7 @@
         const updatePropertyIdInput = document.getElementById('update-property-id');
         const updatePropertyTitleInput = document.getElementById('update-property-title');
         const updatePropertyImageInput = document.getElementById('update-property-image');
-        const updatePropertyDescriptionInput = document.getElementById('update-property-description');
+        const updatePropertyDescriptionInput = document.getElementById('property-description');
         const updatePropertyCategoriesInput = document.getElementById('update-property-categories');
         const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
         const cancelUpdatePropertyButton = document.getElementById('cancel-update-property');
@@ -926,14 +926,173 @@
             });
         }
 
-        // --- Initial Load: Show Login Page ---
+        // --- Helper functions for FILE MANAGEMENT - Defined early to ensure availability ---
+        function getFileIcon(extension, filename) {
+            const iconMap = {
+                pdf: 'file-pdf',
+                doc: 'file-word',
+                docx: 'file-word',
+                xls: 'file-excel',
+                xlsx: 'file-excel',
+                ppt: 'file-powerpoint',
+                pptx: 'file-powerpoint',
+                jpg: 'file-image',
+                jpeg: 'file-image',
+                png: 'file-image',
+                gif: 'file-image',
+                txt: 'file-alt',
+                zip: 'file-archive',
+                mp3: 'file-audio',
+                mp4: 'file-video'
+            };
+            
+            const icon = iconMap[extension] || 'file';
+            return `<i class="fas fa-${icon} file-icon text-blue-500"></i>`;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function toggleFileSelection(fileId) {
+            if (selectedFiles.has(fileId)) {
+                selectedFiles.delete(fileId);
+            } else {
+                selectedFiles.add(fileId);
+            }
+            updateSelectionUI();
+        }
+        
+        function updateSelectionUI() {
+            document.querySelectorAll('.file-item').forEach(item => {
+                const fileId = parseInt(item.dataset.fileId);
+                if (selectedFiles.has(fileId)) {
+                    item.classList.add('selected');
+                    item.querySelector('.file-checkbox').checked = true;
+                } else {
+                    item.classList.remove('selected');
+                    item.querySelector('.file-checkbox').checked = false;
+                }
+            });
+            
+            const moveButton = document.getElementById('move-to-folder-button');
+            const deleteButton = document.getElementById('delete-selected-files-button');
+            
+            if (moveButton && deleteButton) {
+                const hasSelection = selectedFiles.size > 0;
+                moveButton.disabled = !hasSelection;
+                deleteButton.disabled = !hasSelection;
+            }
+        }
+
+        // renderFilesList function - Needs to be defined before displayPropertyFiles calls it
+        function renderFilesList(files) {
+            if (!filesListContainer) return;
+            
+            if (files.length === 0) {
+                filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files found in this folder.</p>`;
+                return;
+            }
+        
+            filesListContainer.innerHTML = '';
+            
+            files.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.dataset.fileId = file.id;
+                
+                const fileExtension = file.filename.split('.').pop().toLowerCase();
+                const isSelected = selectedFiles.has(file.id);
+                
+                if (isSelected) {
+                    fileItem.classList.add('selected');
+                }
+                
+                fileItem.innerHTML = `
+                    <input type="checkbox" class="file-checkbox" <span class="math-inline">\{isSelected ? 'checked' \: ''\} data\-file\-id\="</span>{file.id}">
+                    <span class="math-inline">\{getFileIcon\(fileExtension, file\.filename\)\}
+<div class\="file\-info flex\-grow"\>
+<a href\="</span>{file.file_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${file.filename}</a>
+                        <div class="text-xs text-gray-500">
+                            ${formatFileSize(file.size)} • <span class="math-inline">\{new Date\(file\.uploaded\_at\)\.toLocaleString\(\)\}
+</div\>
+</div\>
+<div class\="file\-actions"\>
+<button class\="edit\-file\-btn bg\-gray\-400 text\-gray\-800 py\-1 px\-2 rounded\-md hover\:bg\-gray\-500" 
+data\-file\-id\="</span>{file.id}" data-file-name="<span class="math-inline">\{file\.filename\}"\>
+Edit
+</button\>
+<button class\="delete\-file\-btn bg\-red\-500 text\-white py\-1 px\-2 rounded\-md hover\:bg\-red\-600" 
+data\-file\-id\="</span>{file.id}" data-file-name="${file.filename}">
+                            Delete
+                        </button>
+                    </div>
+                `;
+                
+                const checkbox = fileItem.querySelector('.file-checkbox');
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFileSelection(file.id);
+                });
+                
+                fileItem.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+                        toggleFileSelection(file.id);
+                    }
+                });
+                
+                filesListContainer.appendChild(fileItem);
+            });
+        }
+
+        // renderFoldersList function - Needs to be defined before displayPropertyFiles calls it
+        function renderFoldersList() {
+            const foldersList = document.getElementById('folders-list');
+            if (!foldersList) return;
+            
+            // Clear and rebuild folder list based on the global 'folders' array
+            foldersList.innerHTML = `
+                <li class="folder-item ${currentFolder === 'all' ? 'active' : ''}" data-folder-id="all">
+                    <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    </svg>
+                    All Files
+                </li>
+            `;
+            
+            folders.forEach(folder => {
+                const folderItem = document.createElement('li');
+                folderItem.className = `folder-item ${currentFolder === folder.id ? 'active' : ''}`;
+                folderItem.dataset.folderId = folder.id;
+                
+                folderItem.innerHTML = `
+                    <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    ${folder.name}
+                `;
+                
+                folderItem.addEventListener('click', () => {
+                    currentFolder = folder.id;
+                    displayPropertyFiles(folder.id);
+                });
+                
+                foldersList.appendChild(folderItem);
+            });
+        }
+        
+        // --- Initial Load: Show Login Page (MOVED HERE) ---
         showPage(loginPage);
 
 
         // --- Helper Function to Render Preset Logoss (for Add form) ---
         function renderPresetLogos(initialSelectionUrl = null) {
-            if(presetLogoPicker) { // Null check for presetLogoPicker
-                presetLogoPicker.innerHTML = ''; // Clear existing
+            if(presetLogoPicker) {
+                presetLogoPicker.innerHTML = '';
                 presetLogos.forEach(logo => {
                     const logoItem = document.createElement('div');
                     logoItem.classList.add('logo-picker-item');
@@ -941,28 +1100,25 @@
 
                     if (initialSelectionUrl === logo.url) {
                         logoItem.classList.add('selected');
-                        selectedPresetLogoUrl = logo.url; // Pre-select for add form
+                        selectedPresetLogoUrl = logo.url;
                     }
 
                     const img = document.createElement('img');
                     img.src = logo.url;
                     img.alt = logo.name;
-                    // Add onerror for images, though these CDN links should be stable
                     img.onerror = function() {
                         const placeholder = document.createElement('div');
                         placeholder.classList.add('logo-placeholder');
-                        placeholder.textContent = logo.name.substring(0, 3); // Fallback to first 3 letters
+                        placeholder.textContent = logo.name.substring(0, 3);
                         logoItem.replaceChild(placeholder, img);
                     };
                     logoItem.appendChild(img);
 
                     logoItem.addEventListener('click', () => {
-                        // Deselect all others
                         document.querySelectorAll('#preset-logo-picker .logo-picker-item').forEach(item => item.classList.remove('selected'));
-                        // Select this one
                         logoItem.classList.add('selected');
-                        selectedPresetLogoUrl = logo.url; // Set the selected preset URL
-                        if (customLogoUrlInput) customLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
+                        selectedPresetLogoUrl = logo.url;
+                        if (customLogoUrlInput) customLogoUrlInput.value = '';
                     });
                     presetLogoPicker.appendChild(logoItem);
                 });
@@ -971,8 +1127,8 @@
 
         // --- Helper Function to Render Preset Logos (for Update form) ---
         function renderPresetLogosForUpdate(initialSelectionUrl = null) {
-            if(updatePresetLogoPicker) { // Null check for updatePresetLogoPicker
-                updatePresetLogoPicker.innerHTML = ''; // Clear existing
+            if(updatePresetLogoPicker) {
+                updatePresetLogoPicker.innerHTML = '';
                 presetLogos.forEach(logo => {
                     const logoItem = document.createElement('div');
                     logoItem.classList.add('logo-picker-item');
@@ -980,7 +1136,7 @@
 
                     if (initialSelectionUrl === logo.url) {
                         logoItem.classList.add('selected');
-                        selectedUpdatePresetLogoUrl = logo.url; // Pre-select for update form
+                        selectedUpdatePresetLogoUrl = logo.url;
                     }
 
                     const img = document.createElement('img');
@@ -998,7 +1154,7 @@
                         document.querySelectorAll('#update-preset-logo-picker .logo-picker-item').forEach(item => item.classList.remove('selected'));
                         logoItem.classList.add('selected');
                         selectedUpdatePresetLogoUrl = logo.url;
-                        if (updateCustomLogoUrlInput) updateCustomLogoUrlInput.value = ''; // Clear custom input if a preset is chosen
+                        if (updateCustomLogoUrlInput) updateCustomLogoUrlInput.value = '';
                     });
                     updatePresetLogoPicker.appendChild(logoItem);
                 });
@@ -1007,7 +1163,7 @@
 
 
         // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
-        async function fetchProperties(isForeignFilter = null) { // Added filter parameter
+        async function fetchProperties(isForeignFilter = null) {
             if (propertiesLoadingMessage) propertiesLoadingMessage.style.display = 'block';
             if (propertiesErrorMessage) propertiesErrorMessage.classList.add('hidden');
             if (propertyCardsContainer) propertyCardsContainer.innerHTML = '';
@@ -1019,11 +1175,10 @@
                     throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
                 }
                 properties = await response.json();
-                // Sort all properties once by ID
                 properties.sort((a, b) => a.id - b.id);
                 console.log('All Properties loaded from Neon DB (sorted by ID):', properties);
 
-                applyPropertyFilter(isForeignFilter); // Apply filter after fetching
+                applyPropertyFilter(isForeignFilter);
             }
             catch (error) {
                 console.error('Error fetching properties from Netlify Function:', error);
@@ -1035,61 +1190,55 @@
         }
 
         // --- Apply Property Filter and Render Cards ---
-        let displayedProperties = []; // Array for properties currently displayed
-        let currentPropertyFilter = null; // null for all, true for foreign, false for domestic
+        let displayedProperties = [];
+        let currentPropertyFilter = null;
 
         function applyPropertyFilter(filter) {
-            currentPropertyFilter = filter; // Update the current filter state
+            currentPropertyFilter = filter;
 
             if (filter === true) {
-                // Only show foreign properties if user is approved
                 if (currentUserForeignApprovedStatus) {
                     displayedProperties = properties.filter(p => p.is_foreign === true);
                 } else {
                     showCustomAlert('You are not approved to view foreign properties. Please contact an administrator.');
-                    displayedProperties = properties.filter(p => p.is_foreign === false); // Fallback to domestic
-                    currentPropertyFilter = false; // Reset filter to domestic
+                    displayedProperties = properties.filter(p => p.is_foreign === false);
+                    currentPropertyFilter = false;
                 }
             } else if (filter === false) {
-                // Only show domestic properties if user is approved
                 if (currentUserDomesticApprovedStatus) {
                     displayedProperties = properties.filter(p => p.is_foreign === false);
                 } else {
                     showCustomAlert('You are not approved to view domestic properties. Please contact an administrator.');
-                    displayedProperties = properties.filter(p => p.is_foreign === true); // Fallback to foreign
-                    currentPropertyFilter = true; // Reset filter to foreign
+                    displayedProperties = properties.filter(p => p.is_foreign === true);
+                    currentPropertyFilter = true;
                 }
             } else {
-                // Show all properties if user is approved for both, otherwise filter accordingly
                 if (currentUserDomesticApprovedStatus && currentUserForeignApprovedStatus) {
                     displayedProperties = [...properties];
                 } else if (currentUserDomesticApprovedStatus) {
                     displayedProperties = properties.filter(p => p.is_foreign === false);
                     showCustomAlert('You are not approved to view foreign properties. Displaying domestic only.');
-                    currentPropertyFilter = false; // Update filter state to reflect actual display
+                    currentPropertyFilter = false;
                 } else if (currentUserForeignApprovedStatus) {
                     displayedProperties = properties.filter(p => p.is_foreign === true);
                     showCustomAlert('You are not approved to view domestic properties. Displaying foreign only.');
-                    currentPropertyFilter = true; // Update filter state to reflect actual display
+                    currentPropertyFilter = true;
                 } else {
-                       // User not approved for either, show empty list
                     displayedProperties = [];
                     showCustomAlert('You are not approved to view any properties. Please contact an administrator.');
                 }
             }
-            renderPropertyCards(); // Render the filtered list
-            updateFilterButtonsHighlight(); // Update button highlights
+            renderPropertyCards();
+            updateFilterButtonsHighlight();
         }
 
 
         function updateFilterButtonsHighlight() {
-            // Remove highlight from all filter buttons
             document.querySelectorAll('#property-selection-page .filter-btn').forEach(btn => {
                 btn.classList.remove('bg-blue-500', 'text-white');
                 btn.classList.add('bg-gray-200', 'text-gray-800');
             });
 
-            // Add highlight to the active filter button
             if (currentPropertyFilter === null) {
                 if (filterAllPropertiesBtn) {
                     filterAllPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
@@ -1103,14 +1252,13 @@
             } else if (currentPropertyFilter === true) {
                 if (filterForeignPropertiesBtn) {
                     filterForeignPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
-                    filterForeignPropertiesBtn.classList.add('opacity-50', 'cursor-not-allowed'); // Ensure disabled state for unapproved
+                    filterForeignPropertiesBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     filterForeignPropertiesBtn.classList.remove('hover:bg-gray-300', 'cursor-pointer');
                     filterForeignPropertiesBtn.classList.add('bg-blue-500', 'text-white');
                 }
             }
 
-            // Disable foreign button if user is not approved
-            if (filterForeignPropertiesBtn) { // Null check
+            if (filterForeignPropertiesBtn) {
                 if (!currentUserForeignApprovedStatus) {
                     filterForeignPropertiesBtn.disabled = true;
                     filterForeignPropertiesBtn.classList.remove('hover:bg-gray-300', 'cursor-pointer');
@@ -1121,8 +1269,7 @@
                     filterForeignPropertiesBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             }
-             // Disable domestic button if user is not approved
-            if (filterDomesticPropertiesBtn) { // Null check
+            if (filterDomesticPropertiesBtn) {
                 if (!currentUserDomesticApprovedStatus) {
                     filterDomesticPropertiesBtn.disabled = true;
                     filterDomesticPropertiesBtn.classList.remove('hover:bg-gray-300', 'cursor-pointer');
@@ -1134,8 +1281,7 @@
                 }
             }
 
-            // If user is neither domestic nor foreign approved, disable "All Properties" too
-            if (filterAllPropertiesBtn) { // Null check
+            if (filterAllPropertiesBtn) {
                 if (!currentUserDomesticApprovedStatus && !currentUserForeignApprovedStatus) {
                        filterAllPropertiesBtn.disabled = true;
                        filterAllPropertiesBtn.classList.remove('hover:bg-blue-600', 'cursor-pointer');
@@ -1163,12 +1309,10 @@
                 }
             });
 
-            // Show the requested main page
             if (pageElement) {
                 pageElement.style.display = 'flex';
             }
 
-            // Handle specific messages/errors
             if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
             if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
             if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
@@ -1236,7 +1380,7 @@
                     currentUserForeignApprovedStatus = data.foreign_approved;
                     currentUserDomesticApprovedStatus = data.domestic_approved;
                     currentLoggedInUsername = username;
-                    currentLoggedInPassword = const_password; // WARNING: This is a high security risk in production!
+                    currentLoggedInPassword = const_password;
 
                     showPage(propertySelectionPage);
                     await fetchProperties(null);
@@ -1329,14 +1473,14 @@
                 const imageUrl = property.image || 'https://placehold.co/400x250/CCCCCC/FFFFFF?text=No+Image';
 
                 propertyCard.innerHTML = `
-                    <img src="${imageUrl}" alt="${property.title}" class="w-full h-40 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x250/CCCCCC/FFFFFF?text=Image+Load+Error';">
+                    <img src="<span class="math-inline">\{imageUrl\}" alt\="</span>{property.title}" class="w-full h-40 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x250/CCCCCC/FFFFFF?text=Image+Load+Error';">
                     <div class="p-4 flex-grow">
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">${property.title}</h3>
-                        <p class="text-gray-600 text-sm">${property.description}</p>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2"><span class="math-inline">\{property\.title\}</h3\>
+<p class\="text\-gray\-600 text\-sm"\></span>{property.description}</p>
                     </div>
                     <div class="p-4 pt-0 flex justify-between gap-2">
-                        <button class="w-1/2 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold" data-action="view-property-details" data-property-id="${property.id}">View Details</button>
-                        <button class="w-1/2 bg-gray-400 text-gray-800 py-2 rounded-lg hover:bg-gray-500 transition-colors duration-200 font-semibold" data-action="edit-property" data-property-id="${property.id}">Edit</button>
+                        <button class="w-1/2 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold" data-action="view-property-details" data-property-id="<span class="math-inline">\{property\.id\}"\>View Details</button\>
+<button class\="w\-1/2 bg\-gray\-400 text\-gray\-800 py\-2 rounded\-lg hover\:bg\-gray\-500 transition\-colors duration\-200 font\-semibold" data\-action\="edit\-property" data\-property\-id\="</span>{property.id}">Edit</button>
                     </div>
                 `;
 
@@ -1552,7 +1696,7 @@
             if (addVendorButton) addVendorButton.style.display = 'block';
             
             try {
-                const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=${currentSelectedProperty.id}&category_name=${encodeURIComponent(selectedCategoryName)}`);
+                const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=<span class="math-inline">\{currentSelectedProperty\.id\}&category\_name\=</span>{encodeURIComponent(selectedCategoryName)}`);
                 if (!response.ok) {
                     const errorBody = await response.json();
                     throw new Error(`HTTP error! status: ${response.status} - ${errorBody.details || response.statusText}`);
@@ -1575,37 +1719,37 @@
                         detailTile.dataset.detailId = detail.id;
 
                         const logoHtml = detail.detail_logo_url
-                            ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain w-16 h-16 mb-2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
+                            ? `<img src="<span class="math-inline">\{detail\.detail\_logo\_url\}" alt\="</span>{detail.detail_name}" class="object-contain w-16 h-16 mb-2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
                             : `<div class="logo-placeholder w-16 h-16 mb-2">${detail.detail_name.substring(0,3)}</div>`;
 
                         const usernameInputId = `username-${detail.id}`;
                         const passwordInputId = `password-${detail.id}`;
 
                         detailTile.innerHTML = `
-                            ${logoHtml}
-                            <h3>${detail.detail_name}</h3>
+                            <span class="math-inline">\{logoHtml\}
+<h3\></span>{detail.detail_name}</h3>
                             ${detail.detail_description ? `<p>${detail.detail_description}</p>` : ''}
                             <div class="credential-container">
                                 <div class="credential-field">
-                                    <label for="${usernameInputId}">User:</label>
-                                    <input type="text" id="${usernameInputId}" value="${detail.detail_username || ''}" placeholder="Username" readonly>
-                                    <button class="copy-btn" data-target="${usernameInputId}">Copy</button>
+                                    <label for="<span class="math-inline">\{usernameInputId\}"\>User\:</label\>
+<input type\="text" id\="</span>{usernameInputId}" value="<span class="math-inline">\{detail\.detail\_username \|\| ''\}" placeholder\="Username" readonly\>
+<button class\="copy\-btn" data\-target\="</span>{usernameInputId}">Copy</button>
                                 </div>
                                 <div class="credential-field">
-                                    <label for="${passwordInputId}">Pass:</label>
-                                    <input type="password" id="${passwordInputId}" value="${detail.detail_password || ''}" placeholder="Password" readonly>
-                                    <button class="password-toggle-btn" data-target="${passwordInputId}">👁️</button>
-                                    <button class="copy-btn" data-target="${passwordInputId}">Copy</button>
-                                </div>
-                                <p class="text-xs text-red-500 mt-1">
-                                    Note: Credentials are stored directly in your database. **This is a HIGH SECURITY RISK.**
-                                    Consider using a dedicated password manager for sensitive data.
-                                </p>
-                            </div>
-                            <div class="detail-tile-actions">
-                                <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View Site</button>
-                                <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="${detail.id}" data-name="${detail.detail_name}" data-url="${detail.detail_url}" data-description="${detail.detail_description || ''}" data-logo="${detail.detail_logo_url || ''}" data-username="${detail.detail_username || ''}" data-password="${detail.detail_password || ''}">Edit</button>
-                                <button class="bg-red-500 text-white hover:bg-red-600" data-action="delete-detail" data-id="${detail.id}" data-name="${detail.detail_name}">Delete</button>
+                                    <label for="<span class="math-inline">\{passwordInputId\}"\>Pass\:</label\>
+<input type\="password" id\="</span>{passwordInputId}" value="<span class="math-inline">\{detail\.detail\_password \|\| ''\}" placeholder\="Password" readonly\>
+<button class\="password\-toggle\-btn" data\-target\="</span>{passwordInputId}">👁️</button>
+                                    <button class="copy-btn" data-target="<span class="math-inline">\{passwordInputId\}"\>Copy</button\>
+</div\>
+<p class\="text\-xs text\-red\-500 mt\-1"\>
+Note\: Credentials are stored directly in your database\. \*\*This is a HIGH SECURITY RISK\.\*\*
+Consider using a dedicated password manager for sensitive data\.
+</p\>
+</div\>
+<div class\="detail\-tile\-actions"\>
+<button class\="bg\-blue\-500 text\-white hover\:bg\-blue\-600" data\-action\="view" data\-url\="</span>{detail.detail_url}">View Site</button>
+                                <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="<span class="math-inline">\{detail\.id\}" data\-name\="</span>{detail.detail_name}" data-url="<span class="math-inline">\{detail\.detail\_url\}" data\-description\="</span>{detail.detail_description || ''}" data-logo="<span class="math-inline">\{detail\.detail\_logo\_url \|\| ''\}" data\-username\="</span>{detail.detail_username || ''}" data-password="<span class="math-inline">\{detail\.detail\_password \|\| ''\}"\>Edit</button\>
+<button class\="bg\-red\-500 text\-white hover\:bg\-red\-600" data\-action\="delete\-detail" data\-id\="</span>{detail.id}" data-name="${detail.detail_name}">Delete</button>
                             </div>
                         `;
 
@@ -1623,7 +1767,7 @@
                         });
 
                         detailTile.querySelectorAll('.copy-btn').forEach(button => {
-                            button.addEventListener('click', async (e) => { // Made async for navigator.clipboard
+                            button.addEventListener('click', async (e) => {
                                 const targetInput = document.getElementById(e.target.dataset.target);
                                 if (targetInput) {
                                     try {
@@ -2463,108 +2607,14 @@
                 filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Error loading files and folders: ${error.message}</p>`;
             }
         }
+        
+        // --- All other event listeners and main logic ---
+        // These remain in their current positions after all necessary functions are defined.
+        
+        // Login and Registration form event listeners, property add/update/delete logic, etc.
+        // ... (all other existing event listeners, e.g., loginForm.addEventListener, showRegisterFormBtn.addEventListener, addPropertyForm.addEventListener, etc.)
+        // ... (continue from your original script, including all the event listeners at the end)
 
-        // renderFoldersList function - UPDATED TO USE GLOBAL 'folders' array
-        function renderFoldersList() {
-            const foldersList = document.getElementById('folders-list');
-            if (!foldersList) return;
-            
-            // Clear and rebuild folder list based on the global 'folders' array
-            foldersList.innerHTML = `
-                <li class="folder-item ${currentFolder === 'all' ? 'active' : ''}" data-folder-id="all">
-                    <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                    </svg>
-                    All Files
-                </li>
-            `;
-            
-            folders.forEach(folder => {
-                const folderItem = document.createElement('li');
-                folderItem.className = `folder-item ${currentFolder === folder.id ? 'active' : ''}`;
-                folderItem.dataset.folderId = folder.id;
-                
-                folderItem.innerHTML = `
-                    <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    ${folder.name}
-                `;
-                
-                folderItem.addEventListener('click', () => {
-                    currentFolder = folder.id;
-                    displayPropertyFiles(folder.id);
-                });
-                
-                foldersList.appendChild(folderItem);
-            });
-        }
-        
-        // Helper functions for files
-        function getFileIcon(extension, filename) {
-            const iconMap = {
-                pdf: 'file-pdf',
-                doc: 'file-word',
-                docx: 'file-word',
-                xls: 'file-excel',
-                xlsx: 'file-excel',
-                ppt: 'file-powerpoint',
-                pptx: 'file-powerpoint',
-                jpg: 'file-image',
-                jpeg: 'file-image',
-                png: 'file-image',
-                gif: 'file-image',
-                txt: 'file-alt',
-                zip: 'file-archive',
-                mp3: 'file-audio',
-                mp4: 'file-video'
-            };
-            
-            const icon = iconMap[extension] || 'file';
-            return `<i class="fas fa-${icon} file-icon text-blue-500"></i>`;
-        }
-        
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-        
-        function toggleFileSelection(fileId) {
-            if (selectedFiles.has(fileId)) {
-                selectedFiles.delete(fileId);
-            } else {
-                selectedFiles.add(fileId);
-            }
-            updateSelectionUI();
-        }
-        
-        function updateSelectionUI() {
-            document.querySelectorAll('.file-item').forEach(item => {
-                const fileId = parseInt(item.dataset.fileId);
-                if (selectedFiles.has(fileId)) {
-                    item.classList.add('selected');
-                    item.querySelector('.file-checkbox').checked = true;
-                } else {
-                    item.classList.remove('selected');
-                    item.querySelector('.file-checkbox').checked = false;
-                }
-            });
-            
-            const moveButton = document.getElementById('move-to-folder-button');
-            const deleteButton = document.getElementById('delete-selected-files-button');
-            
-            if (moveButton && deleteButton) {
-                const hasSelection = selectedFiles.size > 0;
-                moveButton.disabled = !hasSelection;
-                deleteButton.disabled = !hasSelection;
-            }
-        }
-        
-        // Add these event listeners for file actions
-        
         // Move to folder functionality
         document.getElementById('move-to-folder-button')?.addEventListener('click', () => {
             if (selectedFiles.size === 0) return;
@@ -2694,7 +2744,7 @@
 
                 if (response.ok) {
                     showCustomAlert(`Folder "${newFolderName}" created successfully!`);
-                    await displayPropertyFiles(currentFolder); // Re-fetch and display files/folders
+                    await displayPropertyFiles(currentFolder);
                 } else {
                     showCustomAlert(`Failed to create folder: ${data.message || 'An unknown error occurred.'}`);
                     console.error('Error creating folder:', data.details || data.message);
