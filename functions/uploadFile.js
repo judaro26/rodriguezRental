@@ -1,174 +1,132 @@
-const cloudinary = require('cloudinary').v2;
-const { Client } = require('pg');
-const crypto = require('crypto');
+// netlify/functions/uploadFile.js
+const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
+const cloudinary = require('cloudinary').v2; // Make sure to install this: npm install cloudinary
 
-// Configure Cloudinary
+// Configure Cloudinary (ensure these are set as Netlify Environment Variables)
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Helper to hash passwords
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-exports.handler = async function(event, context) {
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers: { "Allow": "POST", "Access-Control-Allow-Origin": "*" },
-      body: "Method Not Allowed"
-    };
-  }
-
-  // Check for essential environment variables
-  if (!process.env.DATABASE_URL || !process.env.CLOUDINARY_CLOUD_NAME || 
-      !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Server configuration error: Missing API keys." })
-    };
-  }
-
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
-
-  try {
-    await client.connect();
-
-    const { property_id, filename, file_data_base64, uploaded_by_username, username, password } = JSON.parse(event.body);
-
-    // Validate incoming data
-    if (!property_id || !filename || !file_data_base64 || !uploaded_by_username || !username || !password) {
-      return {
-        statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "Missing required fields." })
-      };
+exports.handler = async (event) => {
+    if (event.httpMethod !== 'POST') {
+        return {
+            statusCode: 405,
+            body: JSON.stringify({ message: 'Method Not Allowed', details: 'Only POST requests are accepted.' }),
+            headers: { 'Allow': 'POST' }
+        };
     }
 
-    // Authenticate the user
-    const hashedPassword = hashPassword(password);
-    const authQuery = 'SELECT id, password_hash FROM users WHERE username = $1';
-    const authResult = await client.query(authQuery, [username]);
-
-    if (authResult.rows.length === 0 || authResult.rows[0].password_hash !== hashedPassword) {
-      return {
-        statusCode: 401,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "Authentication failed." })
-      };
-    }
-
-    // Determine resource type based on file extension
-    const fileExtension = filename.split('.').pop().toLowerCase();
-    let resource_type = 'auto';
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'svg'];
-    const videoExtensions = ['mp4', 'mov', 'avi', 'wmv', 'flv', 'mkv', 'webm'];
-    
-    if (imageExtensions.includes(fileExtension)) {
-      resource_type = 'image';
-    } else if (videoExtensions.includes(fileExtension)) {
-      resource_type = 'video';
-    } else {
-      resource_type = 'raw'; // For all other file types
-    }
-
-    // Upload to Cloudinary
-    let uploadResult;
+    let client;
     try {
-      uploadResult = await cloudinary.uploader.upload(
-        `data:application/octet-stream;base64,${file_data_base64}`, {
-          resource_type: resource_type,
-          folder: `property_files/${property_id}`,
-          public_id: filename.replace(/\.[^/.]+$/, ""), // Remove extension
-          overwrite: false,
-          invalidate: true,
-          filename_override: filename,
-          use_filename: true,
-          unique_filename: false
+        const { property_id, filename, file_data_base64, uploaded_by_username, username, password } = JSON.parse(event.body);
+
+        if (!property_id || !filename || !file_data_base64 || !uploaded_by_username || !username || !password) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ message: 'Missing required fields.', details: 'property_id, filename, file_data_base64, uploaded_by_username, username, and password are all mandatory.' }),
+            };
         }
-      );
-    } catch (cloudinaryError) {
-      console.error("Cloudinary upload failed:", cloudinaryError);
-      let errorMessage = cloudinaryError.message;
-      
-      // Handle specific Cloudinary errors
-      if (errorMessage.includes('Raw file upload is not allowed')) {
-        errorMessage = "Your Cloudinary plan doesn't support raw file uploads (PDF, DOC, etc.). Please upgrade your plan or try an image/video file.";
-      }
-      
-      return {
-        statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          error: "Failed to upload file to Cloudinary",
-          details: errorMessage,
-          suggestion: resource_type === 'raw' ? "Try uploading an image or video file instead." : ""
-        })
-      };
-    }
 
-    // Save file metadata to database
-    const queryText = `
-      INSERT INTO property_files(
-        property_id, 
-        filename, 
-        file_url, 
-        uploaded_by_username, 
-        cloudinary_public_id, 
-        file_size,
-        file_type,
-        uploaded_at
-      )
-      VALUES($1, $2, $3, $4, $5, $6, $7, NOW())
-      RETURNING id, filename, file_url, uploaded_by_username, uploaded_at, cloudinary_public_id;
-    `;
+        const pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: {
+                rejectUnauthorized: false,
+            },
+        });
+        client = await pool.connect();
 
-    const result = await client.query(queryText, [
-      property_id,
-      filename,
-      uploadResult.secure_url,
-      uploaded_by_username,
-      uploadResult.public_id,
-      uploadResult.bytes,
-      uploadResult.format || fileExtension
-    ]);
+        // 1. Authenticate user
+        const authResult = await client.query(
+            'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1',
+            [username]
+        );
+        const user = authResult.rows[0];
 
-    const newFile = result.rows[0];
-
-    return {
-      statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        message: "File uploaded successfully!",
-        file: newFile,
-        cloudinaryData: {
-          resource_type: uploadResult.resource_type,
-          format: uploadResult.format,
-          bytes: uploadResult.bytes
+        if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+            return {
+                statusCode: 401,
+                body: JSON.stringify({ message: 'Authentication failed. Invalid username or password.' }),
+            };
         }
-      })
-    };
 
-  } catch (error) {
-    console.error("Error in uploadFile function:", error);
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        error: "Server error during file upload",
-        details: error.message 
-      })
-    };
-  } finally {
-    if (client) {
-      await client.end();
+        // 2. Authorize user for the property
+        const propertyResult = await client.query(
+            'SELECT is_foreign FROM properties WHERE id = $1',
+            [property_id]
+        );
+        const property = propertyResult.rows[0];
+
+        if (!property) {
+            return {
+                statusCode: 404,
+                body: JSON.stringify({ message: 'Property not found.', details: `Property with ID ${property_id} does not exist.` }),
+            };
+        }
+
+        if (property.is_foreign && !user.foreign_approved) {
+            return {
+                statusCode: 403,
+                body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage foreign properties.' }),
+            };
+        }
+        if (!property.is_foreign && !user.domestic_approved) {
+            return {
+                statusCode: 403,
+                body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage domestic properties.' }),
+            };
+        }
+
+        // 3. Upload file to Cloudinary
+        // Use a folder structure to organize files per property
+        const cloudinaryFolder = `property_files/${property_id}`;
+
+        const uploadResult = await cloudinary.uploader.upload(`data:image/jpeg;base64,${file_data_base64}`, { // Default to image/jpeg for example, your client sends actual mime type
+            folder: cloudinaryFolder,
+            public_id: filename.replace(/\.[^/.]+$/, ""), // Use filename (without extension) as public_id
+            resource_type: 'auto', // Auto-detect image, video, raw (for PDFs)
+            overwrite: false, // Don't overwrite if file with same public_id exists
+        });
+
+        const fileUrl = uploadResult.secure_url;
+        const fileSize = uploadResult.bytes; // Size in bytes from Cloudinary
+
+        // 4. Save file metadata to your database
+        await client.query('BEGIN'); // Start transaction
+
+        const insertResult = await client.query(
+            `INSERT INTO property_files (property_id, filename, file_url, size, uploaded_by_username)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`, // Corrected table name
+            [property_id, filename, fileUrl, fileSize, uploaded_by_username]
+        );
+
+        await client.query('COMMIT'); // Commit transaction
+
+        return {
+            statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ message: 'File uploaded and saved successfully!', file: insertResult.rows[0] }),
+        };
+
+    } catch (error) {
+        console.error('Error in uploadFile function:', error);
+        if (client) {
+            await client.query('ROLLBACK'); // Rollback transaction on error
+        }
+        // Cloudinary upload errors might be more specific
+        const details = error.http_code ? `Cloudinary Error: ${error.message} (Code: ${error.http_code})` : error.message;
+
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: 'Failed to upload file.', details: details }),
+        };
+    } finally {
+        if (client) {
+            client.release();
+        }
     }
-  }
 };
