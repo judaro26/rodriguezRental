@@ -1472,17 +1472,17 @@ data\-file\-id\="</span>{file.id}" data-file-name="${file.filename}">
                 const imageUrl = property.image || 'https://placehold.co/400x250/CCCCCC/FFFFFF?text=No+Image';
 
                 propertyCard.innerHTML = `
-                    <img src="<span class="math-inline">\{imageUrl\}" alt\="</span>{property.title}" class="w-full h-40 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x250/CCCCCC/FFFFFF?text=Image+Load+Error';">
+                    <img src="${imageUrl}" alt="${property.title}" class="w-full h-40 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x250/CCCCCC/FFFFFF?text=Image+Load+Error';">
                     <div class="p-4 flex-grow">
-                        <h3 class="text-xl font-bold text-gray-800 mb-2"><span class="math-inline">\{property\.title\}</h3\>
-<p class\="text\-gray\-600 text\-sm"\></span>{property.description}</p>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">${property.title}</h3>
+                        <p class="text-gray-600 text-sm">${property.description}</p>
                     </div>
                     <div class="p-4 pt-0 flex justify-between gap-2">
-                        <button class="w-1/2 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold" data-action="view-property-details" data-property-id="<span class="math-inline">\{property\.id\}"\>View Details</button\>
-<button class\="w\-1/2 bg\-gray\-400 text\-gray\-800 py\-2 rounded\-lg hover\:bg\-gray\-500 transition\-colors duration\-200 font\-semibold" data\-action\="edit\-property" data\-property\-id\="</span>{property.id}">Edit</button>
+                        <button class="w-1/2 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold" data-action="view-property-details" data-property-id="${property.id}">View Details</button>
+                        <button class="w-1/2 bg-gray-400 text-gray-800 py-2 rounded-lg hover:bg-gray-500 transition-colors duration-200 font-semibold" data-action="edit-property" data-property-id="${property.id}">Edit</button>
                     </div>
                 `;
-
+                
                 propertyCard.querySelector('[data-action="view-property-details"]').addEventListener('click', (e) => {
                     e.stopPropagation();
                     currentSelectedProperty = properties.find(p => p.id == e.target.dataset.propertyId);
