@@ -728,6 +728,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         // --- DOM Elements ---
+        // It is crucial that all these elements exist in your HTML with the correct IDs.
+        // If any are null, the showPage function will log a warning and stop hiding subsequent pages.
         const loginPage = document.getElementById('login-page');
         const loginForm = document.getElementById('login-form');
         const usernameInput = document.getElementById('username');
@@ -752,11 +754,11 @@
         const propertiesErrorMessage = document.getElementById('properties-error-message');
         const propertiesErrorText = document.getElementById('properties-error-text');
         const addPropertyButton = document.getElementById('add-property-button');
-        const refreshPropertiesButton = document.getElementById('refresh-properties-button'); // New refresh properties button
-        const backToLoginBtn = document.getElementById('back-to-login-btn'); // Moved up for visibility
-        const filterAllPropertiesBtn = document.getElementById('filter-all-properties'); // Filter button
-        const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties'); // Filter button
-        const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties'); // Filter button
+        const refreshPropertiesButton = document.getElementById('refresh-properties-button');
+        const backToLoginBtn = document.getElementById('back-to-login-btn');
+        const filterAllPropertiesBtn = document.getElementById('filter-all-properties');
+        const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
+        const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
 
 
         const addPropertyPage = document.getElementById('add-property-page');
@@ -768,7 +770,7 @@
         const cancelAddPropertyButton = document.getElementById('cancel-add-property');
         const addPropertyStatus = document.getElementById('add-property-status');
         const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn');
-        const propertyIsForeignInput = document.getElementById('property-is-foreign'); // New checkbox for Add Property Form
+        const propertyIsForeignInput = document.getElementById('property-is-foreign');
 
 
         const propertyCategoriesPage = document.getElementById('property-categories-page');
@@ -1193,6 +1195,11 @@
             allPages.forEach(page => {
                 if (page) {
                     page.style.display = 'none';
+                    // For flex containers, ensure flex-direction is set appropriately if needed,
+                    // as 'display: flex' without it might default to row.
+                    // This is handled by your CSS for .page-section, but explicitly setting it here for clarity
+                    // if you rely on JS for initial display.
+                    // Example: page.style.flexDirection = 'column';
                 } else {
                     // Log which element was not found, helpful for debugging missing IDs in HTML
                     console.warn('showPage: A page element was null and could not be hidden.', page);
@@ -2307,18 +2314,21 @@
                 return;
             }
 
+            // Store file data temporarily
             fileToUpload = file;
             base64DataToUpload = base64data;
             mimeTypeToUpload = mimeType;
 
+            // Reset modal state
             uploadFolderModalStatus.classList.add('hidden');
             uploadFolderModalStatus.textContent = '';
             newFolderNameContainer.classList.add('hidden');
             newFolderNameInput.value = '';
             folderSelectDropdown.innerHTML = '<option value="none">-- No Folder (All Files) --</option>'; // Always start with this
-            folderSelectDropdown.value = 'none'; // Reset to default
+            folderSelectDropdown.value = 'none'; // Reset to default selection
 
-            uploadFolderModal.classList.remove('hidden'); // Show the modal
+            // Show the modal
+            uploadFolderModal.classList.remove('hidden');
 
             try {
                 // Fetch folders from the server
@@ -2385,7 +2395,7 @@
             cancelFolderSelectionBtn.addEventListener('click', () => {
                 uploadFolderModal.classList.add('hidden');
                 fileUploadInput.value = ''; // Clear selected file from main input
-                fileToUpload = null;
+                fileToUpload = null; // Clear temporary file data
                 base64DataToUpload = null;
                 mimeTypeToUpload = null;
                 if (fileUploadStatus) fileUploadStatus.classList.add('hidden'); // Clear main status
@@ -2442,7 +2452,6 @@
                         }
                         console.log('New folder created:', createFolderData.message);
                         // The `finalFolderId` generated earlier (kebab-cased name) should match the ID stored by createFolder.
-                        // We don't need to update `finalFolderId` here, as it was already derived correctly.
                     }
 
                     // Proceed with file upload now that folder is determined/created
@@ -2453,6 +2462,8 @@
                         fileUploadStatus.classList.remove('hidden');
                         fileUploadStatus.className = 'mt-3 text-center text-sm bg-blue-100 text-blue-700';
                         fileUploadStatus.textContent = 'Uploading file...';
+                        // Add progress bar back here if needed for main status, but it's handled by reader.onprogress already
+                        // fileUploadStatus.innerHTML += ' <progress value="0" max="100"></progress>';
                     }
 
                     // Make the actual file upload call
@@ -2463,7 +2474,7 @@
                             property_id: currentSelectedProperty.id,
                             filename: fileToUpload.name,
                             file_data_base64: base64DataToUpload,
-                            file_mime_type: mimeTypeToUpload, // Pass MIME type (though Cloudinary 'auto' is robust)
+                            file_mime_type: mimeTypeToUpload,
                             uploaded_by_username: currentLoggedInUsername,
                             username: currentLoggedInUsername,
                             password: currentLoggedInPassword,
@@ -2835,6 +2846,9 @@
                 );
             }
         });
+
+        // --- Initial Load: Show Login Page (Moved to end to ensure all elements are defined) ---
+        showPage(loginPage);
     });
 </script>
 </body>
