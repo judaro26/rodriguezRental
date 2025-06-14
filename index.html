@@ -1010,6 +1010,35 @@
             }
         }
 
+        // *** NEW FUNCTION ADDED HERE ***
+        function updateFilterButtonsHighlight() {
+            // Ensure these elements exist to avoid errors
+            if (filterAllPropertiesBtn) {
+                filterAllPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
+                filterAllPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
+            }
+            if (filterDomesticPropertiesBtn) {
+                filterDomesticPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
+                filterDomesticPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
+            }
+            if (filterForeignPropertiesBtn) {
+                filterForeignPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
+                filterForeignPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
+            }
+        
+            if (currentPropertyFilter === null && filterAllPropertiesBtn) {
+                filterAllPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
+                filterAllPropertiesBtn.classList.add('bg-blue-500', 'text-white');
+            } else if (currentPropertyFilter === false && filterDomesticPropertiesBtn) {
+                filterDomesticPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
+                filterDomesticPropertiesBtn.classList.add('bg-blue-500', 'text-white');
+            } else if (currentPropertyFilter === true && filterForeignPropertiesBtn) {
+                filterForeignPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
+                filterForeignPropertiesBtn.classList.add('bg-blue-500', 'text-white');
+            }
+        }
+        // *** END NEW FUNCTION ***
+                
         function renderFilesList(files) {
             if (!filesListContainer) return;
             
