@@ -893,6 +893,8 @@
         let selectedFiles = new Set();
         let currentFolder = 'all';
         let folders = []; // This array will hold logical folder data for the UI
+        let displayedProperties = [];
+        let currentPropertyFilter = null;
 
         // Variables to temporarily hold file data during folder selection flow
         let fileToUpload = null;
@@ -924,7 +926,49 @@
             { name: 'Streaming', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/television-fill.svg' }
         ];
 
-        // Level 1: Basic Utility Functions (lowest dependency)
+        // Utility Functions
+        function showPage(pageElement) {
+            // Hide all pages first
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.style.display = 'none';
+            });
+            
+            // Show the requested page
+            if (pageElement) {
+                pageElement.style.display = 'block';
+            }
+        }
+
+        function showModal(modalElement, itemName, action, callback) {
+            if (!modalElement) return;
+            
+            currentVerificationCallback = callback;
+            
+            if (modalItemToDeleteNameSpan) {
+                modalItemToDeleteNameSpan.textContent = itemName;
+            }
+            
+            if (modalPromptActionSpan) {
+                modalPromptActionSpan.textContent = action;
+            }
+            
+            if (verificationStatus) {
+                verificationStatus.classList.add('hidden');
+            }
+            
+            if (modalUsernameInput) modalUsernameInput.value = '';
+            if (modalPasswordInput) modalPasswordInput.value = '';
+            
+            modalElement.classList.remove('hidden');
+        }
+
+        function hideModal(modalElement) {
+            if (!modalElement) return;
+            modalElement.classList.add('hidden');
+            currentVerificationCallback = null;
+        }
+
         function showCustomAlert(message) {
             const existingAlert = document.getElementById('custom-alert-modal');
             if (existingAlert) existingAlert.remove();
@@ -972,8 +1016,8 @@
             updateSelectionUI();
         }
 
-        // Level 2: Functions called by rendering/filtering logic
-        function renderPropertyCards() { // Called by applyPropertyFilter
+        // Rendering Functions
+        function renderPropertyCards() {
             if (propertyCardsContainer) propertyCardsContainer.innerHTML = '';
             if (displayedProperties.length === 0) {
                 if (propertyCardsContainer) propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found matching this filter. Add a new one!</p>`;
@@ -1014,7 +1058,7 @@
                         if (updatePropertyIdInput) updatePropertyIdInput.value = propertyToEdit.id;
                         if (updatePropertyTitleInput) updatePropertyTitleInput.value = propertyToEdit.title;
                         if (updatePropertyImageInput) updatePropertyImageInput.value = propertyToEdit.image;
-                        if (updatePropertyDescriptionInput) propertyDescriptionInput.value = propertyToEdit.description; // Note: Original name propertyDescriptionInput
+                        if (updatePropertyDescriptionInput) propertyDescriptionInput.value = propertyToEdit.description;
                         if (updatePropertyCategoriesInput) updatePropertyCategoriesInput.value = propertyToEdit.categories.join(', ');
                         if (updatePropertyIsForeignInput) updatePropertyIsForeignInput.checked = propertyToEdit.is_foreign;
                         if (updatePropertyStatus) updatePropertyStatus.classList.add('hidden');
@@ -1026,7 +1070,78 @@
             });
         }
 
-        function updateSelectionUI() { // Called by toggleFileSelection
+        function renderPropertyCategories() {
+            if (!propertyCategoriesNav || !currentSelectedProperty) return;
+            
+            propertyCategoriesNav.innerHTML = '';
+            
+            if (currentPropertyTitle) {
+                currentPropertyTitle.textContent = currentSelectedProperty.title;
+            }
+            
+            if (currentPropertyThumbnail) {
+                currentPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                currentPropertyThumbnail.onerror = function() {
+                    this.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Image+Error';
+                };
+            }
+            
+            if (categoryDetailsHeading) {
+                categoryDetailsHeading.textContent = 'Category Details';
+            }
+            
+            if (categoryDetailsContent) {
+                categoryDetailsContent.innerHTML = `
+                    <p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p>
+                    <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
+                    <div id="security-warning" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mt-8 rounded-md" role="alert">
+                        <p class="font-bold">Security Notice:</p>
+                        <p class="text-sm">External links (if any) will open in a new browser tab for security reasons (Same-Origin Policy).</p>
+                    </div>
+                `;
+            }
+            
+            currentSelectedProperty.categories.forEach(category => {
+                const categoryButton = document.createElement('button');
+                categoryButton.textContent = category;
+                categoryButton.classList.add(
+                    'category-btn', 'px-4', 'py-2', 'rounded-lg', 'bg-blue-500', 
+                    'text-white', 'hover:bg-blue-600', 'transition-colors', 'duration-200'
+                );
+                categoryButton.addEventListener('click', () => {
+                    currentSelectedCategoryName = category;
+                    displayCategoryDetails(category);
+                });
+                propertyCategoriesNav.appendChild(categoryButton);
+            });
+        }
+
+        function renderPresetLogos() {
+            if (!presetLogoPicker) return;
+            
+            presetLogoPicker.innerHTML = '';
+            
+            const noneOption = document.createElement('option');
+            noneOption.value = '';
+            noneOption.textContent = '-- Select a Preset Logo --';
+            presetLogoPicker.appendChild(noneOption);
+            
+            presetLogos.forEach(logo => {
+                const option = document.createElement('option');
+                option.value = logo.url;
+                option.textContent = logo.name;
+                presetLogoPicker.appendChild(option);
+            });
+            
+            presetLogoPicker.addEventListener('change', (e) => {
+                selectedPresetLogoUrl = e.target.value;
+                if (customLogoUrlInput) {
+                    customLogoUrlInput.value = '';
+                }
+            });
+        }
+
+        function updateSelectionUI() {
             document.querySelectorAll('.file-item').forEach(item => {
                 const fileId = parseInt(item.dataset.fileId);
                 if (selectedFiles.has(fileId)) {
@@ -1046,7 +1161,7 @@
             }
         }
 
-        function updateFilterButtonsHighlight() { // Called by applyPropertyFilter
+        function updateFilterButtonsHighlight() {
             document.querySelectorAll('#property-selection-page .filter-btn').forEach(btn => {
                 btn.classList.remove('bg-blue-500', 'text-white');
                 btn.classList.add('bg-gray-200', 'text-gray-800');
@@ -1104,8 +1219,8 @@
             }
         }
 
-        // Level 3: Functions integrating filters/renders (called by fetchers)
-        function applyPropertyFilter(filter) { // Called by fetchProperties
+        // Data Fetching and Processing Functions
+        function applyPropertyFilter(filter) {
             currentPropertyFilter = filter;
             if (filter === true) {
                 if (currentUserForeignApprovedStatus) {
@@ -1140,11 +1255,10 @@
                 }
             }
             renderPropertyCards();
-            updateFilterButtonsHighlight(); // Safe to call now
+            updateFilterButtonsHighlight();
         }
 
-        // Level 4: Fetching Functions (highest level dependencies in data flow)
-        async function fetchProperties(isForeignFilter = null) { // Called by login and refresh
+        async function fetchProperties(isForeignFilter = null) {
             if (propertiesLoadingMessage) propertiesLoadingMessage.style.display = 'block';
             if (propertiesErrorMessage) propertiesErrorMessage.classList.add('hidden');
             if (propertyCardsContainer) propertyCardsContainer.innerHTML = '';
@@ -1157,7 +1271,7 @@
                 properties = await response.json();
                 properties.sort((a, b) => a.id - b.id);
                 console.log('All Properties loaded from Neon DB (sorted by ID):', properties);
-                applyPropertyFilter(isForeignFilter); // Safe to call now
+                applyPropertyFilter(isForeignFilter);
             }
             catch (error) {
                 console.error('Error fetching properties from Netlify Function:', error);
@@ -1168,7 +1282,7 @@
             }
         }
         
-        async function displayCategoryDetails(selectedCategoryName) { // Called by renderPropertyCategories
+        async function displayCategoryDetails(selectedCategoryName) {
             if (!categoryDetailsContent || !propertyFilesContent) return;
             propertyFilesContent.style.display = 'none';
             categoryDetailsContent.style.display = 'flex';
@@ -1272,14 +1386,67 @@
                         if (editBtn) {
                             editBtn.addEventListener('click', (e) => {
                                 e.stopPropagation();
-                                // Your edit button logic here
+                                showPage(updateCategoryDetailPage);
+                                if (updateDetailIdInput) updateDetailIdInput.value = e.target.dataset.id;
+                                if (updateDetailNameInput) updateDetailNameInput.value = e.target.dataset.name;
+                                if (updateDetailUrlInput) updateDetailUrlInput.value = e.target.dataset.url;
+                                if (updateDetailDescriptionInput) updateDetailDescriptionInput.value = e.target.dataset.description;
+                                if (updateDetailUsernameInput) updateDetailUsernameInput.value = e.target.dataset.username;
+                                if (updateDetailPasswordInput) updateDetailPasswordInput.value = e.target.dataset.password;
+                                if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+                                if (updateDetailStatus) updateDetailStatus.classList.add('hidden');
                             });
                         }
                         const deleteBtn = detailTile.querySelector('[data-action="delete-detail"]');
                         if (deleteBtn) {
                             deleteBtn.addEventListener('click', (e) => {
                                 e.stopPropagation();
-                                // Your delete button logic here
+                                showModal(
+                                    verificationModal,
+                                    `detail: "${e.target.dataset.name}"`,
+                                    `deleting`,
+                                    async (username, password) => {
+                                        if (verificationStatus) {
+                                            verificationStatus.classList.remove('hidden');
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                            verificationStatus.textContent = 'Verifying and deleting detail...';
+                                        }
+                                        try {
+                                            const response = await fetch('/.netlify/functions/deleteCategoryDetail', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    username: username,
+                                                    password: password,
+                                                    detail_id: e.target.dataset.id
+                                                })
+                                            });
+                                            const data = await response.json();
+                                            if (response.ok) {
+                                                if (verificationStatus) {
+                                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                                    verificationStatus.textContent = data.message;
+                                                }
+                                                setTimeout(() => {
+                                                    hideModal(verificationModal);
+                                                    displayCategoryDetails(currentSelectedCategoryName);
+                                                }, 1500);
+                                            } else {
+                                                if (verificationStatus) {
+                                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                    verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                                    if (modalPasswordInput) modalPasswordInput.value = '';
+                                                }
+                                            }
+                                        } catch (error) {
+                                            console.error('Error during delete verification:', error);
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                verificationStatus.textContent = `Network error: ${error.message}`;
+                                            }
+                                        }
+                                    }
+                                );
                             });
                         }
                         buttonsContainer.appendChild(detailTile);
@@ -1390,6 +1557,162 @@
             }
         }
 
+        function renderFoldersList() {
+            const foldersContainer = document.getElementById('folders-list-container');
+            if (!foldersContainer) return;
+            
+            foldersContainer.innerHTML = '';
+            
+            // Add "All Files" option
+            const allFilesItem = document.createElement('div');
+            allFilesItem.classList.add('folder-item', currentFolder === 'all' ? 'selected-folder' : '');
+            allFilesItem.innerHTML = `
+                <i class="fas fa-folder-open"></i>
+                <span>All Files</span>
+            `;
+            allFilesItem.addEventListener('click', () => {
+                displayPropertyFiles('all');
+            });
+            foldersContainer.appendChild(allFilesItem);
+            
+            // Add each folder
+            folders.forEach(folder => {
+                const folderItem = document.createElement('div');
+                folderItem.classList.add('folder-item', currentFolder === folder.id ? 'selected-folder' : '');
+                folderItem.innerHTML = `
+                    <i class="fas fa-folder"></i>
+                    <span>${folder.name}</span>
+                `;
+                folderItem.addEventListener('click', () => {
+                    displayPropertyFiles(folder.id);
+                });
+                foldersContainer.appendChild(folderItem);
+            });
+        }
+
+        function renderFilesList(files) {
+            if (!filesListContainer) return;
+            
+            filesListContainer.innerHTML = '';
+            
+            if (files.length === 0) {
+                filesListContainer.innerHTML = `
+                    <div class="text-center p-8 text-gray-500">
+                        <i class="fas fa-folder-open text-4xl mb-2"></i>
+                        <p>No files found in this folder</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            files.forEach(file => {
+                const fileExtension = file.filename.split('.').pop().toLowerCase();
+                const fileItem = document.createElement('div');
+                fileItem.classList.add('file-item');
+                fileItem.dataset.fileId = file.id;
+                
+                fileItem.innerHTML = `
+                    <div class="file-item-content">
+                        <input type="checkbox" class="file-checkbox">
+                        ${getFileIcon(fileExtension, file.filename)}
+                        <div class="file-info">
+                            <span class="file-name">${file.filename}</span>
+                            <span class="file-size">${formatFileSize(file.file_size)}</span>
+                        </div>
+                        <div class="file-actions">
+                            <button class="download-btn" data-file-id="${file.id}">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="delete-btn" data-file-id="${file.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                fileItem.querySelector('.file-checkbox').addEventListener('change', () => {
+                    toggleFileSelection(file.id);
+                });
+                
+                fileItem.querySelector('.download-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    downloadFile(file.id, file.filename);
+                });
+                
+                fileItem.querySelector('.delete-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showModal(
+                        verificationModal,
+                        `file: "${file.filename}"`,
+                        `deleting`,
+                        async (username, password) => {
+                            if (verificationStatus) {
+                                verificationStatus.classList.remove('hidden');
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                verificationStatus.textContent = 'Verifying and deleting file...';
+                            }
+                            try {
+                                const response = await fetch('/.netlify/functions/deleteFile', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        username: username,
+                                        password: password,
+                                        file_id: file.id
+                                    })
+                                });
+                                const data = await response.json();
+                                if (response.ok) {
+                                    if (verificationStatus) {
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                        verificationStatus.textContent = data.message;
+                                    }
+                                    setTimeout(() => {
+                                        hideModal(verificationModal);
+                                        displayPropertyFiles(currentFolder);
+                                    }, 1500);
+                                } else {
+                                    if (verificationStatus) {
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                        verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                        if (modalPasswordInput) modalPasswordInput.value = '';
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error during delete verification:', error);
+                                if (verificationStatus) {
+                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                    verificationStatus.textContent = `Network error: ${error.message}`;
+                                }
+                            }
+                        }
+                    );
+                });
+                
+                filesListContainer.appendChild(fileItem);
+            });
+        }
+
+        async function downloadFile(fileId, filename) {
+            try {
+                const response = await fetch(`/.netlify/functions/downloadFile?file_id=${fileId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to download file');
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Error downloading file:', error);
+                showCustomAlert(`Failed to download file: ${error.message}`);
+            }
+        }
 
         // --- 4. Event Listeners ---
         // These are registered once DOM is loaded.
@@ -1427,8 +1750,8 @@
                     currentLoggedInPassword = const_password;
 
                     showPage(propertySelectionPage);
-                    await fetchProperties(null); // Safe to call now because fetchProperties is defined earlier
-                    updateFilterButtonsHighlight(); // Safe to call now
+                    await fetchProperties(null);
+                    updateFilterButtonsHighlight();
                 } else {
                     if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
                     if (loginErrorText) loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
@@ -2349,7 +2672,6 @@
                 }
             });
         }
-
 
         // --- 5. Initial Load (This must be the very last executable line in DOMContentLoaded) ---
         showPage(loginPage);
