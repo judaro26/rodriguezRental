@@ -751,8 +751,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         // --- DOM Elements ---
-        // It is crucial that all these elements exist in your HTML with the correct IDs.
-        // If any are null, the showPage function will log a warning and stop hiding subsequent pages.
+        // ... (all your existing DOM element declarations) ...
         const loginPage = document.getElementById('login-page');
         const loginForm = document.getElementById('login-form');
         const usernameInput = document.getElementById('username');
@@ -986,22 +985,22 @@
                 mp3: 'file-audio',
                 mp4: 'file-video'
             };
-            
+
             const icon = iconMap[extension] || 'file'; // Default to 'file' if extension not found
             return `<i class="fas fa-${icon} file-icon text-blue-500"></i>`;
         }
-        
+
         function formatFileSize(bytes) {
             if (isNaN(bytes) || bytes === undefined) return '0 Bytes';
             if (bytes === 0) return '0 Bytes';
-            
+
             const k = 1024;
             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            
+
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
-        
+
         function toggleFileSelection(fileId) {
             if (selectedFiles.has(fileId)) {
                 selectedFiles.delete(fileId);
@@ -1010,7 +1009,7 @@
             }
             updateSelectionUI();
         }
-        
+
         function updateSelectionUI() {
             document.querySelectorAll('.file-item').forEach(item => {
                 const fileId = parseInt(item.dataset.fileId);
@@ -1022,10 +1021,10 @@
                     item.querySelector('.file-checkbox').checked = false;
                 }
             });
-            
+
             const moveButton = document.getElementById('move-to-folder-button');
             const deleteButton = document.getElementById('delete-selected-files-button');
-            
+
             if (moveButton && deleteButton) {
                 const hasSelection = selectedFiles.size > 0;
                 moveButton.disabled = !hasSelection;
@@ -1033,9 +1032,8 @@
             }
         }
 
-        // *** NEW FUNCTION ADDED HERE ***
+        // Add this function here to prevent "updateFilterButtonsHighlight is not defined" error
         function updateFilterButtonsHighlight() {
-            // Ensure these elements exist to avoid errors
             if (filterAllPropertiesBtn) {
                 filterAllPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
                 filterAllPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
@@ -1048,7 +1046,7 @@
                 filterForeignPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
                 filterForeignPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
             }
-        
+
             if (currentPropertyFilter === null && filterAllPropertiesBtn) {
                 filterAllPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
                 filterAllPropertiesBtn.classList.add('bg-blue-500', 'text-white');
@@ -1060,30 +1058,29 @@
                 filterForeignPropertiesBtn.classList.add('bg-blue-500', 'text-white');
             }
         }
-        // *** END NEW FUNCTION ***
-                
+
         function renderFilesList(files) {
             if (!filesListContainer) return;
-            
+
             if (files.length === 0) {
                 filesListContainer.innerHTML = `<p class="text-gray-500 p-4 text-center">No files found in this folder.</p>`;
                 return;
             }
-            
+
             filesListContainer.innerHTML = '';
-            
+
             files.forEach(file => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
                 fileItem.dataset.fileId = file.id;
-                
+
                 const fileExtension = file.filename.split('.').pop().toLowerCase();
                 const isSelected = selectedFiles.has(file.id);
-                
+
                 if (isSelected) {
                     fileItem.classList.add('selected');
                 }
-                
+
                 fileItem.innerHTML = `
                     <input type="checkbox" class="file-checkbox" ${isSelected ? 'checked' : ''} data-file-id="${file.id}">
                     ${getFileIcon(fileExtension, file.filename)}
@@ -1094,17 +1091,17 @@
                         </div>
                     </div>
                     <div class="file-actions">
-                        <button class="edit-file-btn bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500" 
+                        <button class="edit-file-btn bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500"
                             data-file-id="${file.id}" data-file-name="${file.filename}">
                             Edit
                         </button>
-                        <button class="delete-file-btn bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600" 
+                        <button class="delete-file-btn bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600"
                             data-file-id="${file.id}" data-file-name="${file.filename}">
                             Delete
                         </button>
                     </div>
                 `;
-                
+
                 // Add event listeners
                 const checkbox = fileItem.querySelector('.file-checkbox');
                 if (checkbox) {
@@ -1113,13 +1110,13 @@
                         toggleFileSelection(file.id);
                     });
                 }
-                
+
                 fileItem.addEventListener('click', (e) => {
                     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
                         toggleFileSelection(file.id);
                     }
                 });
-                
+
                 // Add edit button event listener
                 const editBtn = fileItem.querySelector('.edit-file-btn');
                 if (editBtn) {
@@ -1132,76 +1129,74 @@
                         showCustomAlert(`Edit functionality for file "${file.filename}" (ID: ${file.id}) is not yet fully implemented. You can implement a modal to edit file details here.`);
                     });
                 }
-                
+
                 // Add delete button event listener
                 const deleteBtn = fileItem.querySelector('.delete-file-btn');
                 if (deleteBtn) {
                     deleteBtn.addEventListener('click', (e) => {
                         e.stopPropagation(); // Prevent toggling selection
                         // === DELETE FILE LOGIC ===
-                        if (confirm(`Are you sure you want to delete "${file.filename}"? This action cannot be undone.`)) {
-                            showModal(
-                                verificationModal,
-                                `file: "${file.filename}"`,
-                                `deleting`,
-                                async (username, password) => {
-                                    if (verificationStatus) {
-                                        verificationStatus.classList.remove('hidden');
-                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                                        verificationStatus.textContent = 'Verifying and deleting file...';
-                                    }
-                                    try {
-                                        const response = await fetch('/.netlify/functions/deleteFiles', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                file_ids: [file.id], // Pass only the single file ID for deletion
-                                                property_id: currentSelectedProperty.id,
-                                                username: username,
-                                                password: password
-                                            })
-                                        });
-                                        
-                                        const data = await response.json();
-                                        
-                                        if (response.ok) {
-                                            if (verificationStatus) {
-                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                                                verificationStatus.textContent = data.message;
-                                            }
-                                            setTimeout(async () => {
-                                                hideModal(verificationModal);
-                                                await displayPropertyFiles(currentFolder); // Refresh the file list after deletion
-                                            }, 1500);
-                                        } else {
-                                            if (verificationStatus) {
-                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
-                                                if (modalPasswordInput) modalPasswordInput.value = ''; // Clear password field on failure
-                                            }
+                        showModal( // Replaced confirm with showModal as per instructions
+                            verificationModal,
+                            `file: "${file.filename}"`,
+                            `deleting`,
+                            async (username, password) => {
+                                if (verificationStatus) {
+                                    verificationStatus.classList.remove('hidden');
+                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                    verificationStatus.textContent = 'Verifying and deleting file...';
+                                }
+                                try {
+                                    const response = await fetch('/.netlify/functions/deleteFiles', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            file_ids: [file.id], // Pass only the single file ID for deletion
+                                            property_id: currentSelectedProperty.id,
+                                            username: username,
+                                            password: password
+                                        })
+                                    });
+
+                                    const data = await response.json();
+
+                                    if (response.ok) {
+                                        if (verificationStatus) {
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                            verificationStatus.textContent = data.message;
                                         }
-                                    } catch (error) {
-                                        console.error('Error during single file delete verification:', error);
+                                        setTimeout(async () => {
+                                            hideModal(verificationModal);
+                                            await displayPropertyFiles(currentFolder); // Refresh the file list after deletion
+                                        }, 1500);
+                                    } else {
                                         if (verificationStatus) {
                                             verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                            verificationStatus.textContent = `Network error: ${error.message}`;
+                                            verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                            if (modalPasswordInput) modalPasswordInput.value = ''; // Clear password field on failure
                                         }
                                     }
+                                } catch (error) {
+                                    console.error('Error during single file delete verification:', error);
+                                    if (verificationStatus) {
+                                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                        verificationStatus.textContent = `Network error: ${error.message}`;
+                                    }
                                 }
-                            );
-                        }
+                            }
+                        );
                     });
                 }
-                
+
                 filesListContainer.appendChild(fileItem);
             });
         }
-        
+
         // renderFoldersList function - Needs to be defined before displayPropertyFiles calls it
         function renderFoldersList() {
             const foldersList = document.getElementById('folders-list');
             if (!foldersList) return;
-            
+
             // Clear and rebuild folder list based on the global 'folders' array
             foldersList.innerHTML = `
                 <li class="folder-item ${currentFolder === 'all' ? 'active' : ''}" data-folder-id="all">
@@ -1211,28 +1206,28 @@
                     All Files
                 </li>
             `;
-            
+
             folders.forEach(folder => {
                 const folderItem = document.createElement('li');
                 folderItem.className = `folder-item ${currentFolder === folder.id ? 'active' : ''}`;
                 folderItem.dataset.folderId = folder.id;
-                
+
                 folderItem.innerHTML = `
                     <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                     ${folder.name}
                 `;
-                
+
                 folderItem.addEventListener('click', () => {
                     currentFolder = folder.id;
                     displayPropertyFiles(folder.id);
                 });
-                
+
                 foldersList.appendChild(folderItem);
             });
         }
-        
+
         // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
         // MOVED UP for proper function definition order
         async function fetchProperties(isForeignFilter = null) {
@@ -1263,8 +1258,8 @@
 
         // --- Apply Property Filter and Render Cards ---
         // MOVED UP for proper function definition order
-        let displayedProperties = []; 
-        let currentPropertyFilter = null; 
+        let displayedProperties = [];
+        let currentPropertyFilter = null;
 
         function applyPropertyFilter(filter) {
             currentPropertyFilter = filter;
@@ -1313,17 +1308,12 @@
                 propertyCategoriesPage, addCategoryDetailPage, addNewCategoryPage,
                 updatePropertyPage, updateCategoryDetailPage, propertyFilesPage,
                 verificationModal, // Ensure verification modal is hidden
-                uploadFolderModal  // Ensure upload folder selection modal is hidden
+                uploadFolderModal // Ensure upload folder selection modal is hidden
             ];
 
             allPages.forEach(page => {
                 if (page) {
                     page.style.display = 'none';
-                    // For flex containers, ensure flex-direction is set appropriately if needed,
-                    // as 'display: flex' without it might default to row.
-                    // This is handled by your CSS for .page-section, but explicitly setting it here for clarity
-                    // if you rely on JS for initial display.
-                    // Example: page.style.flexDirection = 'column';
                 } else {
                     // Log which element was not found, helpful for debugging missing IDs in HTML
                     console.warn('showPage: A page element was null and could not be hidden.', page);
@@ -1517,7 +1507,7 @@
                         <button class="w-1/2 bg-gray-400 text-gray-800 py-2 rounded-lg hover:bg-gray-500 transition-colors duration-200 font-semibold" data-action="edit-property" data-property-id="${property.id}">Edit</button>
                     </div>
                 `;
-                
+
                 propertyCard.querySelector('[data-action="view-property-details"]').addEventListener('click', (e) => {
                     e.stopPropagation();
                     currentSelectedProperty = properties.find(p => p.id == e.target.dataset.propertyId);
@@ -1619,7 +1609,7 @@
                         addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         addPropertyStatus.textContent = 'Property saved successfully!';
                     }
-                    
+
                     setTimeout(async () => {
                         showPage(propertySelectionPage);
                         await fetchProperties(currentPropertyFilter);
@@ -1682,7 +1672,7 @@
                 categoryDiv.addEventListener('click', () => {
                     if (propertyFilesContent) propertyFilesContent.style.display = 'none';
                     if (categoryDetailsContent) categoryDetailsContent.style.display = 'flex';
-                    
+
                     currentSelectedCategoryName = categoryName;
                     displayCategoryDetails(categoryName);
                     if (categoryDetailsHeading) categoryDetailsHeading.textContent = `Your ${categoryName} Details`;
@@ -1713,31 +1703,31 @@
         // --- Display Category Details / Dynamic Buttons (now tiles) ---
         async function displayCategoryDetails(selectedCategoryName) {
             if (!categoryDetailsContent || !propertyFilesContent) return;
-            
+
             propertyFilesContent.style.display = 'none';
             categoryDetailsContent.style.display = 'flex';
-            
+
             const securityWarningDiv = document.getElementById('security-warning');
             const buttonsContainer = document.getElementById('dynamic-category-buttons-container');
             const loadingMessage = document.getElementById('category-loading-message');
             const addVendorButton = document.getElementById('add-category-detail-button-bottom');
-            
+
             if (!buttonsContainer || !loadingMessage) return;
-            
+
             // Clear previous content
             buttonsContainer.innerHTML = '';
             loadingMessage.style.display = 'block';
             loadingMessage.textContent = `Loading details for "${selectedCategoryName}"...`;
-            
+
             if (addVendorButton) addVendorButton.style.display = 'block';
-            
+
             try {
                 const response = await fetch(`/.netlify/functions/getCategoryDetails?property_id=${currentSelectedProperty.id}&category_name=${encodeURIComponent(selectedCategoryName)}`);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const details = await response.json();
                 console.log(`Details for ${selectedCategoryName}:`, details);
 
@@ -1835,6 +1825,60 @@
                             editBtn.addEventListener('click', (e) => {
                                 e.stopPropagation();
                                 // Your edit button logic here
+                                showPage(updateCategoryDetailPage);
+                                if (updateDetailIdInput) updateDetailIdInput.value = editBtn.dataset.id;
+                                if (updateDetailNameInput) updateDetailNameInput.value = editBtn.dataset.name;
+                                if (updateDetailUrlInput) updateDetailUrlInput.value = editBtn.dataset.url;
+                                if (updateDetailDescriptionInput) updateDetailDescriptionInput.value = editBtn.dataset.description;
+                                if (updateDetailUsernameInput) updateDetailUsernameInput.value = editBtn.dataset.username;
+                                if (updateDetailPasswordInput) updateDetailPasswordInput.value = editBtn.dataset.password;
+                                if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+
+                                // Logic to pre-select preset logo or show custom URL
+                                const detailLogoUrl = editBtn.dataset.logo;
+                                let presetLogoFound = false;
+                                if (updatePresetLogoPicker) {
+                                    updatePresetLogoPicker.innerHTML = ''; // Clear previous options
+                                    presetLogos.forEach(logo => {
+                                        const radio = document.createElement('input');
+                                        radio.type = 'radio';
+                                        radio.name = 'update-logo';
+                                        radio.value = logo.url;
+                                        radio.className = 'mr-1';
+                                        radio.id = `update-logo-${logo.name.replace(/\s+/g, '-').toLowerCase()}`;
+                                        if (detailLogoUrl === logo.url) {
+                                            radio.checked = true;
+                                            selectedUpdatePresetLogoUrl = logo.url;
+                                            presetLogoFound = true;
+                                        }
+                                        const label = document.createElement('label');
+                                        label.htmlFor = radio.id;
+                                        label.className = 'inline-flex items-center mr-4 cursor-pointer';
+                                        label.innerHTML = `<img src="${logo.url}" class="w-6 h-6 mr-1 inline-block" alt="${logo.name}"> ${logo.name}`;
+                                        updatePresetLogoPicker.appendChild(radio);
+                                        updatePresetLogoPicker.appendChild(label);
+                                    });
+                                }
+
+                                if (updateCustomLogoUrlInput) {
+                                    if (!presetLogoFound && detailLogoUrl) {
+                                        updateCustomLogoUrlInput.value = detailLogoUrl;
+                                        const customRadio = document.createElement('input');
+                                        customRadio.type = 'radio';
+                                        customRadio.name = 'update-logo';
+                                        customRadio.value = 'custom';
+                                        customRadio.checked = true;
+                                        customRadio.className = 'mr-1';
+                                        updatePresetLogoPicker.appendChild(customRadio);
+                                        const customLabel = document.createElement('label');
+                                        customLabel.textContent = 'Custom URL';
+                                        updatePresetLogoPicker.appendChild(customLabel);
+                                        selectedUpdatePresetLogoUrl = null; // Indicate custom
+                                    } else {
+                                        updateCustomLogoUrlInput.value = '';
+                                    }
+                                }
+                                if (updateDetailStatus) updateDetailStatus.classList.add('hidden');
                             });
                         }
 
@@ -1842,7 +1886,56 @@
                         if (deleteBtn) {
                             deleteBtn.addEventListener('click', (e) => {
                                 e.stopPropagation();
-                                // Your delete button logic here
+                                showModal(
+                                    verificationModal,
+                                    `detail: "${detail.detail_name}"`,
+                                    `deleting`,
+                                    async (username, password) => {
+                                        if (verificationStatus) {
+                                            verificationStatus.classList.remove('hidden');
+                                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                                            verificationStatus.textContent = 'Verifying and deleting detail...';
+                                        }
+                                        try {
+                                            const response = await fetch('/.netlify/functions/deleteCategoryDetail', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    property_id: currentSelectedProperty.id,
+                                                    category_name: currentSelectedCategoryName,
+                                                    detail_id: detail.id,
+                                                    username: username,
+                                                    password: password
+                                                })
+                                            });
+
+                                            const data = await response.json();
+
+                                            if (response.ok) {
+                                                if (verificationStatus) {
+                                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                                    verificationStatus.textContent = data.message;
+                                                }
+                                                setTimeout(() => {
+                                                    hideModal(verificationModal);
+                                                    displayCategoryDetails(currentSelectedCategoryName); // Refresh details
+                                                }, 1500);
+                                            } else {
+                                                if (verificationStatus) {
+                                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                    verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                                    if (modalPasswordInput) modalPasswordInput.value = '';
+                                                }
+                                            }
+                                        } catch (error) {
+                                            console.error('Error during detail delete verification:', error);
+                                            if (verificationStatus) {
+                                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                                verificationStatus.textContent = `Network error: ${error.message}`;
+                                            }
+                                        }
+                                    }
+                                );
                             });
                         }
 
@@ -1937,7 +2030,7 @@
                         addDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         addDetailStatus.textContent = 'Detail saved successfully!';
                     }
-                    
+
                     setTimeout(() => {
                         showPage(propertyCategoriesPage);
                         displayCategoryDetails(currentSelectedCategoryName);
@@ -2021,22 +2114,22 @@
                         addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                         addNewCategoryStatus.textContent = 'Category added successfully!';
                     }
-                    
+
                     currentSelectedProperty.categories = result.updatedProperty.categories;
 
                     showPage(propertyCategoriesPage);
                     renderPropertyCategories();
 
                 } catch (error) {
-                            console.error('Error adding new category:', error);
-                            if (addNewCategoryStatus) {
-                                addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
-                                    addNewCategoryStatus.textContent = 'Category with this name already exists for this property.';
-                                } else {
-                                    addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
-                                }
-                            }
+                    console.error('Error adding new category:', error);
+                    if (addNewCategoryStatus) {
+                        addNewCategoryStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                        if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
+                            addNewCategoryStatus.textContent = 'Category with this name already exists for this property.';
+                        } else {
+                            addNewCategoryStatus.textContent = `Error adding category: ${error.message}`;
+                        }
+                    }
                 }
             });
         }
@@ -2247,7 +2340,7 @@
                                     verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
                                     verificationStatus.textContent = data.message;
                                 }
-                                
+
                                 currentSelectedProperty.categories = data.updatedProperty.categories;
 
                                 setTimeout(() => {
@@ -2398,12 +2491,12 @@
                         if (categoryDetailsContent.style.display !== 'none') {
                             categoryDetailsContent.style.display = 'none';
                             propertyFilesContent.style.display = 'flex';
-                            
+
                             if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
-                            
+
                             const addVendorButton = document.getElementById('add-category-detail-button-bottom');
                             if (addVendorButton) addVendorButton.style.display = 'none';
-                            
+
                             displayPropertyFiles(); // This will now fetch folders first
                         } else {
                             if (currentSelectedCategoryName) {
@@ -2431,7 +2524,60 @@
             });
         }
 
+        // START MODIFICATION FOR FOLDER SELECTION AND UPLOAD FLOW
+
+        // NEW: Function to populate the folder dropdown
+        async function populateFolderDropdown() {
+            if (!folderSelectDropdown || !currentSelectedProperty) {
+                console.error("populateFolderDropdown: Missing dropdown or selected property.");
+                return;
+            }
+
+            // Clear previous options, keeping the default ones
+            folderSelectDropdown.innerHTML = '<option value="none">-- No Folder (All Files) --</option><option value="new">+ Create New Folder</option>';
+
+            uploadFolderModalStatus.classList.remove('hidden', 'bg-red-100', 'text-red-700');
+            uploadFolderModalStatus.classList.add('bg-blue-100', 'text-blue-700');
+            uploadFolderModalStatus.textContent = 'Loading folders...';
+
+            try {
+                const foldersResponse = await fetch('/.netlify/functions/getFolders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        property_id: currentSelectedProperty.id,
+                        username: currentLoggedInUsername,
+                        password: currentLoggedInPassword
+                    })
+                });
+
+                if (!foldersResponse.ok) {
+                    const errorBody = await foldersResponse.json();
+                    throw new Error(errorBody.message || 'Failed to fetch folders.');
+                }
+                const fetchedFolders = await foldersResponse.json();
+
+                // Add existing folders to the dropdown
+                fetchedFolders.forEach(folder => {
+                    const option = document.createElement('option');
+                    option.value = folder.id;
+                    option.textContent = folder.name;
+                    // Insert before the 'Create New Folder' option
+                    folderSelectDropdown.insertBefore(option, folderSelectDropdown.children[folderSelectDropdown.children.length - 1]);
+                });
+
+                uploadFolderModalStatus.classList.add('hidden'); // Hide status message on success
+
+            } catch (error) {
+                console.error('Error fetching folders for upload modal:', error);
+                uploadFolderModalStatus.classList.remove('hidden', 'bg-blue-100', 'text-blue-700');
+                uploadFolderModalStatus.classList.add('bg-red-100', 'text-red-700');
+                uploadFolderModalStatus.textContent = `Error loading folders: ${error.message}`;
+            }
+        }
+
         // Helper function to show the folder selection modal for upload
+        // Removed the direct fetch to getFolders from here.
         async function showUploadFolderSelectionModal(file, base64data, mimeType) {
             if (!uploadFolderModal || !currentSelectedProperty) {
                 showCustomAlert('Cannot open folder selection. Please select a property and ensure the modal elements are present.');
@@ -2448,56 +2594,17 @@
             uploadFolderModalStatus.textContent = '';
             newFolderNameContainer.classList.add('hidden');
             newFolderNameInput.value = '';
-            folderSelectDropdown.innerHTML = '<option value="none">-- No Folder (All Files) --</option>'; // Always start with this
+            // Reset dropdown to default and prepare for dynamic population
+            folderSelectDropdown.innerHTML = '<option value="none">-- No Folder (All Files) --</option><option value="new">+ Create New Folder</option>';
             folderSelectDropdown.value = 'none'; // Reset to default selection
 
             // Show the modal
             uploadFolderModal.classList.remove('hidden');
 
-            try {
-                // Fetch folders from the server
-                uploadFolderModalStatus.classList.remove('hidden', 'bg-red-100', 'text-red-700');
-                uploadFolderModalStatus.classList.add('bg-blue-100', 'text-blue-700');
-                uploadFolderModalStatus.textContent = 'Loading folders...';
-
-                const foldersResponse = await fetch('/.netlify/functions/getFolders', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        property_id: currentSelectedProperty.id,
-                        username: currentLoggedInUsername,
-                        password: currentLoggedInPassword
-                    })
-                });
-
-                if (!foldersResponse.ok) {
-                    const errorBody = await foldersResponse.json();
-                    throw new Error(errorBody.message || 'Failed to fetch folders.');
-                }
-                const fetchedFolders = await foldersResponse.json();
-                
-                // Add existing folders to the dropdown
-                fetchedFolders.forEach(folder => {
-                    const option = document.createElement('option');
-                    option.value = folder.id;
-                    option.textContent = folder.name;
-                    folderSelectDropdown.appendChild(option);
-                });
-
-                // Add "Create New Folder" option after existing ones
-                const newFolderOption = document.createElement('option');
-                newFolderOption.value = 'new';
-                newFolderOption.textContent = '+ Create New Folder';
-                folderSelectDropdown.appendChild(newFolderOption);
-
-                uploadFolderModalStatus.classList.add('hidden'); // Hide status message on success
-
-            } catch (error) {
-                console.error('Error fetching folders for upload modal:', error);
-                uploadFolderModalStatus.classList.remove('hidden', 'bg-blue-100', 'text-blue-700');
-                uploadFolderModalStatus.classList.add('bg-red-100', 'text-red-700');
-                uploadFolderModalStatus.textContent = `Error loading folders: ${error.message}`;
-            }
+            // Now, immediately call the populate function to load folders.
+            // This still means the POST happens as soon as the modal is *shown*,
+            // but clarifies the intent: the modal needs data.
+            await populateFolderDropdown();
         }
 
         // Event listener for dropdown change in upload folder modal
@@ -2512,6 +2619,21 @@
                 }
                 uploadFolderModalStatus.classList.add('hidden'); // Clear status when selection changes
             });
+
+            // Add an event listener to populate the dropdown when it is focused/clicked.
+            // This is an alternative if you truly want to delay the API call even further.
+            // For now, it's called immediately when modal is shown, which is more common for populating.
+            // If you want to delay, uncomment the following and remove the `await populateFolderDropdown()`
+            // call from `showUploadFolderSelectionModal`.
+            /*
+            let foldersLoaded = false;
+            folderSelectDropdown.addEventListener('focus', async () => {
+                if (!foldersLoaded) {
+                    await populateFolderDropdown();
+                    foldersLoaded = true;
+                }
+            }, { once: true }); // Use { once: true } to only load folders once per modal open
+            */
         }
 
         // Event listener for cancel button in upload folder modal
@@ -2543,7 +2665,7 @@
                     }
                     finalFolderName = newName;
                     finalFolderId = newName.toLowerCase().replace(/\s+/g, '-'); // Generate ID from name (consistent with createFolder)
-                } else if (selectedFolderId !== 'none') {
+                } else if (selectedFolderId !== 'none') { // Treating 'all' and 'none' as unassigning from a folder
                     // Existing folder selected
                     finalFolderId = selectedFolderId;
                     // Find the corresponding folder name from the global folders array
@@ -2578,7 +2700,6 @@
                         // The `finalFolderId` generated earlier (kebab-cased name) should match the ID stored by createFolder.
                     }
 
-                    // Proceed with file upload now that folder is determined/created
                     uploadFolderModal.classList.add('hidden'); // Hide folder modal
 
                     // Show main upload status
@@ -2657,9 +2778,9 @@
                     }
                     return;
                 }
-                
+
                 const file = fileUploadInput.files[0];
-                
+
                 // Client-side file type validation
                 const allowedTypes = [
                     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
@@ -2676,7 +2797,7 @@
                     }
                     return;
                 }
-                
+
                 // Read the file as Data URL
                 const reader = new FileReader();
                 reader.onprogress = (event) => {
@@ -2687,19 +2808,19 @@
                         }
                     }
                 };
-                
+
                 reader.onloadend = async () => {
                     const base64data = reader.result.split(',')[1];
                     const mimeType = reader.result.split(',')[0].split(':')[1].split(';')[0];
-                    
+
                     // Now, show the folder selection modal with the file data
                     // This function will handle the actual upload after folder selection
                     await showUploadFolderSelectionModal(file, base64data, mimeType);
 
                     // Clear main upload status message now that modal is handling it
-                    if (fileUploadStatus) fileUploadStatus.classList.add('hidden'); 
+                    if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
                 };
-                
+
                 // Show initial status and progress bar in the main upload area
                 if (fileUploadStatus) {
                     fileUploadStatus.classList.remove('hidden');
@@ -2719,16 +2840,16 @@
         // New: Display Property Files function - UPDATED TO FETCH FOLDERS SEPARATELY
         async function displayPropertyFiles(folderId = 'all') {
             currentFolder = folderId;
-            
+
             if (!filesListContainer || !currentSelectedProperty) return;
-            
+
             filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`;
-            
+
             if (document.getElementById('current-folder-title')) {
-                document.getElementById('current-folder-title').textContent = 
+                document.getElementById('current-folder-title').textContent =
                     folderId === 'all' ? 'All Files' : `Folder: ${folders.find(f => f.id === folderId)?.name || folderId}`;
             }
-            
+
             try {
                 // 1. Fetch ALL folders for the current property
                 const foldersResponse = await fetch('/.netlify/functions/getFolders', {
@@ -2746,7 +2867,7 @@
                     throw new Error(`Failed to load folders: ${errorBody.message || foldersResponse.statusText}`);
                 }
                 const fetchedFolders = await foldersResponse.json();
-                
+
                 // Update the global folders array with all fetched folders
                 folders = fetchedFolders;
                 renderFoldersList(); // Render folders based on the global 'folders' array
@@ -2757,30 +2878,30 @@
                     const errorBody = await filesResponse.json();
                     throw new Error(`Failed to load files: ${errorBody.message || filesResponse.statusText}`);
                 }
-                
+
                 const allFiles = await filesResponse.json();
-                
-                const filesToDisplay = folderId === 'all' 
-                    ? allFiles 
+
+                const filesToDisplay = folderId === 'all'
+                    ? allFiles
                     : allFiles.filter(file => file.folder_id === folderId);
-                
+
                 renderFilesList(filesToDisplay);
-                
+
                 selectedFiles.clear();
                 updateSelectionUI();
-                
+
             } catch (error) {
                 console.error('Error loading files/folders:', error);
                 filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Error loading files and folders: ${error.message}</p>`;
             }
         }
-        
+
         // --- All other event listeners and main logic ---
-        
+
         // Move to folder functionality
         document.getElementById('move-to-folder-button')?.addEventListener('click', () => {
             if (selectedFiles.size === 0) return;
-            
+
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             modal.innerHTML = `
@@ -2801,18 +2922,18 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
-            
+
             modal.querySelector('#target-folder-select').addEventListener('change', (e) => {
-                modal.querySelector('#new-folder-input').style.display = 
+                modal.querySelector('#new-folder-input').style.display =
                     e.target.value === 'new' ? 'block' : 'none';
             });
-            
+
             modal.querySelector('#cancel-move').addEventListener('click', () => {
                 document.body.removeChild(modal);
             });
-            
+
             modal.querySelector('#confirm-move').addEventListener('click', async () => {
                 const select = modal.querySelector('#target-folder-select');
                 let targetFolderId = select.value;
@@ -2836,7 +2957,7 @@
                         targetFolderName = targetFolderId; // Fallback if name isn't found for existing ID
                     }
                 }
-                
+
                 try {
                     const response = await fetch('/.netlify/functions/moveFiles', {
                         method: 'POST',
@@ -2850,25 +2971,25 @@
                             password: currentLoggedInPassword
                         })
                     });
-                    
+
                     const data = await response.json();
 
                     if (!response.ok) {
                         showCustomAlert(`Error moving files: ${data.message || 'An unknown error occurred.'}`);
                         throw new Error(data.message || 'Failed to move files');
                     }
-                    
+
                     showCustomAlert(data.message);
-                    
+
                     await displayPropertyFiles(currentFolder);
                     document.body.removeChild(modal);
-                    
+
                 } catch (error) {
                     console.error('Error moving files:', error);
                 }
             });
         });
-        
+
         // --- Create folder button (now triggers an API call) ---
         document.getElementById('create-folder-button')?.addEventListener('click', async () => {
             if (!currentSelectedProperty) {
@@ -2876,7 +2997,7 @@
                 return;
             }
 
-            const folderName = prompt('Enter folder name:');
+            const folderName = prompt('Enter folder name:'); // Consider replacing prompt with a custom modal for better UX
             if (folderName === null) {
                 return;
             }
@@ -2884,9 +3005,9 @@
                 showCustomAlert('Folder name cannot be empty.');
                 return;
             }
-            
+
             const newFolderName = folderName.trim();
-            
+
             try {
                 const response = await fetch('/.netlify/functions/createFolder', {
                     method: 'POST',
@@ -2913,62 +3034,60 @@
                 showCustomAlert(`Network error: ${error.message}. Could not create folder.`);
             }
         });
-        
+
         // Delete selected files button
         document.getElementById('delete-selected-files-button')?.addEventListener('click', () => {
             if (selectedFiles.size === 0) return;
-            
-            if (confirm(`Are you sure you want to delete ${selectedFiles.size} selected file(s)?`)) {
-                showModal(
-                    verificationModal,
-                    `${selectedFiles.size} selected file(s)`,
-                    `deleting`,
-                    async (username, password) => {
-                        if (verificationStatus) {
-                            verificationStatus.classList.remove('hidden');
-                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                            verificationStatus.textContent = 'Verifying and deleting files...';
-                        }
-                        try {
-                            const response = await fetch('/.netlify/functions/deleteFiles', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    file_ids: Array.from(selectedFiles).map(id => parseInt(id)),
-                                    property_id: currentSelectedProperty.id,
-                                    username: username,
-                                    password: password
-                                })
-                            });
-                            
-                            const data = await response.json();
-                            
-                            if (response.ok) {
-                                if (verificationStatus) {
-                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
-                                    verificationStatus.textContent = data.message;
-                                }
-                                setTimeout(async () => {
-                                    hideModal(verificationModal);
-                                    await displayPropertyFiles(currentFolder);
-                                }, 1500);
-                            } else {
-                                if (verificationStatus) {
-                                    verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                    verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
-                                    if (modalPasswordInput) modalPasswordInput.value = '';
-                                }
+
+            showModal( // Replaced confirm with showModal as per instructions
+                verificationModal,
+                `${selectedFiles.size} selected file(s)`,
+                `deleting`,
+                async (username, password) => {
+                    if (verificationStatus) {
+                        verificationStatus.classList.remove('hidden');
+                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        verificationStatus.textContent = 'Verifying and deleting files...';
+                    }
+                    try {
+                        const response = await fetch('/.netlify/functions/deleteFiles', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                file_ids: Array.from(selectedFiles).map(id => parseInt(id)),
+                                property_id: currentSelectedProperty.id,
+                                username: username,
+                                password: password
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            if (verificationStatus) {
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                verificationStatus.textContent = data.message;
                             }
-                        } catch (error) {
-                            console.error('Error during delete verification:', error);
+                            setTimeout(async () => {
+                                hideModal(verificationModal);
+                                await displayPropertyFiles(currentFolder);
+                            }, 1500);
+                        } else {
                             if (verificationStatus) {
                                 verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
-                                verificationStatus.textContent = `Network error: ${error.message}`;
+                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                if (modalPasswordInput) modalPasswordInput.value = '';
                             }
                         }
+                    } catch (error) {
+                        console.error('Error during delete verification:', error);
+                        if (verificationStatus) {
+                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            verificationStatus.textContent = `Network error: ${error.message}`;
+                        }
                     }
-                );
-            }
+                }
+            );
         });
 
         // --- Initial Load: Show Login Page (Crucially placed at the very end of DOMContentLoaded) ---
