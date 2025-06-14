@@ -7,6 +7,7 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6; /* Light gray background */
@@ -294,6 +295,10 @@
             height: 20px;
             color: #4a5568;
         }
+        
+          .page {
+            display: none;
+          }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -534,7 +539,7 @@
             </div> <!-- End of flex-grow relative container -->
 
             <!-- The "Add Vendor's Details" button has been moved here -->
-            <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
+            <button id="add-category-detail-button-bottom" class="hidden">
                 Add Vendor's Details
             </button>
         </main>
@@ -926,18 +931,16 @@
             { name: 'Streaming', url: 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core/assets/fill/television-fill.svg' }
         ];
 
-        // Utility Functions
-        function showPage(pageElement) {
-            // Hide all pages first
-            const pages = document.querySelectorAll('.page');
-            pages.forEach(page => {
+            // Utility Functions
+            function showPage(pageElement) {
+              const pages = document.querySelectorAll('.page');
+              pages.forEach((page) => {
                 page.style.display = 'none';
-            });
+              });
             
-            // Show the requested page
-            if (pageElement) {
+              if (pageElement) {
                 pageElement.style.display = 'block';
-            }
+              }
         }
 
         function showModal(modalElement, itemName, action, callback) {
