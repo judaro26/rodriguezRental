@@ -725,6 +725,29 @@
             </form>
         </div>
     </div>
+<div id="upload-folder-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h3 class="text-xl font-bold mb-4">Select or Create Folder</h3>
+        <div class="mb-4">
+            <label for="folder-select-dropdown" class="block text-gray-700 text-sm font-bold mb-2">Select Existing Folder:</label>
+            <select id="folder-select-dropdown" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </select>
+        </div>
+        <div id="new-folder-name-container" class="mb-4 hidden">
+            <label for="new-folder-name-input" class="block text-gray-700 text-sm font-bold mb-2">New Folder Name:</label>
+            <input type="text" id="new-folder-name-input" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter new folder name">
+        </div>
+        <div id="upload-folder-modal-status" class="hidden mt-4 p-3 rounded-md text-sm text-center"></div>
+        <div class="flex justify-end gap-2 mt-6">
+            <button id="cancel-folder-selection-btn" type="button" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                Cancel
+            </button>
+            <button id="confirm-folder-selection-btn" type="button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         // --- DOM Elements ---
