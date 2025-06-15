@@ -874,7 +874,7 @@
         const updatePropertyForm = document.getElementById('update-property-form');
         const updatePropertyIdInput = document.getElementById('update-property-id');
         const updatePropertyTitleInput = document.getElementById('update-property-title');
-        const updatePropertyImageInput = document.getElementById('update-property-image');
+        const updatePropertyImageInput = document.getElementById('property-image');
         const updatePropertyDescriptionInput = document.getElementById('property-description');
         const updatePropertyCategoriesInput = document.getElementById('update-property-categories');
         const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
@@ -1214,20 +1214,176 @@
                 folderItem.dataset.folderId = folder.id;
 
                 folderItem.innerHTML = `
-                    <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    ${folder.name}
+                    <div class="folder-content">
+                        <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        ${folder.name}
+                    </div>
+                    <div class="folder-actions">
+                        <button class="edit-folder-btn text-blue-500 hover:text-blue-700 ml-2" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-folder-btn text-red-500 hover:text-red-700 ml-2" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 `;
 
-                folderItem.addEventListener('click', () => {
+                // Add event listeners for folder selection
+                folderItem.querySelector('.folder-content').addEventListener('click', () => {
                     currentFolder = folder.id;
                     displayPropertyFiles(folder.id);
+                });
+
+                // Add event listeners for edit and delete buttons
+                folderItem.querySelector('.edit-folder-btn').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent folder selection when clicking edit
+                    const folderIdToEdit = e.currentTarget.dataset.folderId;
+                    const folderNameToEdit = e.currentTarget.dataset.folderName;
+                    editFolder(folderIdToEdit, folderNameToEdit);
+                });
+
+                folderItem.querySelector('.delete-folder-btn').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent folder selection when clicking delete
+                    const folderIdToDelete = e.currentTarget.dataset.folderId;
+                    const folderNameToDelete = e.currentTarget.dataset.folderName;
+                    deleteFolder(folderIdToDelete, folderNameToDelete);
                 });
 
                 foldersList.appendChild(folderItem);
             });
         }
+
+        // --- New Functions for Folder Management ---
+
+        async function editFolder(folderId, oldFolderName) {
+            const newFolderName = prompt(`Rename folder "${oldFolderName}" to:`, oldFolderName);
+            if (newFolderName === null || newFolderName.trim() === '') {
+                showCustomAlert('Folder name cannot be empty or cancelled.');
+                return;
+            }
+            const trimmedNewName = newFolderName.trim();
+            if (trimmedNewName === oldFolderName) {
+                showCustomAlert('Folder name is the same. No changes made.');
+                return;
+            }
+
+            // Check if new name conflicts with existing folder names (case-insensitive)
+            const existingFolderNames = folders.map(f => f.name.toLowerCase());
+            if (existingFolderNames.includes(trimmedNewName.toLowerCase())) {
+                showCustomAlert('A folder with this name already exists.');
+                return;
+            }
+
+            showModal(
+                verificationModal,
+                `folder: "${oldFolderName}" to "${trimmedNewName}"`,
+                `renaming`,
+                async (username, password) => {
+                    if (verificationStatus) {
+                        verificationStatus.classList.remove('hidden');
+                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        verificationStatus.textContent = 'Verifying and renaming folder...';
+                    }
+                    try {
+                        const response = await fetch('/.netlify/functions/updateFolder', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                property_id: currentSelectedProperty.id,
+                                folder_id: folderId,
+                                new_folder_name: trimmedNewName,
+                                username: username,
+                                password: password
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            if (verificationStatus) {
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                verificationStatus.textContent = data.message;
+                            }
+                            setTimeout(async () => {
+                                hideModal(verificationModal);
+                                await displayPropertyFiles(currentFolder); // Refresh folder list and files
+                            }, 1500);
+                        } else {
+                            if (verificationStatus) {
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                verificationStatus.textContent = data.message || 'Renaming failed. Check credentials or try again.';
+                                if (modalPasswordInput) modalPasswordInput.value = '';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error during folder rename verification:', error);
+                        if (verificationStatus) {
+                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            verificationStatus.textContent = `Network error: ${error.message}`;
+                        }
+                    }
+                }
+            );
+        }
+
+        async function deleteFolder(folderId, folderName) {
+            showModal(
+                verificationModal,
+                `folder: "${folderName}"`,
+                `deleting`,
+                async (username, password) => {
+                    if (verificationStatus) {
+                        verificationStatus.classList.remove('hidden');
+                        verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                        verificationStatus.textContent = 'Verifying and deleting folder...';
+                    }
+                    try {
+                        const response = await fetch('/.netlify/functions/deleteFolder', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                property_id: currentSelectedProperty.id,
+                                folder_id: folderId,
+                                username: username,
+                                password: password
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            if (verificationStatus) {
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-100 text-green-700';
+                                verificationStatus.textContent = data.message;
+                            }
+                            setTimeout(async () => {
+                                hideModal(verificationModal);
+                                // If the deleted folder was the currently viewed one, switch to 'all files'
+                                if (currentFolder === folderId) {
+                                    currentFolder = 'all';
+                                }
+                                await displayPropertyFiles(currentFolder); // Refresh files and folders
+                            }, 1500);
+                        } else {
+                            if (verificationStatus) {
+                                verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                                verificationStatus.textContent = data.message || 'Deletion failed. Check credentials or try again.';
+                                if (modalPasswordInput) modalPasswordInput.value = '';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error during folder delete verification:', error);
+                        if (verificationStatus) {
+                            verificationStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                            verificationStatus.textContent = `Network error: ${error.message}`;
+                        }
+                    }
+                }
+            );
+        }
+
 
         // --- Fetch Properties from Netlify Function (Connected to Neon DB) ---
         // MOVED UP for proper function definition order
@@ -1366,7 +1522,7 @@
                 confirmActionButton.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
                 if (actionType === 'deleting') {
                     confirmActionButton.classList.add('bg-red-600', 'hover:bg-red-700');
-                } else if (actionType === 'updating') {
+                } else if (actionType === 'updating' || actionType === 'renaming') { // Added 'renaming'
                     confirmActionButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
                 }
             }
@@ -2556,7 +2712,7 @@
 
             try {
                 const foldersResponse = await fetch('/.netlify/functions/getFolders', {
-                    method: 'POST',
+                    method: 'POST', // getFolders function expects POST with auth
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         property_id: currentSelectedProperty.id,
@@ -2691,7 +2847,7 @@
                     finalFolderId = null;
                     finalFolderName = null;
                 }
-                 else { // This block handles existing folders (selectedFolderId is an actual folder ID)
+                   else { // This block handles existing folders (selectedFolderId is an actual folder ID)
                     finalFolderId = selectedFolderId;
                     const selectedFolder = folders.find(f => f.id === selectedFolderId);
                     if (selectedFolder) {
@@ -3042,6 +3198,14 @@
             }
 
             const newFolderName = folderName.trim();
+
+            // Check for existing folder name
+            const existingFolder = folders.find(f => f.name.toLowerCase() === newFolderName.toLowerCase());
+            if (existingFolder) {
+                showCustomAlert(`Folder "${newFolderName}" already exists.`);
+                return;
+            }
+
 
             try {
                 const response = await fetch('/.netlify/functions/createFolder', {
