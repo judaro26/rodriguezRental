@@ -81,38 +81,80 @@ exports.handler = async (event) => {
 
         await client.query('BEGIN'); // Start transaction
 
-        // 3. Get `cloudinary_public_id` for deletion from database
-        // --- MODIFICATION: Select cloudinary_public_id directly ---
+        // 3. Get `cloudinary_public_id` and `file_mime_type` for deletion from database
+        // --- MODIFICATION: Select file_mime_type as well ---
         const filesToDeleteResult = await client.query(
-            `SELECT cloudinary_public_id FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2`,
+            `SELECT cloudinary_public_id, file_mime_type FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2`,
             [file_ids, property_id]
         );
 
-        // Filter out null or empty public IDs to prevent Cloudinary errors
-        const cloudinaryPublicIds = filesToDeleteResult.rows
-            .map(file => file.cloudinary_public_id)
-            .filter(id => typeof id === 'string' && id.trim() !== ''); // Ensure it's a non-empty string
+        // Categorize public IDs by resource_type
+        const publicIdsByType = {
+            image: [],
+            raw: [],
+            video: []
+        };
+        const filesWithoutPublicId = [];
+
+        filesToDeleteResult.rows.forEach(file => {
+            const publicId = file.cloudinary_public_id;
+            const mimeType = file.file_mime_type;
+
+            if (typeof publicId === 'string' && publicId.trim() !== '') {
+                if (mimeType.startsWith('image/')) {
+                    publicIdsByType.image.push(publicId);
+                } else if (mimeType.startsWith('video/')) {
+                    publicIdsByType.video.push(publicId);
+                } else {
+                    // Treat all other document types (pdf, doc, xls etc.) as 'raw'
+                    publicIdsByType.raw.push(publicId);
+                }
+            } else {
+                filesWithoutPublicId.push(file); // Collect files missing valid public ID
+            }
+        });
 
         // Log any files that won't be deleted from Cloudinary
-        const filesWithoutPublicId = filesToDeleteResult.rows.filter(file => !file.cloudinary_public_id || typeof file.cloudinary_public_id !== 'string' || file.cloudinary_public_id.trim() === '');
         if (filesWithoutPublicId.length > 0) {
             console.warn(`Skipping Cloudinary deletion for ${filesWithoutPublicId.length} file(s) missing a valid public_id:`, filesWithoutPublicId);
         }
 
-        console.log("Public IDs to delete from Cloudinary:", cloudinaryPublicIds);
+        console.log("Public IDs categorized for deletion:", publicIdsByType);
 
-        // 4. Delete files from Cloudinary
-        if (cloudinaryPublicIds.length > 0) {
-            // Cloudinary's destroy method attempts to auto-detect resource type if not specified.
-            // Using 'delete_resources_by_prefix' is another option for folder-based deletion, but 'destroy'
-            // with individual public IDs is more precise when you have them.
-            const deleteResult = await cloudinary.api.delete_resources(cloudinaryPublicIds, {
-                invalidate: true, // Invalidate CDN cache
-                resource_type: 'auto' // Use 'auto' to let Cloudinary detect type (image, raw, video)
-            });
-            console.log('Cloudinary delete result:', deleteResult);
-            // deleteResult.deleted_counts will show status for each public_id
+        // 4. Delete files from Cloudinary for each resource type
+        const deletionPromises = [];
+
+        if (publicIdsByType.image.length > 0) {
+            deletionPromises.push(cloudinary.api.delete_resources(publicIdsByType.image, {
+                invalidate: true,
+                resource_type: 'image'
+            }));
         }
+        if (publicIdsByType.raw.length > 0) {
+            deletionPromises.push(cloudinary.api.delete_resources(publicIdsByType.raw, {
+                invalidate: true,
+                resource_type: 'raw'
+            }));
+        }
+        if (publicIdsByType.video.length > 0) {
+            deletionPromises.push(cloudinary.api.delete_resources(publicIdsByType.video, {
+                invalidate: true,
+                resource_type: 'video'
+            }));
+        }
+
+        // Wait for all Cloudinary deletions to complete
+        const deleteResults = await Promise.allSettled(deletionPromises);
+        deleteResults.forEach(result => {
+            if (result.status === 'fulfilled') {
+                console.log('Cloudinary delete result (fulfilled):', result.value);
+            } else {
+                console.error('Cloudinary delete failed (rejected):', result.reason);
+                // Optionally, you might decide to return an error here or continue
+                // and just log if Cloudinary deletion fails but DB deletion proceeds.
+                // For now, we'll let the DB deletion proceed.
+            }
+        });
 
         // 5. Delete file records from your database
         const deleteDbResult = await client.query(
