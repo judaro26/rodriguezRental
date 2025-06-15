@@ -1463,7 +1463,7 @@
                         if (registrationStatusMessage) registrationStatusMessage.classList.remove('hidden');
                         showPage(loginPage);
                         if (usernameInput) usernameInput.value = username;
-                        if (passwordInput) passwordInput.value = '';
+                        if (passwordInput) password.value = '';
                     } else {
                         if (registerErrorMessage) registerErrorMessage.classList.remove('hidden');
                         if (registerErrorText) registerErrorText.textContent = data.message || 'An unknown error occurred during registration.';
@@ -1787,7 +1787,7 @@
                                 const targetInput = document.getElementById(e.target.dataset.target);
                                 if (targetInput) {
                                     targetInput.type = targetInput.type === 'password' ? 'text' : 'password';
-                                    e.target.textContent = targetInput.type === 'password' ? '👁️' : '🙈';
+                                    e.target.textContent = targetInput.type === 'password' ? '�️' : '🙈';
                                 }
                             });
                         }
@@ -2652,8 +2652,15 @@
         if (confirmFolderSelectionBtn) {
             confirmFolderSelectionBtn.addEventListener('click', async () => {
                 const selectedFolderId = folderSelectDropdown.value;
-                let finalFolderId = null;
-                let finalFolderName = null;
+                let finalFolderId = null; // Initialize to null by default
+                let finalFolderName = null; // Initialize to null by default
+
+                // --- DEBUGGING LOGS ---
+                console.log("Confirm button clicked in folder modal.");
+                console.log("Selected Folder ID from dropdown:", selectedFolderId);
+                console.log("Current global 'folders' array:", folders);
+                // --- END DEBUGGING LOGS ---
+
 
                 if (selectedFolderId === 'new') {
                     const newName = newFolderNameInput.value.trim();
@@ -2665,14 +2672,27 @@
                     }
                     finalFolderName = newName;
                     finalFolderId = newName.toLowerCase().replace(/\s+/g, '-'); // Generate ID from name (consistent with createFolder)
-                } else if (selectedFolderId !== 'none') { // Treating 'all' and 'none' as unassigning from a folder
-                    // Existing folder selected
-                    finalFolderId = selectedFolderId;
-                    // Find the corresponding folder name from the global folders array
-                    const selectedFolder = folders.find(f => f.id === selectedFolderId);
-                    finalFolderName = selectedFolder ? selectedFolder.name : selectedFolderId; // Fallback to ID if name not found
+                } else if (selectedFolderId === 'none') {
+                    // Explicitly set to null if "No Folder" is selected. This is intentional.
+                    finalFolderId = null;
+                    finalFolderName = null;
                 }
-                // If selectedFolderId is 'none', finalFolderId and finalFolderName remain null
+                 else { // This block handles existing folders (selectedFolderId is an actual folder ID)
+                    finalFolderId = selectedFolderId;
+                    const selectedFolder = folders.find(f => f.id === selectedFolderId);
+                    if (selectedFolder) {
+                        finalFolderName = selectedFolder.name;
+                    } else {
+                        // Fallback if the selected ID wasn't found in the current folders array (shouldn't happen often)
+                        console.warn("Selected folder ID not found in global 'folders' array. Falling back to ID as name.", selectedFolderId);
+                        finalFolderName = selectedFolderId;
+                    }
+                }
+
+                // --- DEBUGGING LOGS ---
+                console.log("Final Folder ID to send:", finalFolderId);
+                console.log("Final Folder Name to send:", finalFolderName);
+                // --- END DEBUGGING LOGS ---
 
                 uploadFolderModalStatus.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-yellow-100', 'text-yellow-700');
                 uploadFolderModalStatus.classList.add('bg-blue-100', 'text-blue-700');
@@ -2698,6 +2718,7 @@
                         }
                         console.log('New folder created:', createFolderData.message);
                         // The `finalFolderId` generated earlier (kebab-cased name) should match the ID stored by createFolder.
+                        // We rely on `finalFolderId` being correctly set above.
                     }
 
                     uploadFolderModal.classList.add('hidden'); // Hide folder modal
@@ -2723,8 +2744,8 @@
                             uploaded_by_username: currentLoggedInUsername,
                             username: currentLoggedInUsername,
                             password: currentLoggedInPassword,
-                            folder_id: finalFolderId, // Pass the selected/new folder ID
-                            folder_name: finalFolderName // Pass the selected/new folder name
+                            folder_id: finalFolderId, // Pass the selected/new folder ID (should not be null unless explicitly "none")
+                            folder_name: finalFolderName // Pass the selected/new folder name (should not be null unless explicitly "none")
                         })
                     });
 
