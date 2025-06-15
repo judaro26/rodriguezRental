@@ -1352,6 +1352,10 @@
                 return; // Prevent further errors if modalElement is null
             }
             modalElement.classList.remove('hidden');
+            // --- FIX: Explicitly set display to flex to override inline/other CSS ---
+            modalElement.style.display = 'flex';
+            // --- END FIX ---
+
             if (modalItemToDeleteNameSpan) modalItemToDeleteNameSpan.textContent = itemName;
             if (modalPromptActionSpan) {
                 modalPromptActionSpan.textContent = `Please enter your credentials to confirm ${actionType} `;
@@ -1378,6 +1382,9 @@
 
         function hideModal(modalElement) {
             modalElement.classList.add('hidden');
+            // --- FIX: Explicitly set display to none when hiding ---
+            modalElement.style.display = 'none';
+            // --- END FIX ---
             currentVerificationCallback = null;
         }
 
@@ -2252,7 +2259,7 @@
                 if (updateDetailStatus) {
                     updateDetailStatus.classList.remove('hidden');
                     updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
-                    updateDetailStatus.textContent = 'Updating detail...';
+                    addDetailStatus.textContent = 'Saving detail...';
                 }
 
                 try {
