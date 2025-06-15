@@ -23,13 +23,25 @@ exports.handler = async (event) => {
     let client; // Declare client variable to ensure it's accessible in finally block
     try {
         // Parse the request body to get necessary data
-        const { property_id, filename, file_data_base64, uploaded_by_username, username, password } = JSON.parse(event.body);
+        // --- MODIFICATION: Destructure folder_id, folder_name, and file_mime_type ---
+        const {
+            property_id,
+            filename,
+            file_data_base64,
+            file_mime_type,       // Newly destructured
+            uploaded_by_username,
+            username,
+            password,
+            folder_id,            // Newly destructured
+            folder_name           // Newly destructured
+        } = JSON.parse(event.body);
 
         // Validate required fields
-        if (!property_id || !filename || !file_data_base64 || !uploaded_by_username || !username || !password) {
+        // --- MODIFICATION: Include file_mime_type in validation ---
+        if (!property_id || !filename || !file_data_base64 || !file_mime_type || !uploaded_by_username || !username || !password) {
             return {
                 statusCode: 400,
-                body: JSON.stringify({ message: 'Missing required fields.', details: 'property_id, filename, file_data_base64, uploaded_by_username, username, and password are all mandatory.' }),
+                body: JSON.stringify({ message: 'Missing required fields.', details: 'property_id, filename, file_data_base64, file_mime_type, uploaded_by_username, username, and password are all mandatory.' }),
             };
         }
 
@@ -95,7 +107,8 @@ exports.handler = async (event) => {
 
         // Upload to Cloudinary using the base64 data
         // resource_type: 'auto' allows Cloudinary to detect image, video, or raw (for documents)
-        const uploadResult = await cloudinary.uploader.upload(`data:image/jpeg;base64,${file_data_base64}`, { // NOTE: The `data:image/jpeg;base64,` prefix is an example. The actual prefix should come from client's FileReader result.
+        // --- MODIFICATION: Use dynamic file_mime_type ---
+        const uploadResult = await cloudinary.uploader.upload(`data:${file_mime_type};base64,${file_data_base64}`, {
             folder: cloudinaryFolder,
             public_id: publicId,
             resource_type: 'auto', // Automatically detect file type (image, video, raw)
@@ -108,10 +121,20 @@ exports.handler = async (event) => {
         // 4. Save file metadata to your database
         await client.query('BEGIN'); // Start a database transaction
 
+        // --- MODIFICATION: Include folder_id, folder_name, and cloudinary_public_id in INSERT statement ---
         const insertResult = await client.query(
-            `INSERT INTO property_files (property_id, filename, file_url, size, uploaded_by_username)
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`, // Insert into property_files table
-            [property_id, filename, fileUrl, fileSize, uploaded_by_username]
+            `INSERT INTO property_files (
+                property_id,
+                filename,
+                file_url,
+                size,
+                uploaded_by_username,
+                folder_id,            -- New column for folder ID
+                folder_name,          -- New column for folder name
+                cloudinary_public_id  -- New column for Cloudinary asset ID
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, // Insert into property_files table
+            // --- MODIFICATION: Pass folder_id, folder_name, and uploadResult.public_id as values ---
+            [property_id, filename, fileUrl, fileSize, uploaded_by_username, folder_id, folder_name, uploadResult.public_id]
         );
 
         await client.query('COMMIT'); // Commit the transaction if everything was successful
