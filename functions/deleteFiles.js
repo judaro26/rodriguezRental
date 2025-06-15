@@ -82,7 +82,7 @@ exports.handler = async (event) => {
         await client.query('BEGIN'); // Start transaction
 
         // 3. Get `cloudinary_public_id` and `file_mime_type` for deletion from database
-        // --- MODIFICATION: Select file_mime_type as well ---
+        // This query now explicitly selects `file_mime_type`. Ensure this column exists in your DB.
         const filesToDeleteResult = await client.query(
             `SELECT cloudinary_public_id, file_mime_type FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2`,
             [file_ids, property_id]
@@ -98,12 +98,12 @@ exports.handler = async (event) => {
 
         filesToDeleteResult.rows.forEach(file => {
             const publicId = file.cloudinary_public_id;
-            const mimeType = file.file_mime_type;
+            const mimeType = file.file_mime_type; // This will now be available from the DB query
 
             if (typeof publicId === 'string' && publicId.trim() !== '') {
-                if (mimeType.startsWith('image/')) {
+                if (mimeType && mimeType.startsWith('image/')) { // Check mimeType is not null/undefined
                     publicIdsByType.image.push(publicId);
-                } else if (mimeType.startsWith('video/')) {
+                } else if (mimeType && mimeType.startsWith('video/')) { // Check mimeType is not null/undefined
                     publicIdsByType.video.push(publicId);
                 } else {
                     // Treat all other document types (pdf, doc, xls etc.) as 'raw'
