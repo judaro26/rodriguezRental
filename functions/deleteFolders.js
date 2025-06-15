@@ -1,176 +1,89 @@
-// netlify/functions/deleteFolders.js
+// netlify/functions/deleteFolder.js
 const { Pool } = require('pg');
-const bcrypt = require('bcryptjs');
-const cloudinary = require('cloudinary').v2;
 
-// Configure Cloudinary
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false,
+    },
 });
 
-exports.handler = async (event) => {
+exports.handler = async (event, context) => {
     if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, body: 'Method Not Allowed' };
+    }
+
+    const { property_id, folder_id, username, password } = JSON.parse(event.body);
+
+    if (!property_id || !folder_id || !username || !password) {
         return {
-            statusCode: 405,
-            body: JSON.stringify({ message: 'Method Not Allowed', details: 'Only POST requests are accepted.' }),
-            headers: { 'Allow': 'POST' }
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Missing required fields: property_id, folder_id, username, password' }),
         };
     }
 
-    let client;
+    const client = await pool.connect();
     try {
-        const { folder_ids, property_id, username, password } = JSON.parse(event.body);
+        // Authenticate user
+        const userAuthQuery = 'SELECT id, is_admin, foreign_approved, domestic_approved FROM users WHERE username = $1 AND password = crypt($2, password)';
+        const userAuthResult = await client.query(userAuthQuery, [username, password]);
 
-        if (!folder_ids || !Array.isArray(folder_ids) || folder_ids.length === 0 || !property_id || !username || !password) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ message: 'Missing required fields.', details: 'folder_ids (array), property_id, username, and password are all mandatory.' }),
-            };
-        }
-
-        const pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-            ssl: {
-                rejectUnauthorized: false,
-            },
-        });
-        client = await pool.connect();
-
-        // 1. Authenticate user
-        const authResult = await client.query(
-            'SELECT password_hash, foreign_approved, domestic_approved FROM users WHERE username = $1',
-            [username]
-        );
-        const user = authResult.rows[0];
-
-        if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+        if (userAuthResult.rows.length === 0) {
             return {
                 statusCode: 401,
-                body: JSON.stringify({ message: 'Authentication failed. Invalid username or password.' }),
+                body: JSON.stringify({ message: 'Invalid credentials. Folder deletion denied.' }),
             };
         }
+        const user = userAuthResult.rows[0];
 
-        // 2. Authorize user for the property
-        const propertyResult = await client.query(
-            'SELECT is_foreign FROM properties WHERE id = $1',
-            [property_id]
-        );
-        const property = propertyResult.rows[0];
+        // Authorize: Only admin or approved users can delete folders
+        const propertyCheckQuery = 'SELECT id, is_foreign FROM properties WHERE id = $1';
+        const propertyCheckResult = await client.query(propertyCheckQuery, [property_id]);
 
-        if (!property) {
+        if (propertyCheckResult.rows.length === 0) {
             return {
                 statusCode: 404,
-                body: JSON.stringify({ message: 'Property not found.', details: `Property with ID ${property_id} does not exist.` }),
+                body: JSON.stringify({ message: 'Property not found.' }),
             };
         }
+        const property = propertyCheckResult.rows[0];
 
         if (property.is_foreign && !user.foreign_approved) {
             return {
                 statusCode: 403,
-                body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage foreign properties.' }),
+                body: JSON.stringify({ message: 'User not approved to manage foreign properties.' }),
             };
         }
         if (!property.is_foreign && !user.domestic_approved) {
             return {
                 statusCode: 403,
-                body: JSON.stringify({ message: 'Forbidden: You are not authorized to manage domestic properties.' }),
+                body: JSON.stringify({ message: 'User not approved to manage domestic properties.' }),
             };
         }
 
-        await client.query('BEGIN'); // Start transaction
+        // Start a transaction to ensure atomicity
+        await client.query('BEGIN');
 
-        // 3. Get all files associated with the folders to be deleted
-        const filesInFoldersResult = await client.query(
-            `SELECT id, cloudinary_public_id, file_mime_type FROM property_files WHERE folder_id = ANY($1::text[]) AND property_id = $2`,
-            [folder_ids, property_id]
-        );
+        // IMPORTANT: Decide if you want to delete files or reassign them
+        // Option 1: Reassign files to no folder (folder_id = NULL)
+        const updateFilesQuery = 'UPDATE files SET folder_id = NULL, folder_name = NULL WHERE property_id = $1 AND folder_id = $2';
+        await client.query(updateFilesQuery, [property_id, folder_id]);
+        const filesAffected = client.queryResult.rowCount; // Get count of files affected
 
-        // Categorize public IDs by resource_type for Cloudinary deletion
-        const publicIdsByType = {
-            image: [],
-            raw: [],
-            video: []
-        };
-        const filesMissingPublicId = [];
+        // Option 2: Delete all files within the folder (uncomment this and remove Option 1 if preferred)
+        // const deleteFilesQuery = 'DELETE FROM files WHERE property_id = $1 AND folder_id = $2';
+        // await client.query(deleteFilesQuery, [property_id, folder_id]);
+        // const filesAffected = client.queryResult.rowCount;
 
-        filesInFoldersResult.rows.forEach(file => {
-            const publicId = file.cloudinary_public_id;
-            const mimeType = file.file_mime_type;
+        // Delete the folder entry itself
+        const deleteFolderQuery = 'DELETE FROM folders WHERE property_id = $1 AND id = $2 RETURNING *';
+        const deleteFolderResult = await client.query(deleteFolderQuery, [property_id, folder_id]);
 
-            if (typeof publicId === 'string' && publicId.trim() !== '') {
-                if (mimeType && mimeType.startsWith('image/')) {
-                    publicIdsByType.image.push(publicId);
-                } else if (mimeType && mimeType.startsWith('video/')) {
-                    publicIdsByType.video.push(publicId);
-                } else {
-                    publicIdsByType.raw.push(publicId);
-                }
-            } else {
-                filesMissingPublicId.push(file.id); // Collect IDs of files that won't be deleted from Cloudinary
-            }
-        });
-
-        if (filesMissingPublicId.length > 0) {
-            console.warn(`Skipping Cloudinary deletion for ${filesMissingPublicId.length} file(s) within deleted folders due to missing/invalid public_id. Their DB records will still be deleted. File IDs:`, filesMissingPublicId);
-        }
-        console.log("Files in folders categorized for deletion:", publicIdsByType);
-
-
-        // 4. Delete files from Cloudinary for each resource type
-        const cloudinaryDeletionPromises = [];
-
-        if (publicIdsByType.image.length > 0) {
-            cloudinaryDeletionPromises.push(cloudinary.api.delete_resources(publicIdsByType.image, {
-                invalidate: true,
-                resource_type: 'image'
-            }));
-        }
-        if (publicIdsByType.raw.length > 0) {
-            cloudinaryDeletionPromises.push(cloudinary.api.delete_resources(publicIdsByType.raw, {
-                invalidate: true,
-                resource_type: 'raw'
-            }));
-        }
-        if (publicIdsByType.video.length > 0) {
-            cloudinaryDeletionPromises.push(cloudinary.api.delete_resources(publicIdsByType.video, {
-                invalidate: true,
-                resource_type: 'video'
-            }));
-        }
-
-        // Wait for Cloudinary deletions to complete, but don't block DB deletion if Cloudinary fails
-        const cloudinaryDeleteResults = await Promise.allSettled(cloudinaryDeletionPromises);
-        cloudinaryDeleteResults.forEach(result => {
-            if (result.status === 'fulfilled') {
-                console.log('Cloudinary folder content delete result (fulfilled):', result.value);
-            } else {
-                console.error('Cloudinary folder content delete failed (rejected):', result.reason);
-            }
-        });
-
-        // 5. Delete file records from the database that belong to the deleted folders
-        const deletedFileIds = filesInFoldersResult.rows.map(file => file.id);
-        if (deletedFileIds.length > 0) {
-            const deleteFilesInDbResult = await client.query(
-                `DELETE FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2 RETURNING id`,
-                [deletedFileIds, property_id]
-            );
-            console.log(`Deleted ${deleteFilesInDbResult.rowCount} file records from DB.`);
-        }
-
-        // 6. Delete folder records from the database
-        const deleteFoldersDbResult = await client.query(
-            `DELETE FROM folders WHERE id = ANY($1::text[]) AND property_id = $2 RETURNING id`,
-            [folder_ids, property_id]
-        );
-
-        if (deleteFoldersDbResult.rowCount !== folder_ids.length) {
+        if (deleteFolderResult.rows.length === 0) {
             await client.query('ROLLBACK');
             return {
                 statusCode: 404,
-                body: JSON.stringify({ message: 'Some folders could not be found or deleted from the database.', deletedCount: deleteFoldersDbResult.rowCount }),
+                body: JSON.stringify({ message: 'Folder not found for this property.' }),
             };
         }
 
@@ -178,24 +91,17 @@ exports.handler = async (event) => {
 
         return {
             statusCode: 200,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ message: `Successfully deleted ${deleteFoldersDbResult.rowCount} folder(s) and their contents.` }),
+            body: JSON.stringify({ message: `Folder "${folderName}" and its ${filesAffected} files (reassigned) deleted successfully!` }),
         };
 
     } catch (error) {
-        console.error('Error in deleteFolders function:', error);
-        if (client) {
-            await client.query('ROLLBACK');
-        }
+        await client.query('ROLLBACK');
+        console.error('Error deleting folder:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to delete folders.', details: error.message }),
+            body: JSON.stringify({ message: 'Failed to delete folder.', details: error.message }),
         };
     } finally {
-        if (client) {
-            client.release();
-        }
+        client.release();
     }
 };
