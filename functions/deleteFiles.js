@@ -81,38 +81,37 @@ exports.handler = async (event) => {
 
         await client.query('BEGIN'); // Start transaction
 
-        // 3. Get file_url and filename (to derive public_id) from database for deletion in Cloudinary
+        // 3. Get `cloudinary_public_id` for deletion from database
+        // --- MODIFICATION: Select cloudinary_public_id directly ---
         const filesToDeleteResult = await client.query(
-            `SELECT file_url, filename FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2`,
+            `SELECT cloudinary_public_id FROM property_files WHERE id = ANY($1::int[]) AND property_id = $2`,
             [file_ids, property_id]
         );
 
-        const cloudinaryPublicIds = filesToDeleteResult.rows.map(file => {
-            // Attempt to derive Cloudinary public_id from the stored file_url
-            // This assumes the Cloudinary public_id is part of the URL path after '/upload/'
-            const urlParts = file.file_url.split('/upload/');
-            if (urlParts.length > 1) {
-                const pathAfterUpload = urlParts[1];
-                // Remove version number (e.g., /v123456789/) and file extension
-                const publicIdWithPotentialVersionAndExtension = pathAfterUpload.split('/').slice(1).join('/');
-                return publicIdWithPotentialVersionAndExtension.split('.')[0]; // Get only the public ID part
-            }
-            return null;
-        }).filter(Boolean); // Filter out any nulls
+        // Filter out null or empty public IDs to prevent Cloudinary errors
+        const cloudinaryPublicIds = filesToDeleteResult.rows
+            .map(file => file.cloudinary_public_id)
+            .filter(id => typeof id === 'string' && id.trim() !== ''); // Ensure it's a non-empty string
 
-        console.log("Derived Public IDs to delete from Cloudinary:", cloudinaryPublicIds);
+        // Log any files that won't be deleted from Cloudinary
+        const filesWithoutPublicId = filesToDeleteResult.rows.filter(file => !file.cloudinary_public_id || typeof file.cloudinary_public_id !== 'string' || file.cloudinary_public_id.trim() === '');
+        if (filesWithoutPublicId.length > 0) {
+            console.warn(`Skipping Cloudinary deletion for ${filesWithoutPublicId.length} file(s) missing a valid public_id:`, filesWithoutPublicId);
+        }
+
+        console.log("Public IDs to delete from Cloudinary:", cloudinaryPublicIds);
 
         // 4. Delete files from Cloudinary
         if (cloudinaryPublicIds.length > 0) {
             // Cloudinary's destroy method attempts to auto-detect resource type if not specified.
-            // For batch deletion, it's safer to specify 'image' if most are images,
-            // or iterate and determine resource_type per file if highly mixed (e.g., pdfs are 'raw').
-            // Using 'image' as a common default. If PDFs fail, this is the area to investigate.
-            const deleteResult = await cloudinary.uploader.destroy(cloudinaryPublicIds, {
-                invalidate: true // Invalidate CDN cache
+            // Using 'delete_resources_by_prefix' is another option for folder-based deletion, but 'destroy'
+            // with individual public IDs is more precise when you have them.
+            const deleteResult = await cloudinary.api.delete_resources(cloudinaryPublicIds, {
+                invalidate: true, // Invalidate CDN cache
+                resource_type: 'auto' // Use 'auto' to let Cloudinary detect type (image, raw, video)
             });
             console.log('Cloudinary delete result:', deleteResult);
-            // deleteResult.result will be 'ok' or 'not found' for each public_id
+            // deleteResult.deleted_counts will show status for each public_id
         }
 
         // 5. Delete file records from your database
