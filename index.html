@@ -747,7 +747,6 @@
             </button>
         </div>
     </div>
-</div>
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         // --- DOM Elements ---
@@ -1133,9 +1132,11 @@
                 // Add delete button event listener
                 const deleteBtn = fileItem.querySelector('.delete-file-btn');
                 if (deleteBtn) {
+                    console.log(`Attaching delete listener to file: ${file.filename}`); // DEBUG LOG
                     deleteBtn.addEventListener('click', (e) => {
                         e.stopPropagation(); // Prevent toggling selection
-                        // === DELETE FILE LOGIC ===
+                        console.log(`Delete button clicked for file: ${file.filename}`); // DEBUG LOG
+                        console.log("verificationModal element:", verificationModal); // DEBUG LOG
                         showModal( // Replaced confirm with showModal as per instructions
                             verificationModal,
                             `file: "${file.filename}"`,
@@ -1344,6 +1345,12 @@
 
         // --- Show/Hide Modal Function ---
         function showModal(modalElement, itemName, actionType, callback) {
+            console.log("showModal called for:", itemName, "action:", actionType); // DEBUG LOG
+            console.log("modalElement received:", modalElement); // DEBUG LOG
+            if (!modalElement) {
+                console.error("showModal: modalElement is null or undefined. Cannot display modal.");
+                return; // Prevent further errors if modalElement is null
+            }
             modalElement.classList.remove('hidden');
             if (modalItemToDeleteNameSpan) modalItemToDeleteNameSpan.textContent = itemName;
             if (modalPromptActionSpan) {
@@ -1463,7 +1470,7 @@
                         if (registrationStatusMessage) registrationStatusMessage.classList.remove('hidden');
                         showPage(loginPage);
                         if (usernameInput) usernameInput.value = username;
-                        if (passwordInput) password.value = '';
+                        if (passwordInput) passwordInput.value = '';
                     } else {
                         if (registerErrorMessage) registerErrorMessage.classList.remove('hidden');
                         if (registerErrorText) registerErrorText.textContent = data.message || 'An unknown error occurred during registration.';
@@ -1787,7 +1794,7 @@
                                 const targetInput = document.getElementById(e.target.dataset.target);
                                 if (targetInput) {
                                     targetInput.type = targetInput.type === 'password' ? 'text' : 'password';
-                                    e.target.textContent = targetInput.type === 'password' ? '�️' : '🙈';
+                                    e.target.textContent = targetInput.type === 'password' ? '👁️' : '🙈';
                                 }
                             });
                         }
