@@ -179,7 +179,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('addDetailCategoryNameSpan:', addDetailCategoryNameSpan);
 
     // Update Category Detail Page Elements
-    const updateCategoryDetailPage = document.getElementById('update-category-detail-page'); // <-- THIS IS THE LINE THAT WAS CAUSING THE ERROR
     console.log('updateCategoryDetailPage:', updateCategoryDetailPage); // Added log for this specific variable
     const updateDetailForm = document.getElementById('update-detail-form');
     console.log('updateDetailForm:', updateDetailForm);
