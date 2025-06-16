@@ -9,192 +9,267 @@ import { displayPropertyFiles, createFolder, deleteFiles, moveFiles, initFileUpl
 import { renderPropertyCards, updateFilterButtonsHighlight } from './ui/property-renderer.js';
 import { renderPropertyCategories, displayCategoryDetails as renderCategoryDetailsUI } from './ui/category-renderer.js';
 import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersList } from './ui/file-renderer.js';
-import { presetLogos } from './constants.js';
 
 
-// --- Global Application State (kept minimal in main.js) ---
+// --- Global Application State (NOT DOM elements - these are data states) ---
 let currentSelectedProperty = null;
 let currentSelectedCategoryName = null;
 let currentLoggedInUsername = ''; // Keep these here for passing to functions
-
-// --- Declare UI elements at top-level with 'let' ---
-// These will be assigned their actual DOM references inside DOMContentLoaded.
-let loginPage, registerPage, propertySelectionPage, addPropertyPage, propertyCategoriesPage,
-    addCategoryDetailPage, addNewCategoryPage, updatePropertyPage, updateCategoryDetailPage,
-    propertyFilesContent, verificationModal, uploadFolderModal;
-
-let loginForm, usernameInput, passwordInput, showRegisterFormBtn;
-let registerForm, regUsernameInput, regPasswordInput, backToLoginFromRegisterBtn;
-
-let propertyCardsContainer, propertiesLoadingMessage, propertiesErrorText, propertiesErrorMessage;
-let addPropertyButton, refreshPropertiesButton, backToLoginBtn;
-let filterAllPropertiesBtn, filterDomesticPropertiesBtn, filterForeignPropertiesBtn;
-
-let propertyCategoriesNav, categoryDetailsHeading, dynamicCategoryButtonsContainer, categoryLoadingMessage;
-let addNewCategoryButton, deleteCategoryButton, refreshCategoriesButtonOnCategoriesPage, viewFilesButton;
-let propertyHeader, currentPropertyTitle, currentPropertyThumbnail, addCategoryDetailButtonAtBottom;
-
-let addPropertyForm, propertyTitleInput, propertyImageInput, propertyDescriptionInput, propertyCategoriesInput,
-    cancelAddPropertyButton, addPropertyStatus, backFromAddPropertyBtn, propertyIsForeignInput;
-
-let updatePropertyForm, updatePropertyIdInput, updatePropertyTitleInput, updatePropertyImageInput,
-    updatePropertyDescriptionInput, updatePropertyCategoriesInput, updatePropertyIsForeignInput,
-    cancelUpdatePropertyButton, updatePropertyStatus, backFromUpdatePropertyBtn;
-
-let addNewCategoryForm, newCategoryNameInput, categoryPropertyTitleSpan, cancelNewCategoryButton, addNewCategoryStatus;
-
-let addDetailForm, detailNameInput, detailUrlInput, detailDescriptionInput, presetLogoPicker, customLogoUrlInput,
-    detailUsernameAddInput, detailPasswordAddInput, cancelAddDetailButton, addDetailStatus, addDetailCategoryNameSpan;
-
-let updateDetailForm, updateDetailIdInput, updateDetailNameInput, updateDetailUrlInput,
-    updateDetailDescriptionInput, updatePresetLogoPicker, updateCustomLogoUrlInput, updateDetailUsernameInput,
-    updateDetailPasswordInput, cancelUpdateDetailButton, updateDetailStatus;
-
-let filesPropertyTitleSpan, filesPropertyThumbnail, fileUploadInput, uploadFileButton, fileUploadStatus;
-let filesListContainer, backFromFilesButton, createFolderButton, moveToFolderButton, deleteSelectedFilesButton;
-
-let foldersList, currentFolderTitle;
-let folderSelectDropdown, newFolderNameContainer, newFolderNameInput, cancelFolderSelectionBtn, confirmFolderSelectionBtn, uploadFolderModalStatus;
 
 
 // --- Application Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // PART 1: GET ALL DOM ELEMENT REFERENCES. THIS SECTION MUST BE EXECUTED COMPLETELY FIRST.
-    // Ensure all assignments are done here before any variable is USED outside of its assignment line.
+    // --- PART 1: GET ALL DOM ELEMENT REFERENCES (Declared as const, locally within DOMContentLoaded) ---
+    // This section MUST be executed first inside DOMContentLoaded.
+    // Every variable here will reliably hold either the HTMLElement or null.
+
+    console.log('--- DOM Element Retrieval Start ---');
 
     // Pages and Modals
-    loginPage = document.getElementById('login-page');
-    registerPage = document.getElementById('register-page');
-    propertySelectionPage = document.getElementById('property-selection-page');
-    addPropertyPage = document.getElementById('add-property-page');
-    propertyCategoriesPage = document.getElementById('property-categories-page');
-    addCategoryDetailPage = document.getElementById('add-category-detail-page');
-    addNewCategoryPage = document.getElementById('add-new-category-page');
-    updatePropertyPage = document.getElementById('update-property-page');
-    updateCategoryDetailPage = document.getElementById('update-category-detail-page');
-    propertyFilesContent = document.getElementById('property-files-content');
-    verificationModal = document.getElementById('verification-modal');
-    uploadFolderModal = document.getElementById('upload-folder-modal');
+    const loginPage = document.getElementById('login-page');
+    console.log('loginPage:', loginPage);
+    const registerPage = document.getElementById('register-page');
+    console.log('registerPage:', registerPage);
+    const propertySelectionPage = document.getElementById('property-selection-page');
+    console.log('propertySelectionPage:', propertySelectionPage);
+    const addPropertyPage = document.getElementById('add-property-page');
+    console.log('addPropertyPage:', addPropertyPage);
+    const propertyCategoriesPage = document.getElementById('property-categories-page');
+    console.log('propertyCategoriesPage:', propertyCategoriesPage);
+    const addCategoryDetailPage = document.getElementById('add-category-detail-page');
+    console.log('addCategoryDetailPage:', addCategoryDetailPage);
+    const addNewCategoryPage = document.getElementById('add-new-category-page');
+    console.log('addNewCategoryPage:', addNewCategoryPage);
+    const updatePropertyPage = document.getElementById('update-property-page');
+    console.log('updatePropertyPage:', updatePropertyPage);
+    const updateCategoryDetailPage = document.getElementById('update-category-detail-page');
+    console.log('updateCategoryDetailPage:', updateCategoryDetailPage);
+    const propertyFilesContent = document.getElementById('property-files-content');
+    console.log('propertyFilesContent:', propertyFilesContent);
+    const verificationModal = document.getElementById('verification-modal');
+    console.log('verificationModal:', verificationModal);
+    const uploadFolderModal = document.getElementById('upload-folder-modal');
+    console.log('uploadFolderModal:', uploadFolderModal);
 
     // Login/Register Elements
-    loginForm = document.getElementById('login-form');
-    usernameInput = document.getElementById('username');
-    passwordInput = document.getElementById('password');
-    showRegisterFormBtn = document.getElementById('show-register-form-btn');
-    backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn'); // Assign here
-    registerForm = document.getElementById('register-form');
-    regUsernameInput = document.getElementById('reg-username');
-    regPasswordInput = document.getElementById('reg-password');
+    const loginForm = document.getElementById('login-form');
+    console.log('loginForm:', loginForm);
+    const usernameInput = document.getElementById('username');
+    console.log('usernameInput:', usernameInput);
+    const passwordInput = document.getElementById('password');
+    console.log('passwordInput:', passwordInput);
+    const showRegisterFormBtn = document.getElementById('show-register-form-btn');
+    console.log('showRegisterFormBtn:', showRegisterFormBtn);
+    const backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn');
+    console.log('backToLoginFromRegisterBtn:', backToLoginFromRegisterBtn);
+    const registerForm = document.getElementById('register-form');
+    console.log('registerForm:', registerForm);
+    const regUsernameInput = document.getElementById('reg-username');
+    console.log('regUsernameInput:', regUsernameInput);
+    const regPasswordInput = document.getElementById('reg-password');
+    console.log('regPasswordInput:', regPasswordInput);
 
 
     // Property Selection Page Elements
-    propertyCardsContainer = document.getElementById('property-cards-container');
-    propertiesLoadingMessage = document.getElementById('properties-loading-message');
-    propertiesErrorText = document.getElementById('properties-error-text');
-    propertiesErrorMessage = document.getElementById('properties-error-message');
-    addPropertyButton = document.getElementById('add-property-button');
-    refreshPropertiesButton = document.getElementById('refresh-properties-button');
-    backToLoginBtn = document.getElementById('back-to-login-btn'); // Assign here
-    filterAllPropertiesBtn = document.getElementById('filter-all-properties');
-    filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
-    filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
+    const propertyCardsContainer = document.getElementById('property-cards-container');
+    console.log('propertyCardsContainer:', propertyCardsContainer);
+    const propertiesLoadingMessage = document.getElementById('properties-loading-message');
+    console.log('propertiesLoadingMessage:', propertiesLoadingMessage);
+    const propertiesErrorText = document.getElementById('properties-error-text');
+    console.log('propertiesErrorText:', propertiesErrorText);
+    const propertiesErrorMessage = document.getElementById('properties-error-message');
+    console.log('propertiesErrorMessage:', propertiesErrorMessage);
+    const addPropertyButton = document.getElementById('add-property-button');
+    console.log('addPropertyButton:', addPropertyButton);
+    const refreshPropertiesButton = document.getElementById('refresh-properties-button');
+    console.log('refreshPropertiesButton:', refreshPropertiesButton);
+    const backToLoginBtn = document.getElementById('back-to-login-btn');
+    console.log('backToLoginBtn:', backToLoginBtn);
+    const filterAllPropertiesBtn = document.getElementById('filter-all-properties');
+    console.log('filterAllPropertiesBtn:', filterAllPropertiesBtn);
+    const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
+    console.log('filterDomesticPropertiesBtn:', filterDomesticPropertiesBtn);
+    const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
+    console.log('filterForeignPropertiesBtn:', filterForeignPropertiesBtn);
 
     // Add Property Page Elements
-    addPropertyForm = document.getElementById('add-property-form');
-    propertyTitleInput = document.getElementById('property-title');
-    propertyImageInput = document.getElementById('property-image');
-    propertyDescriptionInput = document.getElementById('property-description');
-    propertyCategoriesInput = document.getElementById('property-categories');
-    cancelAddPropertyButton = document.getElementById('cancel-add-property');
-    addPropertyStatus = document.getElementById('add-property-status');
-    backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn'); // Assign here
-    propertyIsForeignInput = document.getElementById('property-is-foreign');
+    const addPropertyForm = document.getElementById('add-property-form');
+    console.log('addPropertyForm:', addPropertyForm);
+    const propertyTitleInput = document.getElementById('property-title');
+    console.log('propertyTitleInput:', propertyTitleInput);
+    const propertyImageInput = document.getElementById('property-image');
+    console.log('propertyImageInput:', propertyImageInput);
+    const propertyDescriptionInput = document.getElementById('property-description');
+    console.log('propertyDescriptionInput:', propertyDescriptionInput);
+    const propertyCategoriesInput = document.getElementById('property-categories');
+    console.log('propertyCategoriesInput:', propertyCategoriesInput);
+    const cancelAddPropertyButton = document.getElementById('cancel-add-property');
+    console.log('cancelAddPropertyButton:', cancelAddPropertyButton);
+    const addPropertyStatus = document.getElementById('add-property-status');
+    console.log('addPropertyStatus:', addPropertyStatus);
+    const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn');
+    console.log('backFromAddPropertyBtn:', backFromAddPropertyBtn);
+    const propertyIsForeignInput = document.getElementById('property-is-foreign');
+    console.log('propertyIsForeignInput:', propertyIsForeignInput);
 
     // Property Categories Page Elements
-    propertyCategoriesNav = document.getElementById('property-categories-nav');
-    categoryDetailsHeading = document.getElementById('current-property-title');
-    dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
-    categoryLoadingMessage = document.getElementById('category-loading-message');
-    backToPropertiesBtn = document.getElementById('back-to-properties-btn'); // Assign here - THIS IS THE ONE FROM THE ERROR
-    addNewCategoryButton = document.getElementById('add-new-category-button');
-    deleteCategoryButton = document.getElementById('delete-category-button');
-    refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
-    viewFilesButton = document.getElementById('view-files-button');
-    propertyHeader = document.getElementById('property-header');
-    currentPropertyTitle = document.getElementById('current-property-title');
-    currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
-    addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom');
+    const propertyCategoriesNav = document.getElementById('property-categories-nav');
+    console.log('propertyCategoriesNav:', propertyCategoriesNav);
+    const categoryDetailsHeading = document.getElementById('current-property-title');
+    console.log('categoryDetailsHeading:', categoryDetailsHeading);
+    const dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
+    console.log('dynamicCategoryButtonsContainer:', dynamicCategoryButtonsContainer);
+    const categoryLoadingMessage = document.getElementById('category-loading-message');
+    console.log('categoryLoadingMessage:', categoryLoadingMessage);
+    const backToPropertiesBtn = document.getElementById('back-to-properties-btn'); // THIS IS THE ONE FROM THE ERROR
+    console.log('backToPropertiesBtn:', backToPropertiesBtn); // Crucial log for this variable
+    const addNewCategoryButton = document.getElementById('add-new-category-button');
+    console.log('addNewCategoryButton:', addNewCategoryButton);
+    const deleteCategoryButton = document.getElementById('delete-category-button');
+    console.log('deleteCategoryButton:', deleteCategoryButton);
+    const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
+    console.log('refreshCategoriesButtonOnCategoriesPage:', refreshCategoriesButtonOnCategoriesPage);
+    const viewFilesButton = document.getElementById('view-files-button');
+    console.log('viewFilesButton:', viewFilesButton);
+    const propertyHeader = document.getElementById('property-header');
+    console.log('propertyHeader:', propertyHeader);
+    const currentPropertyTitle = document.getElementById('current-property-title');
+    console.log('currentPropertyTitle:', currentPropertyTitle);
+    const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
+    console.log('currentPropertyThumbnail:', currentPropertyThumbnail);
+    const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom');
+    console.log('addCategoryDetailButtonAtBottom:', addCategoryDetailButtonAtBottom);
 
     // Add New Category Page Elements
-    addNewCategoryForm = document.getElementById('add-new-category-form');
-    newCategoryNameInput = document.getElementById('new-category-name');
-    categoryPropertyTitleSpan = document.getElementById('category-property-title');
-    cancelNewCategoryButton = document.getElementById('cancel-new-category');
-    addNewCategoryStatus = document.getElementById('add-new-category-status');
+    const addNewCategoryForm = document.getElementById('add-new-category-form');
+    console.log('addNewCategoryForm:', addNewCategoryForm);
+    const newCategoryNameInput = document.getElementById('new-category-name');
+    console.log('newCategoryNameInput:', newCategoryNameInput);
+    const categoryPropertyTitleSpan = document.getElementById('category-property-title');
+    console.log('categoryPropertyTitleSpan:', categoryPropertyTitleSpan);
+    const cancelNewCategoryButton = document.getElementById('cancel-new-category');
+    console.log('cancelNewCategoryButton:', cancelNewCategoryButton);
+    const addNewCategoryStatus = document.getElementById('add-new-category-status');
+    console.log('addNewCategoryStatus:', addNewCategoryStatus);
 
     // Add Category Detail Page Elements
-    addDetailForm = document.getElementById('add-detail-form');
-    detailNameInput = document.getElementById('detail-name');
-    detailUrlInput = document.getElementById('detail-url');
-    detailDescriptionInput = document.getElementById('detail-description');
-    presetLogoPicker = document.getElementById('preset-logo-picker');
-    customLogoUrlInput = document.getElementById('custom-logo-url');
-    detailUsernameAddInput = document.getElementById('detail-username-add');
-    detailPasswordAddInput = document.getElementById('detail-password-add');
-    cancelAddDetailButton = document.getElementById('cancel-add-detail');
-    addDetailStatus = document.getElementById('add-detail-status');
-    addDetailCategoryNameSpan = document.getElementById('add-detail-category-name');
+    const addDetailForm = document.getElementById('add-detail-form');
+    console.log('addDetailForm:', addDetailForm);
+    const detailNameInput = document.getElementById('detail-name');
+    console.log('detailNameInput:', detailNameInput);
+    const detailUrlInput = document.getElementById('detail-url');
+    console.log('detailUrlInput:', detailUrlInput);
+    const detailDescriptionInput = document.getElementById('detail-description');
+    console.log('detailDescriptionInput:', detailDescriptionInput);
+    const presetLogoPicker = document.getElementById('preset-logo-picker');
+    console.log('presetLogoPicker:', presetLogoPicker);
+    const customLogoUrlInput = document.getElementById('custom-logo-url');
+    console.log('customLogoUrlInput:', customLogoUrlInput);
+    const detailUsernameAddInput = document.getElementById('detail-username-add');
+    console.log('detailUsernameAddInput:', detailUsernameAddInput);
+    const detailPasswordAddInput = document.getElementById('detail-password-add');
+    console.log('detailPasswordAddInput:', detailPasswordAddInput);
+    const cancelAddDetailButton = document.getElementById('cancel-add-detail');
+    console.log('cancelAddDetailButton:', cancelAddDetailButton);
+    const addDetailStatus = document.getElementById('add-detail-status');
+    console.log('addDetailStatus:', addDetailStatus);
+    const addDetailCategoryNameSpan = document.getElementById('add-detail-category-name');
+    console.log('addDetailCategoryNameSpan:', addDetailCategoryNameSpan);
 
     // Update Category Detail Page Elements
-    updateCategoryDetailPage = document.getElementById('update-category-detail-page');
-    updateDetailForm = document.getElementById('update-detail-form');
-    updateDetailIdInput = document.getElementById('update-detail-id');
-    updateDetailNameInput = document.getElementById('update-detail-name');
-    updateDetailUrlInput = document.getElementById('update-detail-url');
-    updateDetailDescriptionInput = document.getElementById('update-detail-description');
-    updatePresetLogoPicker = document.getElementById('update-preset-logo-picker');
-    updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url');
-    updateDetailUsernameInput = document.getElementById('update-detail-username');
-    updateDetailPasswordInput = document.getElementById('update-detail-password');
-    cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
-    updateDetailStatus = document.getElementById('update-detail-status');
-    backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn'); // Assign here
-    updateDetailCategoryNameSpan = document.getElementById('update-detail-category-name');
+    const updateCategoryDetailPage = document.getElementById('update-category-detail-page');
+    console.log('updateCategoryDetailPage:', updateCategoryDetailPage);
+    const updateDetailForm = document.getElementById('update-detail-form');
+    console.log('updateDetailForm:', updateDetailForm);
+    const updateDetailIdInput = document.getElementById('update-detail-id');
+    console.log('updateDetailIdInput:', updateDetailIdInput);
+    const updateDetailNameInput = document.getElementById('update-detail-name');
+    console.log('updateDetailNameInput:', updateDetailNameInput);
+    const updateDetailUrlInput = document.getElementById('update-detail-url');
+    console.log('updateDetailUrlInput:', updateDetailUrlInput);
+    const updateDetailDescriptionInput = document.getElementById('update-detail-description');
+    console.log('updateDetailDescriptionInput:', updateDetailDescriptionInput);
+    const updatePresetLogoPicker = document.getElementById('update-preset-logo-picker');
+    console.log('updatePresetLogoPicker:', updatePresetLogoPicker);
+    const updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url');
+    console.log('updateCustomLogoUrlInput:', updateCustomLogoUrlInput);
+    const updateDetailUsernameInput = document.getElementById('update-detail-username');
+    console.log('updateDetailUsernameInput:', updateDetailUsernameInput);
+    const updateDetailPasswordInput = document.getElementById('update-detail-password');
+    console.log('updateDetailPasswordInput:', updateDetailPasswordInput);
+    const cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
+    console.log('cancelUpdateDetailButton:', cancelUpdateDetailButton);
+    const updateDetailStatus = document.getElementById('update-detail-status');
+    console.log('updateDetailStatus:', updateDetailStatus);
+    const backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn');
+    console.log('backFromUpdateDetailBtn:', backFromUpdateDetailBtn);
+    const updateDetailCategoryNameSpan = document.getElementById('update-detail-category-name');
+    console.log('updateDetailCategoryNameSpan:', updateDetailCategoryNameSpan);
 
     // Update Property Page Elements
-    updatePropertyForm = document.getElementById('update-property-form');
-    updatePropertyIdInput = document.getElementById('update-property-id');
-    updatePropertyTitleInput = document.getElementById('update-property-title');
-    updatePropertyImageInput = document.getElementById('update-property-image');
-    updatePropertyDescriptionInput = document.getElementById('update-property-description');
-    updatePropertyCategoriesInput = document.getElementById('update-property-categories');
-    updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
-    cancelUpdatePropertyButton = document.getElementById('cancel-update-property');
-    updatePropertyStatus = document.getElementById('update-property-status');
-    backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn'); // Assign here
+    const updatePropertyForm = document.getElementById('update-property-form');
+    console.log('updatePropertyForm:', updatePropertyForm);
+    const updatePropertyIdInput = document.getElementById('update-property-id');
+    console.log('updatePropertyIdInput:', updatePropertyIdInput);
+    const updatePropertyTitleInput = document.getElementById('update-property-title');
+    console.log('updatePropertyTitleInput:', updatePropertyTitleInput);
+    const updatePropertyImageInput = document.getElementById('update-property-image');
+    console.log('updatePropertyImageInput:', updatePropertyImageInput);
+    const updatePropertyDescriptionInput = document.getElementById('update-property-description');
+    console.log('updatePropertyDescriptionInput:', updatePropertyDescriptionInput);
+    const updatePropertyCategoriesInput = document.getElementById('update-property-categories');
+    console.log('updatePropertyCategoriesInput:', updatePropertyCategoriesInput);
+    const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
+    console.log('updatePropertyIsForeignInput:', updatePropertyIsForeignInput);
+    const cancelUpdatePropertyButton = document.getElementById('cancel-update-property');
+    console.log('cancelUpdatePropertyButton:', cancelUpdatePropertyButton);
+    const updatePropertyStatus = document.getElementById('update-property-status');
+    console.log('updatePropertyStatus:', updatePropertyStatus);
+    const backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn');
+    console.log('backFromUpdatePropertyBtn:', backFromUpdatePropertyBtn);
 
     // Property Files Page Elements
-    filesPropertyTitleSpan = document.getElementById('files-property-title');
-    filesPropertyThumbnail = document.getElementById('files-property-thumbnail');
-    fileUploadInput = document.getElementById('file-upload-input');
-    uploadFileButton = document.getElementById('upload-file-button');
-    fileUploadStatus = document.getElementById('file-upload-status');
-    filesListContainer = document.getElementById('files-list-container');
-    backFromFilesButton = document.getElementById('back-from-files-button'); // Assign here
-    createFolderButton = document.getElementById('create-folder-button');
-    moveToFolderButton = document.getElementById('move-to-folder-button');
-    deleteSelectedFilesButton = document.getElementById('delete-selected-files-button');
-    foldersList = document.getElementById('folders-list');
-    currentFolderTitle = document.getElementById('current-folder-title');
+    const filesPropertyTitleSpan = document.getElementById('files-property-title');
+    console.log('filesPropertyTitleSpan:', filesPropertyTitleSpan);
+    const filesPropertyThumbnail = document.getElementById('files-property-thumbnail');
+    console.log('filesPropertyThumbnail:', filesPropertyThumbnail);
+    const fileUploadInput = document.getElementById('file-upload-input');
+    console.log('fileUploadInput:', fileUploadInput);
+    const uploadFileButton = document.getElementById('upload-file-button');
+    console.log('uploadFileButton:', uploadFileButton);
+    const fileUploadStatus = document.getElementById('file-upload-status');
+    console.log('fileUploadStatus:', fileUploadStatus);
+    const filesListContainer = document.getElementById('files-list-container');
+    console.log('filesListContainer:', filesListContainer);
+    const backFromFilesButton = document.getElementById('back-from-files-button');
+    console.log('backFromFilesButton:', backFromFilesButton);
+    const createFolderButton = document.getElementById('create-folder-button');
+    console.log('createFolderButton:', createFolderButton);
+    const moveToFolderButton = document.getElementById('move-to-folder-button');
+    console.log('moveToFolderButton:', moveToFolderButton);
+    const deleteSelectedFilesButton = document.getElementById('delete-selected-files-button');
+    console.log('deleteSelectedFilesButton:', deleteSelectedFilesButton);
+    const foldersList = document.getElementById('folders-list');
+    console.log('foldersList:', foldersList);
+    const currentFolderTitle = document.getElementById('current-folder-title');
+    console.log('currentFolderTitle:', currentFolderTitle);
 
     // Upload Folder Modal Elements
-    uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
-    folderSelectDropdown = document.getElementById('folder-select-dropdown');
-    newFolderNameContainer = document.getElementById('new-folder-name-container');
-    newFolderNameInput = document.getElementById('new-folder-name-input');
-    cancelFolderSelectionBtn = document.getElementById('cancel-folder-selection-btn');
-    confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
+    const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
+    console.log('uploadFolderModalStatus:', uploadFolderModalStatus);
+    const folderSelectDropdown = document.getElementById('folder-select-dropdown');
+    console.log('folderSelectDropdown:', folderSelectDropdown);
+    const newFolderNameContainer = document.getElementById('new-folder-name-container');
+    console.log('newFolderNameContainer:', newFolderNameContainer);
+    const newFolderNameInput = document.getElementById('new-folder-name-input');
+    console.log('newFolderNameInput:', newFolderNameInput);
+    const cancelFolderSelectionBtn = document.getElementById('cancel-folder-selection-btn');
+    console.log('cancelFolderSelectionBtn:', cancelFolderSelectionBtn);
+    const confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
+    console.log('confirmFolderSelectionBtn:', confirmFolderSelectionBtn);
+
+    console.log('--- DOM Element Retrieval End ---');
 
 
     // PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS
@@ -269,7 +344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (foreignApproved) {
                 setPropertiesFilter(true); // Delegate filtering logic
             } else {
-                showCustomAlert('You are not approved to view foreign properties. Please contact an administrator.');
+                showCustomAlert('You are not approved to view foreign properties. Please Pre-registered properties are visible to everyone.');
             }
         });
     }
@@ -321,7 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (propertyCardsContainer) {
         propertyCardsContainer.addEventListener('click', async (event) => {
             const viewBtn = event.target.closest('[data-action="view-property-details"]');
-            const editBtn = event.target.closest('[data-action="edit-property"]');
+            const editBtn = event.target.closest('[data-action="edit"]'); // Changed from edit-property to just edit
 
             if (viewBtn) {
                 const propertyId = parseInt(viewBtn.dataset.propertyId);
@@ -332,6 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
                     renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
 
+                    // Store selected property ID on the page element for easier access by other listeners
                     propertyCategoriesPage.dataset.selectedPropertyId = currentSelectedProperty.id;
                 } else {
                     showCustomAlert('Property details not found.');
@@ -653,6 +729,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Back Button Event Listeners ---
     // These are assigned here after all elements have been guaranteed to be retrieved.
+
     if (backToLoginBtn) {
         backToLoginBtn.addEventListener('click', () => {
             showPage(loginPage);
@@ -676,8 +753,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // THIS IS THE ONE CAUSING THE ERROR: backToPropertiesBtn
-    if (backToPropertiesBtn) { // This `if` check is now safe because all elements are assigned above.
+    if (backToPropertiesBtn) { // This is the button linked to the error.
         backToPropertiesBtn.addEventListener('click', () => {
             showPage(propertySelectionPage);
             currentSelectedProperty = null;
