@@ -1,7 +1,7 @@
 // js/main.js
 
 // --- Import Modules ---
-import { showPage, showCustomAlert, showModal } from './utils/dom.js';
+import { showPage, showCustomAlert, showModal, hideModal } from './utils/dom.js';
 import { login, register, getUserApprovalStatuses } from './services/auth.js';
 import { fetchProperties, getPropertyById, saveNewProperty, updateExistingProperty, setPropertiesFilter } from './services/properties.js';
 import { addCategoryDetail, updateCategoryDetail, deleteCategoryDetail, getCategoryDetails, addNewCategoryToProperty, renderPresetLogosForForm } from './services/categories.js';
@@ -158,18 +158,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- PART 2: INITIAL PAGE LOAD & EVENT LISTENERS ---
     showPage(loginPage);
 
-    // Auth Listeners
+    // Enhanced Auth Listeners
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const success = await login(usernameInput.value, passwordInput.value);
-            if (success) {
-                const { foreignApproved, domesticApproved } = getUserApprovalStatuses();
-                await fetchProperties(null);
-                updateFilterButtonsHighlight(null);
-                showPage(propertySelectionPage);
-            } else {
-                passwordInput.value = '';
+            try {
+                const success = await login(usernameInput.value, passwordInput.value);
+                if (success) {
+                    const { foreignApproved, domesticApproved } = getUserApprovalStatuses();
+                    const propertiesLoaded = await fetchProperties(null);
+                    
+                    if (propertiesLoaded) {
+                        updateFilterButtonsHighlight(null);
+                        showPage(propertySelectionPage);
+                        currentLoggedInUsername = usernameInput.value;
+                    } else {
+                        showCustomAlert('Failed to load properties. Please try again.');
+                    }
+                } else {
+                    passwordInput.value = '';
+                    showCustomAlert('Login failed. Please check your credentials.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showCustomAlert('An error occurred during login.');
             }
         });
     }
@@ -232,7 +244,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Refresh Properties
     if (refreshPropertiesButton) {
-        refreshPropertiesButton.addEventListener('click', async () => await fetchProperties(null));
+        refreshPropertiesButton.addEventListener('click', async () => {
+            try {
+                await fetchProperties(null);
+                showCustomAlert('Properties refreshed successfully');
+            } catch (error) {
+                showCustomAlert('Failed to refresh properties');
+            }
+        });
     }
 
     // Add New Property
@@ -247,14 +266,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (addPropertyForm) {
         addPropertyForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const propertyData = {
-                title: propertyTitleInput.value.trim(),
-                image: propertyImageInput.value.trim(),
-                description: propertyDescriptionInput.value.trim(),
-                categories: propertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
-                is_foreign: propertyIsForeignInput.checked
-            };
-            await saveNewProperty(propertyData);
+            try {
+                const propertyData = {
+                    title: propertyTitleInput.value.trim(),
+                    image: propertyImageInput.value.trim(),
+                    description: propertyDescriptionInput.value.trim(),
+                    categories: propertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
+                    is_foreign: propertyIsForeignInput.checked
+                };
+                const success = await saveNewProperty(propertyData);
+                if (success) {
+                    showPage(propertySelectionPage);
+                }
+            } catch (error) {
+                showCustomAlert('Failed to add property: ' + error.message);
+            }
         });
     }
 
@@ -262,35 +288,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (updatePropertyForm) {
         updatePropertyForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const propertyData = {
-                id: parseInt(updatePropertyIdInput.value),
-                title: updatePropertyTitleInput.value.trim(),
-                image: updatePropertyImageInput.value.trim(),
-                description: updatePropertyDescriptionInput.value.trim(),
-                categories: updatePropertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
-                is_foreign: updatePropertyIsForeignInput.checked
-            };
-            await updateExistingProperty(propertyData);
+            try {
+                const propertyData = {
+                    id: parseInt(updatePropertyIdInput.value),
+                    title: updatePropertyTitleInput.value.trim(),
+                    image: updatePropertyImageInput.value.trim(),
+                    description: updatePropertyDescriptionInput.value.trim(),
+                    categories: updatePropertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
+                    is_foreign: updatePropertyIsForeignInput.checked
+                };
+                const success = await updateExistingProperty(propertyData);
+                if (success) {
+                    showPage(propertySelectionPage);
+                }
+            } catch (error) {
+                showCustomAlert('Failed to update property: ' + error.message);
+            }
         });
     }
 
-    // Property Cards
+    // Property Cards Handler (Fixed View Details functionality)
     if (propertyCardsContainer) {
         propertyCardsContainer.addEventListener('click', async (event) => {
             const viewBtn = event.target.closest('[data-action="view-property-details"]');
             const editBtn = event.target.closest('[data-action="edit"]');
 
             if (viewBtn) {
-                const propertyId = parseInt(viewBtn.dataset.propertyId);
-                const selectedProperty = getPropertyById(propertyId);
-                if (selectedProperty) {
+                try {
+                    const propertyId = parseInt(viewBtn.dataset.propertyId);
+                    const selectedProperty = getPropertyById(propertyId);
+                    
+                    if (!selectedProperty) {
+                        throw new Error('Property not found');
+                    }
+
                     currentSelectedProperty = selectedProperty;
+                    
+                    // Load categories before rendering
+                    await getCategoryDetails(propertyId);
+                    
+                    // Update property header
+                    if (currentPropertyTitle) {
+                        currentPropertyTitle.textContent = currentSelectedProperty.title;
+                    }
+                    if (currentPropertyThumbnail) {
+                        currentPropertyThumbnail.src = currentSelectedProperty.image || 
+                            'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                    }
+
                     showPage(propertyCategoriesPage);
-                    renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
-                    renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
+                    
+                    // Render categories and details
+                    renderPropertyCategories(
+                        currentSelectedProperty, 
+                        null, // Start with no category selected
+                        propertyCategoriesNav, 
+                        categoryDetailsHeading, 
+                        currentPropertyThumbnail
+                    );
+                    
+                    // Clear any previous category details
+                    dynamicCategoryButtonsContainer.innerHTML = '';
+                    
                     propertyCategoriesPage.dataset.selectedPropertyId = currentSelectedProperty.id;
-                } else {
-                    showCustomAlert('Property details not found.');
+
+                } catch (error) {
+                    console.error('Error viewing property:', error);
+                    showCustomAlert('Failed to load property details. Please try again.');
                 }
             } else if (editBtn) {
                 const propertyId = parseInt(editBtn.dataset.propertyId);
@@ -603,7 +667,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Back Button Event Listeners ---
+     // Back Button Handlers
     if (backToLoginBtn) {
         backToLoginBtn.addEventListener('click', () => {
             showPage(loginPage);
@@ -629,11 +693,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (backToPropertiesBtn) {
         backToPropertiesBtn.addEventListener('click', () => {
-            showPage(propertySelectionPage);
             currentSelectedProperty = null;
             currentSelectedCategoryName = null;
-            if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details';
-            if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+            
+            if (currentPropertyTitle) {
+                currentPropertyTitle.textContent = 'Category Details';
+            }
+            if (currentPropertyThumbnail) {
+                currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+            }
+            
+            fetchProperties(null).then(() => {
+                showPage(propertySelectionPage);
+            });
         });
     }
 
