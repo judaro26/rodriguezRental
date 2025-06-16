@@ -12,6 +12,7 @@ import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersL
 
 
 // --- Global Application State (NOT DOM elements - these are data states) ---
+// These are intentionally global as they represent the application's core data state
 let currentSelectedProperty = null;
 let currentSelectedCategoryName = null;
 let currentLoggedInUsername = ''; // Keep these here for passing to functions
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- PART 1: GET ALL DOM ELEMENT REFERENCES (Declared as const, locally within DOMContentLoaded) ---
     // This section MUST be executed first inside DOMContentLoaded.
     // Every variable here will reliably hold either the HTMLElement or null.
+    // Console logs added for debugging purposes. You can remove them once everything works.
 
     console.log('--- DOM Element Retrieval Start ---');
 
@@ -272,7 +274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('--- DOM Element Retrieval End ---');
 
 
-    // PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS
+    // --- PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS ---
     // This section MUST come AFTER all document.getElementById calls from PART 1.
 
     // Initial page load
@@ -407,7 +409,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
                     renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
 
-                    // Store selected property ID on the page element for easier access by other listeners
                     propertyCategoriesPage.dataset.selectedPropertyId = currentSelectedProperty.id;
                 } else {
                     showCustomAlert('Property details not found.');
