@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     presetLogoPicker = document.getElementById('preset-logo-picker');
     customLogoUrlInput = document.getElementById('custom-logo-url');
     detailUsernameAddInput = document.getElementById('detail-username-add');
-    detailPasswordAddInput = document.getElementById('detail-password-add');
+    detailPasswordAddInput = document.getElementById('detail-password-add'); // Corrected
     cancelAddDetailButton = document.getElementById('cancel-add-detail');
     addDetailStatus = document.getElementById('add-detail-status');
     backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn');
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updatePresetLogoPicker = document.getElementById('update-preset-logo-picker');
     updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url');
     updateDetailUsernameInput = document.getElementById('update-detail-username');
-    updateDetailPasswordInput = document.getElementById('update-detail-password');
+    updateDetailPasswordInput = document.getElementById('update-detail-password'); // Corrected
     cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
     updateDetailStatus = document.getElementById('update-detail-status');
     backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn');
@@ -237,6 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
 
     // Property Filters
     if (filterAllPropertiesBtn) {
@@ -443,5 +444,214 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showPage(addCategoryDetailPage);
                 addDetailForm.reset();
                 detailUsernameAddInput.value = '';
-                detailPasswordAddInput.sliced = '';
-                renderPresetLogosForForm(presetLogoPicker, custom
+                // FIX: Corrected the typo here
+                detailPasswordAddInput.value = ''; // Was 'detailPasswordAddInput.sliced = '';'
+                renderPresetLogosForForm(presetLogoPicker, customLogoUrlInput, ''); // Pass empty string for new detail
+            } else {
+                showCustomAlert('Please select a property category first to add details to it.');
+            }
+        });
+    }
+
+    if (addDetailForm) {
+        addDetailForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            let logoUrlToSend = '';
+            const selectedPresetRadio = presetLogoPicker.querySelector('input[name="detail-logo"]:checked');
+            if (selectedPresetRadio) {
+                logoUrlToSend = selectedPresetRadio.value;
+            } else if (customLogoUrlInput.value.trim() !== '') {
+                logoUrlToSend = customLogoUrlInput.value.trim();
+            }
+
+            const detailData = {
+                detail_name: detailNameInput.value.trim(),
+                detail_url: detailUrlInput.value.trim(),
+                detail_description: detailDescriptionInput.value.trim(),
+                detail_logo_url: logoUrlToSend,
+                detail_username: detailUsernameAddInput.value.trim(),
+                detail_password: detailPasswordAddInput.value.trim()
+            };
+            await addCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, detailData);
+        });
+    }
+
+    if (updateDetailForm) {
+        updateDetailForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            let logoUrlToSend = '';
+            const selectedUpdatePresetRadio = updatePresetLogoPicker.querySelector('input[name="update-logo"]:checked');
+            if (selectedUpdatePresetRadio) {
+                logoUrlToSend = selectedUpdatePresetRadio.value;
+            } else if (updateCustomLogoUrlInput.value.trim() !== '') {
+                logoUrlToSend = updateCustomLogoUrlInput.value.trim();
+            }
+
+            const detailData = {
+                id: parseInt(updateDetailIdInput.value),
+                detail_name: updateDetailNameInput.value.trim(),
+                detail_url: updateDetailUrlInput.value.trim(),
+                detail_description: updateDetailDescriptionInput.value.trim(),
+                detail_logo_url: logoUrlToSend,
+                detail_username: updateDetailUsernameInput.value.trim(),
+                detail_password: updateDetailPasswordInput.value.trim() // Corrected
+            };
+            await updateCategoryDetail(detailData, currentSelectedProperty.id, currentSelectedCategoryName);
+        });
+    }
+
+    // Detail Tile Actions (Delegated from ui/category-renderer.js's clicks, but handled here)
+    if (dynamicCategoryButtonsContainer) {
+        dynamicCategoryButtonsContainer.addEventListener('click', (event) => {
+            const editBtn = event.target.closest('[data-action="edit"]');
+            const deleteBtn = event.target.closest('[data-action="delete-detail"]');
+            const viewBtn = event.target.closest('[data-action="view"]');
+
+            if (editBtn) {
+                const detailData = editBtn.dataset;
+                updateDetailIdInput.value = detailData.id;
+                updateDetailNameInput.value = detailData.name;
+                updateDetailUrlInput.value = detailData.url;
+                updateDetailDescriptionInput.value = detailData.description;
+                updateDetailUsernameInput.value = detailData.username;
+                updateDetailPasswordInput.value = detailData.password; // Corrected
+                if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+
+                renderPresetLogosForForm(updatePresetLogoPicker, updateCustomLogoUrlInput, detailData.logo);
+                showPage(updateCategoryDetailPage);
+
+            } else if (deleteBtn) {
+                const detailId = parseInt(deleteBtn.dataset.id);
+                const detailName = deleteBtn.dataset.name;
+                showModal(
+                    verificationModal,
+                    `detail: "${detailName}"`,
+                    `deleting`,
+                    async (username, password) => {
+                        await deleteCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, detailId, username, password);
+                    }
+                );
+            } else if (viewBtn) {
+                const url = viewBtn.dataset.url;
+                if (url) { window.open(url, '_blank'); } else { showCustomAlert('No URL provided.'); }
+            }
+        });
+    }
+
+
+    // File Management
+    if (viewFilesButton) {
+        viewFilesButton.addEventListener('click', () => {
+            if (currentSelectedProperty) {
+                document.getElementById('category-details-content').style.display = 'none';
+                propertyFilesContent.style.display = 'flex';
+                filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
+                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
+
+                displayPropertyFiles(currentSelectedProperty.id, null);
+                propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
+
+            } else {
+                showCustomAlert('Please select a property to view files.');
+            }
+        });
+    }
+
+    if (createFolderButton) {
+        createFolderButton.addEventListener('click', async () => {
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+            if (!propertyId) { showCustomAlert('Error: Property not selected for folder creation.'); return; }
+
+            const folderName = prompt('Enter folder name:');
+            if (folderName && folderName.trim() !== '') {
+                await createFolder(propertyId, folderName.trim());
+            } else if (folderName !== null) {
+                showCustomAlert('Folder name cannot be empty.');
+            }
+        });
+    }
+
+    if (deleteSelectedFilesButton) {
+        deleteSelectedFilesButton.addEventListener('click', async () => {
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+            if (!propertyId) { showCustomAlert('Error: Property not selected for file deletion.'); return; }
+
+            const filesToDelete = Array.from(filesListContainer.querySelectorAll('.file-checkbox:checked')).map(cb => parseInt(cb.dataset.fileId));
+            if (filesToDelete.length === 0) {
+                showCustomAlert('No files selected for deletion.');
+                return;
+            }
+            showModal(
+                verificationModal,
+                `${filesToDelete.length} selected file(s)`,
+                `deleting`,
+                async (username, password) => {
+                    await deleteFiles(propertyId, filesToDelete, username, password);
+                }
+            );
+        });
+    }
+
+    if (moveToFolderButton) {
+        moveToFolderButton.addEventListener('click', async () => {
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+            if (!propertyId) { showCustomAlert('Error: Property not selected for file movement.'); return; }
+
+            const filesToMove = Array.from(filesListContainer.querySelectorAll('.file-checkbox:checked')).map(cb => parseInt(cb.dataset.fileId));
+            if (filesToMove.length === 0) {
+                showCustomAlert('No files selected to move.');
+                return;
+            }
+            await initFileUploadProcess(propertyId, null, null, null, filesToMove);
+        });
+    }
+
+    if (uploadFileButton) {
+        uploadFileButton.addEventListener('click', async () => {
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+            if (!propertyId) { showCustomAlert('Error: Property not selected for file upload.'); return; }
+
+            if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
+                showCustomAlert('Please select a file to upload.');
+                return;
+            }
+            const file = fileUploadInput.files[0];
+            await initFileUploadProcess(propertyId, file);
+        });
+    }
+
+    // Event handlers for folder selection modal (inside files.js service module now)
+    if (folderSelectDropdown) {
+        folderSelectDropdown.addEventListener('change', (e) => {
+            if (newFolderNameContainer) {
+                newFolderNameContainer.style.display = e.target.value === 'new' ? 'block' : 'none';
+            }
+            if (newFolderNameInput && e.target.value === 'new') {
+                newFolderNameInput.focus();
+            }
+            if (uploadFolderModalStatus) uploadFolderModalStatus.classList.add('hidden');
+        });
+    }
+
+    if (cancelFolderSelectionBtn) {
+        cancelFolderSelectionBtn.addEventListener('click', () => {
+            hideModal(uploadFolderModal);
+            if (fileUploadInput) fileUploadInput.value = '';
+        });
+    }
+
+    if (foldersList) {
+        foldersList.addEventListener('click', async (event) => {
+            const folderItem = event.target.closest('.folder-item');
+            if (folderItem) {
+                const folderId = folderItem.dataset.folderId;
+                const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+
+                foldersList.querySelectorAll('.folder-item').forEach(item => item.classList.remove('active'));
+                folderItem.classList.add('active');
+
+                await displayPropertyFiles(propertyId, folderId);
+            }
+        });
+    }
+}); // End DOMContentLoaded
