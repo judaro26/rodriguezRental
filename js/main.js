@@ -48,7 +48,7 @@ let addDetailForm, detailNameInput, detailUrlInput, detailDescriptionInput, pres
 
 let updateDetailForm, updateDetailIdInput, updateDetailNameInput, updateDetailUrlInput,
     updateDetailDescriptionInput, updatePresetLogoPicker, updateCustomLogoUrlInput, updateDetailUsernameInput,
-    updateDetailPasswordInput, cancelUpdateDetailButton, updateDetailStatus, backFromUpdateDetailBtn, updateDetailCategoryNameSpan;
+    updateDetailPasswordInput, cancelUpdateDetailButton, updateDetailStatus;
 
 let filesPropertyTitleSpan, filesPropertyThumbnail, fileUploadInput, uploadFileButton, fileUploadStatus;
 let filesListContainer, backFromFilesButton, createFolderButton, moveToFolderButton, deleteSelectedFilesButton;
@@ -60,8 +60,8 @@ let folderSelectDropdown, newFolderNameContainer, newFolderNameInput, cancelFold
 // --- Application Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // PART 1: GET ALL DOM ELEMENT REFERENCES
-    // This section MUST come first inside DOMContentLoaded.
+    // PART 1: GET ALL DOM ELEMENT REFERENCES. THIS SECTION MUST BE EXECUTED COMPLETELY FIRST.
+    // Ensure all assignments are done here before any variable is USED outside of its assignment line.
 
     // Pages and Modals
     loginPage = document.getElementById('login-page');
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     usernameInput = document.getElementById('username');
     passwordInput = document.getElementById('password');
     showRegisterFormBtn = document.getElementById('show-register-form-btn');
-    backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn');
+    backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn'); // Assign here
     registerForm = document.getElementById('register-form');
     regUsernameInput = document.getElementById('reg-username');
     regPasswordInput = document.getElementById('reg-password');
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     propertiesErrorMessage = document.getElementById('properties-error-message');
     addPropertyButton = document.getElementById('add-property-button');
     refreshPropertiesButton = document.getElementById('refresh-properties-button');
-    backToLoginBtn = document.getElementById('back-to-login-btn');
+    backToLoginBtn = document.getElementById('back-to-login-btn'); // Assign here
     filterAllPropertiesBtn = document.getElementById('filter-all-properties');
     filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
     filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     propertyCategoriesInput = document.getElementById('property-categories');
     cancelAddPropertyButton = document.getElementById('cancel-add-property');
     addPropertyStatus = document.getElementById('add-property-status');
-    backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn');
+    backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn'); // Assign here
     propertyIsForeignInput = document.getElementById('property-is-foreign');
 
     // Property Categories Page Elements
@@ -116,6 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     categoryDetailsHeading = document.getElementById('current-property-title');
     dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
     categoryLoadingMessage = document.getElementById('category-loading-message');
+    backToPropertiesBtn = document.getElementById('back-to-properties-btn'); // Assign here - THIS IS THE ONE FROM THE ERROR
     addNewCategoryButton = document.getElementById('add-new-category-button');
     deleteCategoryButton = document.getElementById('delete-category-button');
     refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
@@ -158,7 +159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateDetailPasswordInput = document.getElementById('update-detail-password');
     cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
     updateDetailStatus = document.getElementById('update-detail-status');
-    backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn');
+    backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn'); // Assign here
     updateDetailCategoryNameSpan = document.getElementById('update-detail-category-name');
 
     // Update Property Page Elements
@@ -171,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
     cancelUpdatePropertyButton = document.getElementById('cancel-update-property');
     updatePropertyStatus = document.getElementById('update-property-status');
-    backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn');
+    backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn'); // Assign here
 
     // Property Files Page Elements
     filesPropertyTitleSpan = document.getElementById('files-property-title');
@@ -180,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     uploadFileButton = document.getElementById('upload-file-button');
     fileUploadStatus = document.getElementById('file-upload-status');
     filesListContainer = document.getElementById('files-list-container');
-    backFromFilesButton = document.getElementById('back-from-files-button');
+    backFromFilesButton = document.getElementById('back-from-files-button'); // Assign here
     createFolderButton = document.getElementById('create-folder-button');
     moveToFolderButton = document.getElementById('move-to-folder-button');
     deleteSelectedFilesButton = document.getElementById('delete-selected-files-button');
@@ -197,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS
-    // This section should come AFTER all document.getElementById calls.
+    // This section MUST come AFTER all document.getElementById calls from PART 1.
 
     // Initial page load
     showPage(loginPage);
@@ -650,19 +651,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Back Button Event Listeners (Consolidated) ---
-    // These now correctly get elements and attach listeners within DOMContentLoaded.
-    const backToLoginBtnLocal = document.getElementById('back-to-login-btn');
-    if (backToLoginBtnLocal) { // Use a local variable to avoid confusion with global backToLoginBtn
-        backToLoginBtnLocal.addEventListener('click', () => {
+    // --- Back Button Event Listeners ---
+    // These are assigned here after all elements have been guaranteed to be retrieved.
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', () => {
             showPage(loginPage);
-            // Clear inputs for security/fresh start
             if (usernameInput) usernameInput.value = '';
             if (passwordInput) passwordInput.value = '';
         });
     }
 
-    // backToLoginFromRegisterBtn is already a global let
     if (backToLoginFromRegisterBtn) {
         backToLoginFromRegisterBtn.addEventListener('click', () => {
             showPage(loginPage);
@@ -671,16 +669,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // backFromAddPropertyBtn is already a global let
     if (backFromAddPropertyBtn) {
         backFromAddPropertyBtn.addEventListener('click', () => {
             showPage(propertySelectionPage);
-            addPropertyForm.reset(); // Reset form when going back
+            addPropertyForm.reset();
         });
     }
 
-    // backToPropertiesBtn is already a global let
-    if (backToPropertiesBtn) {
+    // THIS IS THE ONE CAUSING THE ERROR: backToPropertiesBtn
+    if (backToPropertiesBtn) { // This `if` check is now safe because all elements are assigned above.
         backToPropertiesBtn.addEventListener('click', () => {
             showPage(propertySelectionPage);
             currentSelectedProperty = null;
@@ -690,27 +687,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // backFromAddNewCategoryBtn is already a global let
     if (backFromAddNewCategoryBtn) {
         backFromAddNewCategoryBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
     }
 
-    // backFromAddDetailBtn is already a global let
     if (backFromAddDetailBtn) {
         backFromAddDetailBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
     }
 
-    // backFromUpdateDetailBtn is already a global let
     if (backFromUpdateDetailBtn) {
         backFromUpdateDetailBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
     }
 
-    // backFromUpdatePropertyBtn is already a global let
     if (backFromUpdatePropertyBtn) {
         backFromUpdatePropertyBtn.addEventListener('click', () => showPage(propertySelectionPage));
     }
 
-    // backFromFilesButton is already a global let
     if (backFromFilesButton) {
         backFromFilesButton.addEventListener('click', () => showPage(propertyCategoriesPage));
     }
