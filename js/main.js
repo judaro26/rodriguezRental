@@ -179,6 +179,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('addDetailCategoryNameSpan:', addDetailCategoryNameSpan);
 
     // Update Category Detail Page Elements
+    const backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn');
+    console.log('backFromAddNewCategoryBtn:', backFromAddNewCategoryBtn);
     console.log('updateCategoryDetailPage:', updateCategoryDetailPage); // Added log for this specific variable
     const updateDetailForm = document.getElementById('update-detail-form');
     console.log('updateDetailForm:', updateDetailForm);
