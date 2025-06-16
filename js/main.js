@@ -4,12 +4,12 @@
 import { showPage, showCustomAlert, showModal } from './utils/dom.js';
 import { login, register, getUserApprovalStatuses } from './services/auth.js';
 import { fetchProperties, getPropertyById, saveNewProperty, updateExistingProperty, setPropertiesFilter } from './services/properties.js';
-import { addCategoryDetail, updateCategoryDetail, deleteCategoryDetail, getCategoryDetails, addNewCategoryToProperty, renderPresetLogosForForm } from './services/categories.js'; // Added addNewCategoryToProperty, renderPresetLogosForForm
+import { addCategoryDetail, updateCategoryDetail, deleteCategoryDetail, getCategoryDetails, addNewCategoryToProperty, renderPresetLogosForForm } from './services/categories.js';
 import { displayPropertyFiles, createFolder, deleteFiles, moveFiles, initFileUploadProcess } from './services/files.js';
 import { renderPropertyCards, updateFilterButtonsHighlight } from './ui/property-renderer.js';
 import { renderPropertyCategories, displayCategoryDetails as renderCategoryDetailsUI } from './ui/category-renderer.js';
-import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersList } from './ui/file-renderer.js'; // Added renderFoldersList
-import { presetLogos } from './constants.js'; // Import constants
+import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersList } from './ui/file-renderer.js';
+import { presetLogos } from './constants.js';
 
 
 // --- Global Application State (kept minimal in main.js) ---
@@ -17,8 +17,8 @@ let currentSelectedProperty = null;
 let currentSelectedCategoryName = null;
 let currentLoggedInUsername = ''; // Keep these here for passing to functions
 
-// --- Declare UI elements at top-level, but get their references inside DOMContentLoaded ---
-// This is done to avoid 'null' issues if HTML isn't fully loaded when module is parsed.
+// --- Declare UI elements at top-level with 'let' ---
+// These will be assigned their actual DOM references inside DOMContentLoaded.
 let loginPage, registerPage, propertySelectionPage, addPropertyPage, propertyCategoriesPage,
     addCategoryDetailPage, addNewCategoryPage, updatePropertyPage, updateCategoryDetailPage,
     propertyFilesContent, verificationModal, uploadFolderModal;
@@ -26,7 +26,7 @@ let loginPage, registerPage, propertySelectionPage, addPropertyPage, propertyCat
 let loginForm, usernameInput, passwordInput, showRegisterFormBtn;
 let registerForm, regUsernameInput, regPasswordInput, backToLoginFromRegisterBtn;
 
-let propertyCardsContainer, propertiesLoadingMessage, propertiesErrorText, propertiesErrorMessage; // Added propertiesErrorMessage
+let propertyCardsContainer, propertiesLoadingMessage, propertiesErrorText, propertiesErrorMessage;
 let addPropertyButton, refreshPropertiesButton, backToLoginBtn;
 let filterAllPropertiesBtn, filterDomesticPropertiesBtn, filterForeignPropertiesBtn;
 
@@ -46,14 +46,15 @@ let addNewCategoryForm, newCategoryNameInput, categoryPropertyTitleSpan, cancelN
 let addDetailForm, detailNameInput, detailUrlInput, detailDescriptionInput, presetLogoPicker, customLogoUrlInput,
     detailUsernameAddInput, detailPasswordAddInput, cancelAddDetailButton, addDetailStatus, addDetailCategoryNameSpan;
 
-let updateCategoryDetailPage, updateDetailForm, updateDetailIdInput, updateDetailNameInput, updateDetailUrlInput,
+let updateDetailForm, updateDetailIdInput, updateDetailNameInput, updateDetailUrlInput,
     updateDetailDescriptionInput, updatePresetLogoPicker, updateCustomLogoUrlInput, updateDetailUsernameInput,
     updateDetailPasswordInput, cancelUpdateDetailButton, updateDetailStatus, backFromUpdateDetailBtn, updateDetailCategoryNameSpan;
 
 let filesPropertyTitleSpan, filesPropertyThumbnail, fileUploadInput, uploadFileButton, fileUploadStatus;
-let filesListContainer, backFromFilesButton, createFolderButton, moveToFolderButton, deleteSelectedFilesButton; // Added filesListContainer, createFolderButton, moveToFolderButton, deleteSelectedFilesButton
+let filesListContainer, backFromFilesButton, createFolderButton, moveToFolderButton, deleteSelectedFilesButton;
 
 let folderSelectDropdown, newFolderNameContainer, newFolderNameInput, cancelFolderSelectionBtn, confirmFolderSelectionBtn, uploadFolderModalStatus;
+
 
 // --- Application Initialization (DOMContentLoaded) ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -77,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     usernameInput = document.getElementById('username');
     passwordInput = document.getElementById('password');
     showRegisterFormBtn = document.getElementById('show-register-form-btn');
-    backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn'); // Moved here
+    backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn');
     registerForm = document.getElementById('register-form');
     regUsernameInput = document.getElementById('reg-username');
     regPasswordInput = document.getElementById('reg-password');
@@ -203,11 +204,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         loginForm.addEventListener('submit', async (event) => {
             console.log('Login form listener fired!'); // Debugging check
             event.preventDefault();
-            const success = await login(usernameInput.value, passwordInput.value); // Pass values
+            const success = await login(usernameInput.value, passwordInput.value); // Pass values to login function
             if (success) {
                 const { foreignApproved, domesticApproved } = getUserApprovalStatuses();
-                // We're now fetching all properties initially after login for simplicity.
-                await fetchProperties(null);
+                await fetchProperties(null); // Fetch all properties initially after login
                 updateFilterButtonsHighlight(null); // Highlight "All Properties"
                 showPage(propertySelectionPage);
             } else {
@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (registerForm) {
         registerForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const success = await register(regUsernameInput.value, regPasswordInput.value); // Pass values
+            const success = await register(regUsernameInput.value, regPasswordInput.value); // Pass values to register function
             if (success) {
                 showPage(loginPage);
                 usernameInput.value = regUsernameInput.value; // Optionally pre-fill
@@ -238,14 +238,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-
     // Property Filters
     if (filterAllPropertiesBtn) {
         filterAllPropertiesBtn.addEventListener('click', () => {
             const { domesticApproved, foreignApproved } = getUserApprovalStatuses();
             if (domesticApproved || foreignApproved) {
                 setPropertiesFilter(null); // Delegate filtering logic to properties module
-                // updateFilterButtonsHighlight(null); // Called by setPropertiesFilter internally
             } else {
                 showCustomAlert('You are not approved to view any properties.');
             }
@@ -256,7 +254,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { domesticApproved } = getUserApprovalStatuses();
             if (domesticApproved) {
                 setPropertiesFilter(false); // Delegate filtering logic
-                // updateFilterButtonsHighlight(false); // Called by setPropertiesFilter internally
             } else {
                 showCustomAlert('You are not approved to view domestic properties. Please contact an administrator.');
             }
@@ -267,7 +264,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { foreignApproved } = getUserApprovalStatuses();
             if (foreignApproved) {
                 setPropertiesFilter(true); // Delegate filtering logic
-                // updateFilterButtonsHighlight(true); // Called by setPropertiesFilter internally
             } else {
                 showCustomAlert('You are not approved to view foreign properties. Please contact an administrator.');
             }
@@ -297,8 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 categories: propertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
                 is_foreign: propertyIsForeignInput.checked
             };
-            // Pass status element to service function for updates
-            await saveNewProperty(propertyData, addPropertyStatus);
+            await saveNewProperty(propertyData);
         });
     }
 
@@ -314,8 +309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 categories: updatePropertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
                 is_foreign: updatePropertyIsForeignInput.checked
             };
-            // Pass status element to service function for updates
-            await updateExistingProperty(propertyData, updatePropertyStatus);
+            await updateExistingProperty(propertyData);
         });
     }
 
@@ -331,7 +325,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (selectedProperty) {
                     currentSelectedProperty = selectedProperty; // Set global state
                     showPage(propertyCategoriesPage);
-                    // Render categories and then details based on first category or existing selection
                     renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
                     renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
 
@@ -405,9 +398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showCustomAlert('Please enter a category name.');
                 return;
             }
-            // Pass currentSelectedProperty and status element to service function
-            await addNewCategoryToProperty(currentSelectedProperty.id, newCategoryName, currentSelectedProperty, addNewCategoryStatus);
-            // Refresh logic handled by addNewCategoryToProperty
+            await addNewCategoryToProperty(currentSelectedProperty.id, newCategoryName, currentSelectedProperty);
         });
     }
 
@@ -424,10 +415,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 async (username, password) => {
                     const success = await deleteCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, username, password);
                     if (success) {
-                        // Refresh categories list and clear details if current category was deleted
                         renderPropertyCategories(currentSelectedProperty, null, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
                         renderCategoryDetailsUI(currentSelectedProperty.id, null, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
-                        currentSelectedCategoryName = null; // Clear selection after deletion
+                        currentSelectedCategoryName = null;
                     }
                 }
             );
@@ -437,7 +427,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (refreshCategoriesButtonOnCategoriesPage) {
         refreshCategoriesButtonOnCategoriesPage.addEventListener('click', () => {
             if (currentSelectedProperty) {
-                // Re-render categories and then details based on current selection
                 renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
                 renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
             } else {
@@ -454,233 +443,5 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showPage(addCategoryDetailPage);
                 addDetailForm.reset();
                 detailUsernameAddInput.value = '';
-                detailPasswordAddInput.value = '';
-                // Render preset logos for the Add form
-                renderPresetLogosForForm(presetLogoPicker, customLogoUrlInput, ''); // Pass empty string for new detail
-            } else {
-                showCustomAlert('Please select a property category first to add details to it.');
-            }
-        });
-    }
-
-    if (addDetailForm) {
-        addDetailForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            // Determine logo URL from selected radio or custom input
-            let logoUrlToSend = '';
-            const selectedPresetRadio = presetLogoPicker.querySelector('input[name="detail-logo"]:checked');
-            if (selectedPresetRadio) {
-                logoUrlToSend = selectedPresetRadio.value;
-            } else if (customLogoUrlInput.value.trim() !== '') {
-                logoUrlToSend = customLogoUrlInput.value.trim();
-            }
-
-            const detailData = {
-                detail_name: detailNameInput.value.trim(),
-                detail_url: detailUrlInput.value.trim(),
-                detail_description: detailDescriptionInput.value.trim(),
-                detail_logo_url: logoUrlToSend,
-                detail_username: detailUsernameAddInput.value.trim(),
-                detail_password: detailPasswordAddInput.value.trim()
-            };
-            // Pass status element to service function
-            await addCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, detailData, addDetailStatus);
-        });
-    }
-
-    if (updateDetailForm) {
-        updateDetailForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            // Determine logo URL from selected radio or custom input
-            let logoUrlToSend = '';
-            const selectedUpdatePresetRadio = updatePresetLogoPicker.querySelector('input[name="update-logo"]:checked');
-            if (selectedUpdatePresetRadio) {
-                logoUrlToSend = selectedUpdatePresetRadio.value;
-            } else if (updateCustomLogoUrlInput.value.trim() !== '') {
-                logoUrlToSend = updateCustomLogoUrlInput.value.trim();
-            }
-
-            const detailData = {
-                id: parseInt(updateDetailIdInput.value),
-                detail_name: updateDetailNameInput.value.trim(),
-                detail_url: updateDetailUrlInput.value.trim(),
-                detail_description: updateDetailDescriptionInput.value.trim(),
-                detail_logo_url: logoUrlToSend,
-                detail_username: updateDetailUsernameInput.value.trim(),
-                detail_password: updateDetailPasswordInput.value.trim()
-            };
-            // Pass current property/category and status element to service function
-            await updateCategoryDetail(detailData, currentSelectedProperty.id, currentSelectedCategoryName, updateDetailStatus);
-        });
-    }
-
-    // Detail Tile Actions (Delegated from ui/category-renderer.js's clicks, but handled here)
-    if (dynamicCategoryButtonsContainer) {
-        dynamicCategoryButtonsContainer.addEventListener('click', (event) => {
-            const editBtn = event.target.closest('[data-action="edit"]');
-            const deleteBtn = event.target.closest('[data-action="delete-detail"]');
-            const viewBtn = event.target.closest('[data-action="view"]');
-
-            if (editBtn) {
-                const detailData = editBtn.dataset; // Dataset contains all data- attributes
-                // Populate update form fields
-                updateDetailIdInput.value = detailData.id;
-                updateDetailNameInput.value = detailData.name;
-                updateDetailUrlInput.value = detailData.url;
-                updateDetailDescriptionInput.value = detailData.description;
-                updateDetailUsernameInput.value = detailData.username;
-                updateDetailPasswordInput.value = detailData.password;
-                if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
-
-                // Render preset logos for the Update form, pre-selecting if applicable
-                renderPresetLogosForForm(updatePresetLogoPicker, updateCustomLogoUrlInput, detailData.logo);
-                showPage(updateCategoryDetailPage);
-
-            } else if (deleteBtn) {
-                const detailId = parseInt(deleteBtn.dataset.id);
-                const detailName = deleteBtn.dataset.name;
-                showModal(
-                    verificationModal,
-                    `detail: "${detailName}"`,
-                    `deleting`,
-                    async (username, password) => {
-                        await deleteCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, detailId, username, password);
-                        // Refresh is handled by service after success
-                    }
-                );
-            } else if (viewBtn) {
-                const url = viewBtn.dataset.url;
-                if (url) { window.open(url, '_blank'); } else { showCustomAlert('No URL provided.'); }
-            }
-        });
-    }
-
-
-    // File Management
-    if (viewFilesButton) {
-        viewFilesButton.addEventListener('click', () => {
-            if (currentSelectedProperty) {
-                // Switch display areas
-                document.getElementById('category-details-content').style.display = 'none';
-                propertyFilesContent.style.display = 'flex';
-
-                // Update file page title
-                filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
-
-                // Hide the "Add Vendor's Details" button on the files page
-                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
-
-                // Display files for the current property (initially 'all' folder)
-                // Pass the property ID and current folder state to the file service
-                displayPropertyFiles(currentSelectedProperty.id, null); // Pass null for initial 'all' folder
-                // Store property ID on the file content page to be accessed by file service
-                propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
-
-            } else {
-                showCustomAlert('Please select a property to view files.');
-            }
-        });
-    }
-
-    if (createFolderButton) {
-        createFolderButton.addEventListener('click', async () => {
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId); // Get from data attribute
-            if (!propertyId) { showCustomAlert('Error: Property not selected for folder creation.'); return; }
-
-            const folderName = prompt('Enter folder name:'); // Consider replacing with custom modal
-            if (folderName && folderName.trim() !== '') {
-                await createFolder(propertyId, folderName.trim());
-            } else if (folderName !== null) {
-                showCustomAlert('Folder name cannot be empty.');
-            }
-        });
-    }
-
-    if (deleteSelectedFilesButton) {
-        deleteSelectedFilesButton.addEventListener('click', async () => {
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-            if (!propertyId) { showCustomAlert('Error: Property not selected for file deletion.'); return; }
-
-            const filesToDelete = Array.from(filesListContainer.querySelectorAll('.file-checkbox:checked')).map(cb => parseInt(cb.dataset.fileId));
-            if (filesToDelete.length === 0) {
-                showCustomAlert('No files selected for deletion.');
-                return;
-            }
-            showModal(
-                verificationModal,
-                `${filesToDelete.length} selected file(s)`,
-                `deleting`,
-                async (username, password) => {
-                    await deleteFiles(propertyId, filesToDelete, username, password);
-                }
-            );
-        });
-    }
-
-    if (moveToFolderButton) {
-        moveToFolderButton.addEventListener('click', async () => {
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-            if (!propertyId) { showCustomAlert('Error: Property not selected for file movement.'); return; }
-
-            const filesToMove = Array.from(filesListContainer.querySelectorAll('.file-checkbox:checked')).map(cb => parseInt(cb.dataset.fileId));
-            if (filesToMove.length === 0) {
-                showCustomAlert('No files selected to move.');
-                return;
-            }
-
-            // Call the service function to initiate the move/folder selection modal process
-            await initFileUploadProcess(propertyId, null, null, null, filesToMove); // Pass filesToMove as last argument for move operation
-        });
-    }
-
-    if (uploadFileButton) {
-        uploadFileButton.addEventListener('click', async () => {
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-            if (!propertyId) { showCustomAlert('Error: Property not selected for file upload.'); return; }
-
-            if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
-                showCustomAlert('Please select a file to upload.');
-                return;
-            }
-            const file = fileUploadInput.files[0];
-            await initFileUploadProcess(propertyId, file); // Pass propertyId and File object
-        });
-    }
-
-    // Event handlers for folder selection modal (inside files.js service module now)
-    if (folderSelectDropdown) {
-        folderSelectDropdown.addEventListener('change', (e) => {
-            if (newFolderNameContainer) {
-                newFolderNameContainer.style.display = e.target.value === 'new' ? 'block' : 'none';
-            }
-            if (newFolderNameInput && e.target.value === 'new') {
-                newFolderNameInput.focus();
-            }
-            if (uploadFolderModalStatus) uploadFolderModalStatus.classList.add('hidden');
-        });
-    }
-
-    if (cancelFolderSelectionBtn) {
-        cancelFolderSelectionBtn.addEventListener('click', () => {
-            showModal.hideModal(uploadFolderModal); // Use hideModal from utils/dom.js
-            if (fileUploadInput) fileUploadInput.value = ''; // Clear file input on cancel
-        });
-    }
-
-    // Event listener for folder sidebar clicks, handled in ui/file-renderer
-    if (foldersList) {
-        foldersList.addEventListener('click', async (event) => {
-            const folderItem = event.target.closest('.folder-item');
-            if (folderItem) {
-                const folderId = folderItem.dataset.folderId;
-                const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId); // Get property ID
-
-                foldersList.querySelectorAll('.folder-item').forEach(item => item.classList.remove('active'));
-                folderItem.classList.add('active');
-
-                await displayPropertyFiles(propertyId, folderId); // Pass propertyId to files service
-            }
-        });
-    }
-    // Event delegation for single file delete/edit buttons inside filesListContainer is in ui/file-renderer.js
-});
+                detailPasswordAddInput.sliced = '';
+                renderPresetLogosForForm(presetLogoPicker, custom
