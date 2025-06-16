@@ -1,90 +1,228 @@
-// js/ui/property-renderer.js
+// js/ui/file-renderer.js
 
-import { showPage, showCustomAlert } from '../utils/dom.js'; // Assuming you still use showCustomAlert here
-import { getPropertyById, fetchProperties } from '../services/properties.js'; // Import data source and fetcher
+import { getFileIcon, formatFileSize } from '../utils/helpers.js';
+// This module will call back to the files.js service for actual data operations
+// It needs the global references to DOM elements that represent its display areas.
+const filesListContainer = document.getElementById('files-list-container');
+const foldersList = document.getElementById('folders-list');
+const moveToFolderButton = document.getElementById('move-to-folder-button');
+const deleteSelectedFilesButton = document.getElementById('delete-selected-files-button');
+const verificationModal = document.getElementById('verification-modal'); // Assuming global modal for file actions
 
-// DOM elements that this renderer needs to interact with
-const propertyCardsContainer = document.getElementById('property-cards-container');
-const filterAllPropertiesBtn = document.getElementById('filter-all-properties');
-const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
-const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
+let currentSelectedFiles = new Set(); // Internal state for selected files
 
-// Function to store/retrieve current UI selection state (if needed across page refreshes)
-let currentUIFilter = null; // null for all, false for domestic, true for foreign
 
 /**
- * Renders a list of properties as cards in the UI.
- * @param {Array<Object>} propertiesToDisplay - The filtered list of properties to render.
+ * Renders the list of files in the main file display area.
+ * @param {Array<Object>} files - The array of file objects to render.
+ * @param {HTMLElement} container - The DOM element where files should be rendered.
+ * @param {Function} onToggleSelection - Callback function when a file's checkbox/row is clicked.
+ * @param {Function} onDeleteSingleFile - Callback function when a single file's delete button is clicked.
  */
-export function renderPropertyCards(propertiesToDisplay) {
-    if (!propertyCardsContainer) return;
+export function renderFilesList(files, container, onToggleSelection, onDeleteSingleFile) {
+    if (!container) return;
 
-    propertyCardsContainer.innerHTML = ''; // Clear existing cards
-
-    if (propertiesToDisplay.length === 0) {
-        propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found matching this filter. Add a new one!</p>`;
+    if (files.length === 0) {
+        container.innerHTML = `<p class="text-gray-500 p-4 text-center">No files found in this folder.</p>`;
         return;
     }
 
-    propertiesToDisplay.forEach(property => {
-        const propertyCard = document.createElement('div');
-        propertyCard.classList.add(
-            'bg-white', 'rounded-xl', 'shadow-md', 'overflow-hidden', 'cursor-pointer',
-            'hover:shadow-lg', 'transition-shadow', 'duration-200', 'border', 'border-gray-200',
-            'flex', 'flex-col'
-        );
-        propertyCard.dataset.propertyId = property.id; // Store ID on the card
+    container.innerHTML = ''; // Clear existing files
 
-        const imageUrl = property.image || 'https://placehold.co/400x250/CCCCCC/FFFFFF?text=No+Image';
+    files.forEach(file => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.dataset.fileId = file.id;
 
-        propertyCard.innerHTML = `
-            <img src="${imageUrl}" alt="${property.title}" class="w-full h-40 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x250/CCCCCC/FFFFFF?text=Image+Load+Error';">
-            <div class="p-4 flex-grow">
-                <h3 class="text-xl font-bold text-gray-800 mb-2">${property.title}</h3>
-                <p class="text-gray-600 text-sm">${property.description}</p>
+        const fileExtension = file.filename.split('.').pop().toLowerCase();
+        const isSelected = currentSelectedFiles.has(file.id);
+
+        if (isSelected) {
+            fileItem.classList.add('selected');
+        }
+
+        fileItem.innerHTML = `
+            <input type="checkbox" class="file-checkbox" ${isSelected ? 'checked' : ''} data-file-id="${file.id}">
+            ${getFileIcon(fileExtension)}
+            <div class="file-info flex-grow">
+                <a href="${file.file_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${file.filename}</a>
+                <div class="text-xs text-gray-500">
+                    ${formatFileSize(file.size)} • ${new Date(file.uploaded_at).toLocaleString()}
+                </div>
             </div>
-            <div class="p-4 pt-0 flex justify-between gap-2">
-                <button class="w-1/2 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 font-semibold" data-action="view-property-details" data-property-id="${property.id}">View Details</button>
-                <button class="w-1/2 bg-gray-400 text-gray-800 py-2 rounded-lg hover:bg-gray-500 transition-colors duration-200 font-semibold" data-action="edit-property" data-property-id="${property.id}">Edit</button>
+            <div class="file-actions">
+                <button class="edit-file-btn bg-gray-400 text-gray-800 py-1 px-2 rounded-md hover:bg-gray-500"
+                    data-file-id="${file.id}" data-file-name="${file.filename}">
+                    Edit
+                </button>
+                <button class="delete-file-btn bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600"
+                    data-file-id="${file.id}" data-file-name="${file.filename}">
+                    Delete
+                </button>
             </div>
         `;
-        propertyCardsContainer.appendChild(propertyCard);
 
-        // Event listeners are set in main.js, which acts as the orchestrator.
-        // This renderer focuses purely on creating the HTML.
+        // Attach event listeners for individual file actions
+        fileItem.querySelector('.file-checkbox').addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent parent click
+            onToggleSelection(file.id);
+        });
+
+        fileItem.addEventListener('click', (e) => {
+            // Only toggle selection if not clicking on a specific button/link/checkbox
+            if (!e.target.closest('button') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'A') {
+                onToggleSelection(file.id);
+            }
+        });
+
+        fileItem.querySelector('.delete-file-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            onDeleteSingleFile(file.id, file.filename); // Call the callback from the service layer
+        });
+        // Add listener for edit button (needs a callback to main.js or a dedicated edit modal module)
+        fileItem.querySelector('.edit-file-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            showCustomAlert(`Edit functionality for file "${file.filename}" is not yet fully implemented.`);
+        });
+
+        container.appendChild(fileItem);
     });
 }
 
 /**
- * Updates the visual highlight of the property filter buttons.
- * @param {boolean|null} activeFilter - The currently active filter (null, false, or true).
+ * Toggles the selection state of a file and updates the UI.
+ * @param {number} fileId - The ID of the file to toggle.
  */
-export function updateFilterButtonsHighlight(activeFilter) {
-    currentUIFilter = activeFilter; // Update internal state
-
-    // Remove active styles from all buttons
-    if (filterAllPropertiesBtn) {
-        filterAllPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
-        filterAllPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
+export function toggleFileSelection(fileId) {
+    if (currentSelectedFiles.has(fileId)) {
+        currentSelectedFiles.delete(fileId);
+    } else {
+        currentSelectedFiles.add(fileId);
     }
-    if (filterDomesticPropertiesBtn) {
-        filterDomesticPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
-        filterDomesticPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
-    }
-    if (filterForeignPropertiesBtn) {
-        filterForeignPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
-        filterForeignPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
-    }
-
-    // Add active style to the selected button
-    if (activeFilter === null && filterAllPropertiesBtn) {
-        filterAllPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
-        filterAllPropertiesBtn.classList.add('bg-blue-500', 'text-white');
-    } else if (activeFilter === false && filterDomesticPropertiesBtn) {
-        filterDomesticPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
-        filterDomesticPropertiesBtn.classList.add('bg-blue-500', 'text-white');
-    } else if (activeFilter === true && filterForeignPropertiesBtn) {
-        filterForeignPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
-        filterForeignPropertiesBtn.classList.add('bg-blue-500', 'text-white');
-    }
+    updateSelectionUI(currentSelectedFiles, moveToFolderButton, deleteSelectedFilesButton);
 }
+
+/**
+ * Updates the disabled state of "Move" and "Delete Selected" buttons.
+ * @param {Set<number>} selectedFilesSet - The set of currently selected file IDs.
+ * @param {HTMLElement} moveBtn - The 'Move to Folder' button.
+ * @param {HTMLElement} deleteBtn - The 'Delete Selected' button.
+ */
+export function updateSelectionUI(selectedFilesSet, moveBtn, deleteBtn) {
+    const hasSelection = selectedFilesSet.size > 0;
+    if (moveBtn) moveBtn.disabled = !hasSelection;
+    if (deleteBtn) deleteBtn.disabled = !hasSelection;
+
+    // Update visual state of individual checkboxes
+    document.querySelectorAll('.file-item').forEach(item => {
+        const fileId = parseInt(item.dataset.fileId);
+        const checkbox = item.querySelector('.file-checkbox');
+        if (selectedFilesSet.has(fileId)) {
+            item.classList.add('selected');
+            if (checkbox) checkbox.checked = true;
+        } else {
+            item.classList.remove('selected');
+            if (checkbox) checkbox.checked = false;
+        }
+    });
+}
+
+/**
+ * Renders the list of folders in the sidebar.
+ * @param {Array<Object>} foldersArray - The array of folder objects to render.
+ * @param {string|null} activeFolderId - The ID of the currently active folder (for highlighting).
+ * @param {HTMLElement} listContainer - The UL element where folders should be rendered.
+ */
+export function renderFoldersList(foldersArray, activeFolderId, listContainer) {
+    if (!listContainer) return;
+
+    listContainer.innerHTML = `
+        <li class="folder-item ${activeFolderId === 'all' ? 'active' : ''}" data-folder-id="all">
+            <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            All Files
+        </li>
+    `;
+
+    foldersArray.forEach(folder => {
+        const folderItem = document.createElement('li');
+        folderItem.className = `folder-item ${activeFolderId === folder.id ? 'active' : ''}`;
+        folderItem.dataset.folderId = folder.id;
+
+        folderItem.innerHTML = `
+            <div class="folder-content">
+                <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                ${folder.name}
+            </div>
+            <div class="folder-actions">
+                <button class="edit-folder-btn text-blue-500 hover:text-blue-700 ml-2" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-folder-btn text-red-500 hover:text-red-700 ml-2" data-folder-id="${folder.id}" data-folder-name="${folder.name}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        listContainer.appendChild(folderItem);
+    });
+
+    // Attach event listeners for folder clicks (delegated to main.js for clarity)
+    // Attach event listeners for folder edit/delete buttons (delegated to main.js or files.js for clarity)
+}
+
+// Private function for single file deletion (called by renderFilesList)
+function deleteFileSingle(fileId, fileName) {
+    const currentPropertyId = document.getElementById('property-selection-page').dataset.selectedPropertyId; // Get from main.js or state
+    showModal(
+        document.getElementById('verification-modal'),
+        `file: "${fileName}"`,
+        `deleting`,
+        async (username, password) => {
+            await (await import('../services/files.js')).deleteFiles(currentPropertyId, [fileId], username, password);
+        }
+    );
+}
+
+// Event listener for folder sidebar clicks, will trigger service calls
+document.addEventListener('DOMContentLoaded', () => {
+    const foldersList = document.getElementById('folders-list');
+    if (foldersList) {
+        foldersList.addEventListener('click', async (event) => {
+            const folderItem = event.target.closest('.folder-item');
+            if (folderItem) {
+                const folderId = folderItem.dataset.folderId;
+                const currentPropertyId = document.getElementById('property-selection-page').dataset.selectedPropertyId; // Get from main.js or state
+
+                // Visually highlight selected folder
+                foldersList.querySelectorAll('.folder-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                folderItem.classList.add('active');
+
+                // Call the service function to display files for this folder
+                await (await import('../services/files.js')).displayPropertyFiles(parseInt(currentPropertyId), folderId);
+            }
+        });
+
+        // Event delegation for edit/delete buttons on folders
+        foldersList.addEventListener('click', async (event) => {
+            const editBtn = event.target.closest('.edit-folder-btn');
+            const deleteBtn = event.target.closest('.delete-folder-btn');
+
+            if (editBtn) {
+                const folderId = editBtn.dataset.folderId;
+                const folderName = editBtn.dataset.folderName;
+                const currentPropertyId = document.getElementById('property-selection-page').dataset.selectedPropertyId; // Get from main.js or state
+                await (await import('../services/files.js')).editFolder(parseInt(currentPropertyId), folderId, folderName);
+            } else if (deleteBtn) {
+                const folderId = deleteBtn.dataset.folderId;
+                const folderName = deleteBtn.dataset.folderName;
+                const currentPropertyId = document.getElementById('property-selection-page').dataset.selectedPropertyId; // Get from main.js or state
+                await (await import('../services/files.js')).deleteFolder(parseInt(currentPropertyId), folderId, folderName);
+            }
+        });
+    }
+});
