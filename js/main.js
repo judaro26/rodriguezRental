@@ -24,31 +24,31 @@ let loginPage, registerPage, propertySelectionPage, addPropertyPage, propertyCat
     propertyFilesContent, verificationModal, uploadFolderModal;
 
 let loginForm, usernameInput, passwordInput, showRegisterFormBtn;
-let registerForm, regUsernameInput, regPasswordInput, backToLoginFromRegisterBtn;
+let registerForm, regUsernameInput, regPasswordInput; // Removed backToLoginFromRegisterBtn from this line
 
 let propertyCardsContainer, propertiesLoadingMessage, propertiesErrorText, propertiesErrorMessage;
-let addPropertyButton, refreshPropertiesButton, backToLoginBtn;
+let addPropertyButton, refreshPropertiesButton; // Removed backToLoginBtn from this line
 let filterAllPropertiesBtn, filterDomesticPropertiesBtn, filterForeignPropertiesBtn;
 
 let propertyCategoriesNav, categoryDetailsHeading, dynamicCategoryButtonsContainer, categoryLoadingMessage;
-let backToPropertiesBtn, addNewCategoryButton, deleteCategoryButton, refreshCategoriesButtonOnCategoriesPage, viewFilesButton;
+let backToPropertiesBtn, addNewCategoryButton, deleteCategoryButton, refreshCategoriesButtonOnCategoriesPage, viewFilesButton; // Removed addNewCategoryButton, deleteCategoryButton, refreshCategoriesButtonOnCategoriesPage, viewFilesButton
 let propertyHeader, currentPropertyTitle, currentPropertyThumbnail, addCategoryDetailButtonAtBottom;
 
 let addPropertyForm, propertyTitleInput, propertyImageInput, propertyDescriptionInput, propertyCategoriesInput,
-    cancelAddPropertyButton, addPropertyStatus, backFromAddPropertyBtn, propertyIsForeignInput;
+    cancelAddPropertyButton, addPropertyStatus, propertyIsForeignInput; // Removed backFromAddPropertyBtn from this line
 
 let updatePropertyForm, updatePropertyIdInput, updatePropertyTitleInput, updatePropertyImageInput,
     updatePropertyDescriptionInput, updatePropertyCategoriesInput, updatePropertyIsForeignInput,
     cancelUpdatePropertyButton, updatePropertyStatus, backFromUpdatePropertyBtn;
 
-let addNewCategoryForm, newCategoryNameInput, categoryPropertyTitleSpan, cancelNewCategoryButton, addNewCategoryStatus;
+let addNewCategoryForm, newCategoryNameInput, categoryPropertyTitleSpan, cancelNewCategoryButton, addNewCategoryStatus; // Removed backFromAddNewCategoryBtn from this line
 
 let addDetailForm, detailNameInput, detailUrlInput, detailDescriptionInput, presetLogoPicker, customLogoUrlInput,
-    detailUsernameAddInput, detailPasswordAddInput, cancelAddDetailButton, addDetailStatus, addDetailCategoryNameSpan;
+    detailUsernameAddInput, detailPasswordAddInput, cancelAddDetailButton, addDetailStatus, addDetailCategoryNameSpan; // Removed backFromAddDetailBtn from this line
 
 let updateDetailForm, updateDetailIdInput, updateDetailNameInput, updateDetailUrlInput,
     updateDetailDescriptionInput, updatePresetLogoPicker, updateCustomLogoUrlInput, updateDetailUsernameInput,
-    updateDetailPasswordInput, cancelUpdateDetailButton, updateDetailStatus, backFromUpdateDetailBtn, updateDetailCategoryNameSpan;
+    updateDetailPasswordInput, cancelUpdateDetailButton, updateDetailStatus, backFromUpdateDetailBtn, updateDetailCategoryNameSpan; // Added backFromUpdateDetailBtn
 
 let filesPropertyTitleSpan, filesPropertyThumbnail, fileUploadInput, uploadFileButton, fileUploadStatus;
 let filesListContainer, backFromFilesButton, createFolderButton, moveToFolderButton, deleteSelectedFilesButton;
@@ -78,10 +78,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     usernameInput = document.getElementById('username');
     passwordInput = document.getElementById('password');
     showRegisterFormBtn = document.getElementById('show-register-form-btn');
-    backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn');
     registerForm = document.getElementById('register-form');
     regUsernameInput = document.getElementById('reg-username');
     regPasswordInput = document.getElementById('reg-password');
+
 
     // Property Selection Page Elements
     propertyCardsContainer = document.getElementById('property-cards-container');
@@ -90,7 +90,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     propertiesErrorMessage = document.getElementById('properties-error-message');
     addPropertyButton = document.getElementById('add-property-button');
     refreshPropertiesButton = document.getElementById('refresh-properties-button');
-    backToLoginBtn = document.getElementById('back-to-login-btn');
     filterAllPropertiesBtn = document.getElementById('filter-all-properties');
     filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
     filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
@@ -103,7 +102,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     propertyCategoriesInput = document.getElementById('property-categories');
     cancelAddPropertyButton = document.getElementById('cancel-add-property');
     addPropertyStatus = document.getElementById('add-property-status');
-    backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn');
     propertyIsForeignInput = document.getElementById('property-is-foreign');
 
     // Property Categories Page Elements
@@ -111,7 +109,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     categoryDetailsHeading = document.getElementById('current-property-title');
     dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
     categoryLoadingMessage = document.getElementById('category-loading-message');
-    backToPropertiesBtn = document.getElementById('back-to-properties-btn');
     addNewCategoryButton = document.getElementById('add-new-category-button');
     deleteCategoryButton = document.getElementById('delete-category-button');
     refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
@@ -127,7 +124,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     categoryPropertyTitleSpan = document.getElementById('category-property-title');
     cancelNewCategoryButton = document.getElementById('cancel-new-category');
     addNewCategoryStatus = document.getElementById('add-new-category-status');
-    backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn');
 
     // Add Category Detail Page Elements
     addDetailForm = document.getElementById('add-detail-form');
@@ -137,10 +133,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     presetLogoPicker = document.getElementById('preset-logo-picker');
     customLogoUrlInput = document.getElementById('custom-logo-url');
     detailUsernameAddInput = document.getElementById('detail-username-add');
-    detailPasswordAddInput = document.getElementById('detail-password-add'); // Corrected
+    detailPasswordAddInput = document.getElementById('detail-password-add');
     cancelAddDetailButton = document.getElementById('cancel-add-detail');
     addDetailStatus = document.getElementById('add-detail-status');
-    backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn');
     addDetailCategoryNameSpan = document.getElementById('add-detail-category-name');
 
     // Update Category Detail Page Elements
@@ -153,10 +148,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     updatePresetLogoPicker = document.getElementById('update-preset-logo-picker');
     updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url');
     updateDetailUsernameInput = document.getElementById('update-detail-username');
-    updateDetailPasswordInput = document.getElementById('update-detail-password'); // Corrected
+    updateDetailPasswordInput = document.getElementById('update-detail-password');
     cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
     updateDetailStatus = document.getElementById('update-detail-status');
-    backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn');
     updateDetailCategoryNameSpan = document.getElementById('update-detail-category-name');
 
     // Update Property Page Elements
@@ -169,7 +163,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
     cancelUpdatePropertyButton = document.getElementById('cancel-update-property');
     updatePropertyStatus = document.getElementById('update-property-status');
-    backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn');
 
     // Property Files Page Elements
     filesPropertyTitleSpan = document.getElementById('files-property-title');
@@ -178,7 +171,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     uploadFileButton = document.getElementById('upload-file-button');
     fileUploadStatus = document.getElementById('file-upload-status');
     filesListContainer = document.getElementById('files-list-container');
-    backFromFilesButton = document.getElementById('back-from-files-button');
     createFolderButton = document.getElementById('create-folder-button');
     moveToFolderButton = document.getElementById('move-to-folder-button');
     deleteSelectedFilesButton = document.getElementById('delete-selected-files-button');
@@ -194,10 +186,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
 
 
+    // --- Now, attach all event listeners, directly using the assigned variables ---
+
     // 1. Show the initial login page
     showPage(loginPage);
-
-    // 2. Attach Event Listeners for Core Functionality (Delegating to imported functions)
 
     // Auth Listeners
     if (loginForm) {
@@ -238,7 +230,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-
     // Property Filters
     if (filterAllPropertiesBtn) {
         filterAllPropertiesBtn.addEventListener('click', () => {
@@ -273,7 +264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Refresh Properties
     if (refreshPropertiesButton) {
-        refreshPropertiesButton.addEventListener('click', async () => await fetchProperties(null)); // Refresh based on current filter state inside properties.js
+        refreshPropertiesButton.addEventListener('click', async () => await fetchProperties(null));
     }
 
     // Add New Property
@@ -324,12 +315,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const propertyId = parseInt(viewBtn.dataset.propertyId);
                 const selectedProperty = getPropertyById(propertyId);
                 if (selectedProperty) {
-                    currentSelectedProperty = selectedProperty; // Set global state
+                    currentSelectedProperty = selectedProperty;
                     showPage(propertyCategoriesPage);
                     renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
                     renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
-
-                    // Store selected property ID on the page element for easier access by other listeners
                     propertyCategoriesPage.dataset.selectedPropertyId = currentSelectedProperty.id;
                 } else {
                     showCustomAlert('Property details not found.');
@@ -352,29 +341,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-
     // Category Actions (on Property Categories Page)
-    if (propertyCategoriesNav) { // Event delegation for selecting a category
+    if (propertyCategoriesNav) {
         propertyCategoriesNav.addEventListener('click', (event) => {
             const categoryDiv = event.target.closest('[data-category-name]');
             if (categoryDiv) {
-                // Visually highlight selected category
                 propertyCategoriesNav.querySelectorAll('[data-category-name]').forEach(div => {
                     div.classList.remove('bg-blue-200', 'text-blue-800');
                 });
                 categoryDiv.classList.add('bg-blue-200', 'text-blue-800');
 
-                currentSelectedCategoryName = categoryDiv.dataset.categoryName; // Set global state
-                propertyCategoriesPage.dataset.selectedCategoryName = currentSelectedCategoryName; // Store on page element
+                currentSelectedCategoryName = categoryDiv.dataset.categoryName;
+                propertyCategoriesPage.dataset.selectedCategoryName = currentSelectedCategoryName;
 
-                // Render details for the selected category
                 renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
 
-                // Show "Add Vendor's Details" button if not already shown
                 if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'block';
-                // Ensure files content is hidden if category details are shown
                 if (propertyFilesContent) propertyFilesContent.style.display = 'none';
-                document.getElementById('category-details-content').style.display = 'flex'; // Make sure details are visible
+                document.getElementById('category-details-content').style.display = 'flex';
             }
         });
     }
@@ -444,8 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showPage(addCategoryDetailPage);
                 addDetailForm.reset();
                 detailUsernameAddInput.value = '';
-                // FIX: Corrected the typo here
-                detailPasswordAddInput.value = ''; // Was 'detailPasswordAddInput.sliced = '';'
+                detailPasswordAddInput.value = ''; // Corrected line
                 renderPresetLogosForForm(presetLogoPicker, customLogoUrlInput, ''); // Pass empty string for new detail
             } else {
                 showCustomAlert('Please select a property category first to add details to it.');
@@ -494,7 +477,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 detail_description: updateDetailDescriptionInput.value.trim(),
                 detail_logo_url: logoUrlToSend,
                 detail_username: updateDetailUsernameInput.value.trim(),
-                detail_password: updateDetailPasswordInput.value.trim() // Corrected
+                detail_password: updateDetailPasswordInput.value.trim() // Corrected line
             };
             await updateCategoryDetail(detailData, currentSelectedProperty.id, currentSelectedCategoryName);
         });
@@ -514,7 +497,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateDetailUrlInput.value = detailData.url;
                 updateDetailDescriptionInput.value = detailData.description;
                 updateDetailUsernameInput.value = detailData.username;
-                updateDetailPasswordInput.value = detailData.password; // Corrected
+                updateDetailPasswordInput.value = detailData.password; // Corrected line
                 if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
 
                 renderPresetLogosForForm(updatePresetLogoPicker, updateCustomLogoUrlInput, detailData.logo);
@@ -620,7 +603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Event handlers for folder selection modal (inside files.js service module now)
+    // Event handlers for folder selection modal
     if (folderSelectDropdown) {
         folderSelectDropdown.addEventListener('change', (e) => {
             if (newFolderNameContainer) {
@@ -653,5 +636,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await displayPropertyFiles(propertyId, folderId);
             }
         });
+    }
+
+    // --- Back Button Event Listeners (Consolidated) ---
+    // Moved these here and ensured they use the variables correctly.
+    const backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn'); // Local variable
+    if (backToLoginFromRegisterBtn) {
+        backToLoginFromRegisterBtn.addEventListener('click', () => showPage(loginPage));
+    }
+
+    const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn'); // Local variable
+    if (backFromAddPropertyBtn) {
+        backFromAddPropertyBtn.addEventListener('click', () => showPage(propertySelectionPage));
+    }
+
+    const backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn'); // Local variable
+    if (backFromAddNewCategoryBtn) {
+        backFromAddNewCategoryBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
+    }
+
+    const backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn'); // Local variable
+    if (backFromAddDetailBtn) {
+        backFromAddDetailBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
+    }
+
+    // backFromUpdateDetailBtn is already a global let, so its listener is below
+    if (backFromUpdateDetailBtn) {
+        backFromUpdateDetailBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
+    }
+
+    // backFromUpdatePropertyBtn is already a global let, so its listener is below
+    if (backFromUpdatePropertyBtn) {
+        backFromUpdatePropertyBtn.addEventListener('click', () => showPage(propertySelectionPage));
     }
 }); // End DOMContentLoaded
