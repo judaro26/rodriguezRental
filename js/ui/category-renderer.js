@@ -1,19 +1,24 @@
 // js/ui/category-renderer.js
 
-import { showPage, showCustomAlert } from '../utils/dom.js';
+import { showPage, showCustomAlert, showModal } from '../utils/dom.js'; // Added showModal
 import { getCategoryDetails, addCategoryDetail, updateCategoryDetail, deleteCategoryDetail } from '../services/categories.js';
 import { presetLogos } from '../constants.js'; // Used for rendering logo pickers in forms
 
-// DOM elements this renderer needs to interact with
-const propertyCategoriesNav = document.getElementById('property-categories-nav');
-const categoryDetailsHeading = document.getElementById('current-property-title'); // Span in HTML for Property Title/Category Details
-const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
-const dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
-const categoryLoadingMessage = document.getElementById('category-loading-message');
-const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom'); // This button is generally visible in this view
-const deleteCategoryButton = document.getElementById('delete-category-button'); // Sidebar button
-const addNewCategoryButton = document.getElementById('add-new-category-button'); // Sidebar button
-const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button'); // Sidebar button
+// Remove DOM elements being retrieved here. They should be passed as arguments.
+// const propertyCategoriesNav = document.getElementById('property-categories-nav');
+// const categoryDetailsHeading = document.getElementById('current-property-title');
+// const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
+// const dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
+// const categoryLoadingMessage = document.getElementById('category-loading-message');
+// const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom');
+// const deleteCategoryButton = document.getElementById('delete-category-button');
+// const addNewCategoryButton = document.getElementById('add-new-category-button');
+// const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
+
+// Add these to the parameters of functions that use them, or pass them from main.js
+// If you need these for form population here (like updateDetailIdInput), you still need to get them
+// or pass them down from main.js. For now, I'll keep them as `document.getElementById` for forms,
+// as they are directly tied to the form elements *on this page*.
 
 // References to the various forms for populating data during edits
 const updateDetailIdInput = document.getElementById('update-detail-id');
@@ -38,8 +43,20 @@ const customLogoUrlInputAdd = document.getElementById('custom-logo-url');
  * @param {HTMLElement} navContainer - The <nav> element for categories.
  * @param {HTMLElement} titleElement - The h2 element for property title.
  * @param {HTMLElement} thumbnailElement - The img element for property thumbnail.
+ * @param {HTMLElement} deleteCatButton - The delete category button in the sidebar. // ADDED
+ * @param {HTMLElement} addCatButton - The add new category button in the sidebar. // ADDED
+ * @param {HTMLElement} refreshCatButton - The refresh categories button in the sidebar. // ADDED
  */
-export function renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, navContainer, titleElement, thumbnailElement) {
+export function renderPropertyCategories(
+    currentSelectedProperty,
+    currentSelectedCategoryName,
+    navContainer,
+    titleElement,
+    thumbnailElement,
+    deleteCatButton, // ADDED
+    addCatButton,    // ADDED
+    refreshCatButton // ADDED
+) {
     if (!navContainer) return;
 
     navContainer.innerHTML = ''; // Clear existing categories
@@ -53,18 +70,17 @@ export function renderPropertyCategories(currentSelectedProperty, currentSelecte
 
     if (!currentSelectedProperty || !currentSelectedProperty.categories || currentSelectedProperty.categories.length === 0) {
         navContainer.innerHTML = `<p class="text-gray-500 text-sm">No categories defined for this property.</p>`;
-        if (deleteCategoryButton) deleteCategoryButton.style.display = 'none';
-        if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
-        if (addNewCategoryButton) addNewCategoryButton.style.display = 'block';
-        if (refreshCategoriesButtonOnCategoriesPage) refreshCategoriesButtonOnCategoriesPage.style.display = 'block';
+        if (deleteCatButton) deleteCatButton.style.display = 'none'; // Use passed element
+        // addCategoryDetailButtonAtBottom's visibility is handled by displayCategoryDetails (main.js calls it)
+        if (addCatButton) addCatButton.style.display = 'block'; // Use passed element
+        if (refreshCatButton) refreshCatButton.style.display = 'block'; // Use passed element
         return;
     }
 
     // Ensure buttons are visible if there are categories
-    if (deleteCategoryButton) deleteCategoryButton.style.display = 'block';
-    if (addNewCategoryButton) addNewCategoryButton.style.display = 'block';
-    if (refreshCategoriesButtonOnCategoriesPage) refreshCategoriesButtonOnCategoriesPage.style.display = 'block';
-    // addCategoryDetailButtonAtBottom's visibility is tied to a category being selected, handled by displayCategoryDetails
+    if (deleteCatButton) deleteCatButton.style.display = 'block'; // Use passed element
+    if (addCatButton) addCatButton.style.display = 'block'; // Use passed element
+    if (refreshCatButton) refreshCatButton.style.display = 'block'; // Use passed element
 
     currentSelectedProperty.categories.forEach(categoryName => {
         const categoryDiv = document.createElement('div');
@@ -79,7 +95,6 @@ export function renderPropertyCategories(currentSelectedProperty, currentSelecte
         }
 
         navContainer.appendChild(categoryDiv);
-        // Event listener for category selection is in main.js
     });
 }
 
@@ -91,13 +106,32 @@ export function renderPropertyCategories(currentSelectedProperty, currentSelecte
  * @param {HTMLElement} container - The container for detail tiles.
  * @param {HTMLElement} loadingMessageElement - The loading message element.
  * @param {HTMLElement} addDetailButton - The "Add Vendor's Details" button.
+ * @param {HTMLElement} presetLogoPickerAdd - The preset logo picker for add form.
+ * @param {HTMLElement} customLogoUrlInputAdd - The custom logo URL input for add form.
+ * @param {HTMLElement} updatePresetLogoPicker - The preset logo picker for update form.
+ * @param {HTMLElement} updateCustomLogoUrlInput - The custom logo URL input for update form.
+ * @param {object} currentSelectedProperty - The currently selected property object (for re-rendering categories if needed). // ADDED for refresh
  */
-export async function displayCategoryDetails(propertyId, categoryName, container, loadingMessageElement, addDetailButton) {
+export async function displayCategoryDetails(
+    propertyId,
+    categoryName,
+    container,
+    loadingMessageElement,
+    addDetailButton,
+    presetLogoPickerAdd,
+    customLogoUrlInputAdd,
+    updatePresetLogoPicker,
+    updateCustomLogoUrlInput,
+    currentSelectedProperty // ADDED
+) {
     if (!container || !loadingMessageElement) return;
 
     // Show the category details content area
     container.style.display = 'flex';
-    document.getElementById('property-files-content').style.display = 'none'; // Hide files if showing category details
+    // This is a specific DOM element, if it's always property-files-content, it can be gotten here
+    // or passed down from main.js. For now, it's fine as it's a direct reference outside the loop.
+    const propertyFilesContent = document.getElementById('property-files-content');
+    if (propertyFilesContent) propertyFilesContent.style.display = 'none';
 
     // Clear previous content and show loading message
     container.innerHTML = '';
@@ -109,12 +143,14 @@ export async function displayCategoryDetails(propertyId, categoryName, container
 
     if (!categoryName) {
         loadingMessageElement.textContent = 'Select a property category to view details.';
-        if (addDetailButton) addDetailButton.style.display = 'none'; // Hide if no category selected
+        if (addDetailButton) addDetailButton.style.display = 'none';
         return;
     }
 
     try {
-        const details = await getCategoryDetails(propertyId, categoryName); // Call service to fetch data
+        // --- THIS IS THE KEY CHANGE ---
+        // Call the service function to GET the data. It should only return the data.
+        const details = await getCategoryDetails(propertyId, categoryName); // Call the service layer, NOT recursively this UI function!
 
         loadingMessageElement.style.display = 'none';
         container.innerHTML = ''; // Clear again before populating
@@ -125,53 +161,58 @@ export async function displayCategoryDetails(propertyId, categoryName, container
             noDetailsMessage.textContent = `No details found for category: "${categoryName}".`;
             container.appendChild(noDetailsMessage);
         } else {
+            // Iterate and render the detail tiles using the received 'details' array
             details.forEach(detail => {
                 const detailTile = document.createElement('div');
-                detailTile.classList.add('detail-tile');
+                detailTile.classList.add('detail-tile'); // Add your Tailwind/CSS classes
                 detailTile.dataset.detailId = detail.id;
 
                 const logoHtml = detail.detail_logo_url
-                    ? `<img src="${detail.detail_logo_url}" alt="${detail.detail_name}" class="object-contain w-16 h-16 mb-2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
+                    ? `<img src="<span class="math-inline">\{detail\.detail\_logo\_url\}" alt\="</span>{detail.detail_name}" class="object-contain w-16 h-16 mb-2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/CCCCCC/FFFFFF?text=Logo';">`
                     : `<div class="logo-placeholder w-16 h-16 mb-2">${detail.detail_name.substring(0,3)}</div>`;
 
                 const usernameInputId = `username-${detail.id}`;
                 const passwordInputId = `password-${detail.id}`;
 
                 detailTile.innerHTML = `
-                    ${logoHtml}
-                    <h3>${detail.detail_name}</h3>
+                    <span class="math-inline">\{logoHtml\}
+<h3\></span>{detail.detail_name}</h3>
                     ${detail.detail_description ? `<p>${detail.detail_description}</p>` : ''}
                     <div class="credential-container">
                         <div class="credential-field">
-                            <label for="${usernameInputId}">User:</label>
-                            <input type="text" id="${usernameInputId}" value="${detail.detail_username || ''}" placeholder="Username" readonly>
-                            <button class="copy-btn" data-target="${usernameInputId}">Copy</button>
+                            <label for="<span class="math-inline">\{usernameInputId\}"\>User\:</label\>
+<input type\="text" id\="</span>{usernameInputId}" value="<span class="math-inline">\{detail\.detail\_username \|\| ''\}" placeholder\="Username" readonly\>
+<button class\="copy\-btn" data\-target\="</span>{usernameInputId}">Copy</button>
                         </div>
                         <div class="credential-field">
-                            <label for="${passwordInputId}">Pass:</label>
-                            <input type="password" id="${passwordInputId}" value="${detail.detail_password || ''}" placeholder="Password" readonly>
-                            <button class="password-toggle-btn" data-target="${passwordInputId}">👁️</button>
-                            <button class="copy-btn" data-target="${passwordInputId}">Copy</button>
-                        </div>
-                        <p class="text-xs text-red-500 mt-1">
-                            Note: Credentials are stored directly in your database. **This is a HIGH SECURITY RISK.**
-                            Consider using a dedicated password manager for sensitive data.
-                        </p>
-                    </div>
-                    <div class="detail-tile-actions">
-                        <button class="bg-blue-500 text-white hover:bg-blue-600" data-action="view" data-url="${detail.detail_url}">View Site</button>
-                        <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="${detail.id}" data-name="${detail.detail_name}" data-url="${detail.detail_url}" data-description="${detail.detail_description || ''}" data-logo="${detail.detail_logo_url || ''}" data-username="${detail.detail_username || ''}" data-password="${detail.detail_password || ''}">Edit</button>
-                        <button class="bg-red-500 text-white hover:bg-red-600" data-action="delete-detail" data-id="${detail.id}" data-name="${detail.detail_name}">Delete</button>
+                            <label for="<span class="math-inline">\{passwordInputId\}"\>Pass\:</label\>
+<input type\="password" id\="</span>{passwordInputId}" value="<span class="math-inline">\{detail\.detail\_password \|\| ''\}" placeholder\="Password" readonly\>
+<button class\="password\-toggle\-btn" data\-target\="</span>{passwordInputId}">👁️</button>
+                            <button class="copy-btn" data-target="<span class="math-inline">\{passwordInputId\}"\>Copy</button\>
+</div\>
+<p class\="text\-xs text\-red\-500 mt\-1"\>
+Note\: Credentials are stored directly in your database\. \*\*This is a HIGH SECURITY RISK\.\*\*
+Consider using a dedicated password manager for sensitive data\.
+</p\>
+</div\>
+<div class\="detail\-tile\-actions"\>
+<button class\="bg\-blue\-500 text\-white hover\:bg\-blue\-600" data\-action\="view" data\-url\="</span>{detail.detail_url}">View Site</button>
+                        <button class="bg-gray-400 text-gray-800 hover:bg-gray-500" data-action="edit" data-id="<span class="math-inline">\{detail\.id\}" data\-name\="</span>{detail.detail_name}" data-url="<span class="math-inline">\{detail\.detail\_url\}" data\-description\="</span>{detail.detail_description || ''}" data-logo="<span class="math-inline">\{detail\.detail\_logo\_url \|\| ''\}" data\-username\="</span>{detail.detail_username || ''}" data-password="<span class="math-inline">\{detail\.detail\_password \|\| ''\}"\>Edit</button\>
+<button class\="bg\-red\-500 text\-white hover\:bg\-red\-600" data\-action\="delete\-detail" data\-id\="</span>{detail.id}" data-name="${detail.detail_name}">Delete</button>
                     </div>
                 `;
-                container.appendChild(detailTile);
+
+                container.appendChild(detailTile); // Append the created tile
             });
         }
     } catch (error) {
-        console.error('Error in displayCategoryDetails:', error);
+        console.error('Error fetching category details in renderer:', error);
         loadingMessageElement.classList.add('text-red-600');
         loadingMessageElement.textContent = `Failed to load details: ${error.message}`;
         container.innerHTML = '';
+    } finally {
+        // Ensure loading message is hidden in all paths
+        loadingMessageElement.style.display = 'none';
     }
 }
 
@@ -199,7 +240,7 @@ export function renderPresetLogosForForm(pickerElement, customUrlInput, selected
         radioInput.type = 'radio';
         radioInput.name = pickerElement.id.includes('update') ? 'update-logo' : 'detail-logo'; // Use name based on picker ID
         radioInput.value = logo.url;
-        radioInput.id = `${pickerElement.id}-logo-${logo.name.replace(/\s+/g, '-').toLowerCase()}`;
+        radioInput.id = `<span class="math-inline">\{pickerElement\.id\}\-logo\-</span>{logo.name.replace(/\s+/g, '-').toLowerCase()}`;
         radioInput.classList.add('hidden'); // Hide the radio button itself
 
         const img = document.createElement('img');
@@ -229,7 +270,7 @@ export function renderPresetLogosForForm(pickerElement, customUrlInput, selected
     });
 
     if (customUrlInput) {
-        if (!selectedPresetFound && selectedUrl && selectedUrl !== 'custom') { // If it's a custom URL not in presets
+        if (!selectedPresetFound && selectedUrl && selectedUrl !== 'custom') {
             customUrlInput.value = selectedUrl;
         } else if (selectedPresetFound) {
             customUrlInput.value = '';
@@ -250,19 +291,30 @@ export function renderPresetLogosForForm(pickerElement, customUrlInput, selected
 document.addEventListener('DOMContentLoaded', () => {
     const dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
     const propertyCategoriesPage = document.getElementById('property-categories-page'); // The whole page containing these elements
+    const verificationModal = document.getElementById('verification-modal'); // For delete confirmation
+
+    // This section needs to get all the UI elements it passes to functions, OR
+    // these are already passed from main.js. Let's assume for now they are passed
+    // to displayCategoryDetails from main.js.
+
+    // If these DOM elements are only used here in the event listener, they can stay here.
+    // However, if they are passed to the `renderPresetLogosForForm` or other exported
+    // functions in this module, they should be parameters to those functions.
+    // For update/add forms, the elements are likely tied directly to the page.
+    const updateCategoryDetailPage = document.getElementById('update-category-detail-page'); // Page for updating detail
+    const addCategoryDetailPage = document.getElementById('add-category-detail-page'); // Page for adding detail
 
     if (dynamicCategoryButtonsContainer) {
-        dynamicCategoryButtonsContainer.addEventListener('click', (event) => {
+        dynamicCategoryButtonsContainer.addEventListener('click', async (event) => { // Made async for awaits
             const editBtn = event.target.closest('[data-action="edit"]');
             const deleteBtn = event.target.closest('[data-action="delete-detail"]');
             const viewBtn = event.target.closest('[data-action="view"]');
 
             if (editBtn) {
-                const detail = editBtn.dataset; // Dataset contains all data- attributes
-                const propertyId = propertyCategoriesPage.dataset.selectedPropertyId; // Assuming main.js or a state module sets this
-                const categoryName = propertyCategoriesPage.dataset.selectedCategoryName; // Assuming main.js or a state module sets this
+                const detail = editBtn.dataset;
+                const propertyId = propertyCategoriesPage.dataset.selectedPropertyId;
+                const categoryName = propertyCategoriesPage.dataset.selectedCategoryName;
 
-                // Populate update form fields (DOM elements need to be imported or accessed globally)
                 if (updateDetailIdInput) updateDetailIdInput.value = detail.id;
                 if (updateDetailNameInput) updateDetailNameInput.value = detail.name;
                 if (updateDetailUrlInput) updateDetailUrlInput.value = detail.url;
@@ -272,7 +324,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${categoryName}" for Property ID ${propertyId}`;
 
                 renderPresetLogosForForm(updatePresetLogoPicker, updateCustomLogoUrlInput, detail.logo || '');
-                showPage(document.getElementById('update-category-detail-page'));
+                showPage(updateCategoryDetailPage); // Use the variable
+
             } else if (deleteBtn) {
                 const detailId = parseInt(deleteBtn.dataset.id);
                 const detailName = deleteBtn.dataset.name;
@@ -280,12 +333,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 const categoryName = propertyCategoriesPage.dataset.selectedCategoryName;
 
                 showModal(
-                    document.getElementById('verification-modal'),
+                    verificationModal, // Use the variable
                     `detail: "${detailName}"`,
                     `deleting`,
                     async (username, password) => {
-                        await deleteCategoryDetail(propertyId, categoryName, detailId, username, password);
-                        // Refresh details is handled by deleteCategoryDetail service function
+                        const success = await deleteCategoryDetail(propertyId, categoryName, detailId, username, password);
+                        if (success) {
+                             // IMPORTANT: After deletion, re-render the category details view.
+                             // Need to get access to currentSelectedProperty to trigger this correctly.
+                             // For now, these elements need to be passed from main.js or retrieved reliably.
+                             const currentSelectedProperty = (await import('../services/properties.js')).getPropertyById(propertyId); // Get updated property
+                             if (currentSelectedProperty) {
+                                // Need main.js's DOM elements to call displayCategoryDetails.
+                                // Best to let main.js handle the re-render after a service call.
+                                // Temporarily accessing from here, which is risky.
+                                const categoryDetailsContent = document.getElementById('category-details-content');
+                                const categoryLoadingMessage = document.getElementById('category-loading-message');
+                                const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom');
+                                const presetLogoPickerAdd = document.getElementById('preset-logo-picker');
+                                const customLogoUrlInputAdd = document.getElementById('custom-logo-url');
+                                const updatePresetLogoPicker = document.getElementById('update-preset-logo-picker');
+                                const updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url');
+
+                                await displayCategoryDetails(
+                                    propertyId,
+                                    categoryName,
+                                    categoryDetailsContent,
+                                    categoryLoadingMessage,
+                                    addCategoryDetailButtonAtBottom,
+                                    presetLogoPickerAdd,
+                                    customLogoUrlInputAdd,
+                                    updatePresetLogoPicker,
+                                    updateCustomLogoUrlInput,
+                                    currentSelectedProperty // Pass property
+                                );
+                             } else {
+                                 console.error('Could not get updated property after deletion.');
+                                 showCustomAlert('Detail deleted, but failed to refresh view. Please refresh manually.');
+                             }
+                        }
                     }
                 );
             } else if (viewBtn) {
@@ -294,4 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-});
+
+    // Event listener for copy buttons
+    dynamicCategoryButtonsContainer.addEventListener('click', (event) => {
+        const copyBtn = event.target.closest('.copy-btn');
