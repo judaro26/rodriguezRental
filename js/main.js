@@ -22,6 +22,7 @@ import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersL
 
 
 // --- Global Application State (NOT DOM elements - these are data states) ---
+let currentSelectedFileIds = new Set(); // Track selected file IDs for operations
 let currentSelectedProperty = null;
 let currentSelectedCategoryName = null;
 let currentLoggedInUsername = '';
@@ -262,6 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('foldersList:', foldersList);
     const currentFolderTitle = document.getElementById('current-folder-title');
     console.log('currentFolderTitle:', currentFolderTitle);
+    const success = await createFolderService(propertyId, folderName.trim(), username, password);
 
     // Upload Folder Modal Elements
     const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
@@ -828,35 +830,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     // File Management
     // Helper function to encapsulate fetching and rendering files/folders
     async function refreshFilesView(propertyId, folderId = null) {
-        currentActiveFolderId = folderId; // Update global state
-        filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`; // Show loading
+        try {
+            currentActiveFolderId = folderId;
+            filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`;
+            
+            // Clear any previous selections
+            currentSelectedFileIds.clear();
+            updateSelectionUI(currentSelectedFileIds, moveToFolderButton, deleteSelectedFilesButton);
     
-        const { files, folders } = await fetchFileAndFolderData(propertyId, folderId); // Call the service to GET DATA
-    
-        // Render folders list using the UI renderer
-        renderFoldersList(folders, foldersList, currentFolderTitle, folderId);
-    
-        // Render files list using the UI renderer
-        renderFilesList(files, filesListContainer);
-    
-        // Update selected files UI after re-render (clears selection and updates buttons)
-        updateSelectionUI(new Set(), moveToFolderButton, deleteSelectedFilesButton);
+            // Fetch data
+            const { files, folders } = await fetchFileAndFolderData(propertyId, folderId);
+            
+            // Render UI
+            renderFoldersList(folders, foldersList, currentFolderTitle, folderId);
+            renderFilesList(files, filesListContainer);
+            
+            // If no files/folders, show appropriate message
+            if (files.length === 0 && folders.length === (folderId ? 1 : 0)) {
+                filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">No files found in this location.</p>`;
+            }
+        } catch (error) {
+            console.error('Error refreshing files view:', error);
+            filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Error loading files: ${error.message}</p>`;
+        }
     }
     
     if (viewFilesButton) {
-        viewFilesButton.addEventListener('click', async () => { // <--- ADD 'async' HERE
+        viewFilesButton.addEventListener('click', async () => {
             if (currentSelectedProperty) {
+                // Hide category details and show files content
                 document.getElementById('category-details-content').style.display = 'none';
                 propertyFilesContent.style.display = 'flex';
+                
+                // Update property info in files view
                 filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
-                // Add this line for the thumbnail, which was missing in your prior version:
                 filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
+                
+                if (addCategoryDetailButtonAtBottom) {
+                    addCategoryDetailButtonAtBottom.style.display = 'none';
+                }
     
+                // Store property ID for file operations
                 propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
     
-                // CALL THE NEW HELPER FUNCTION HERE to trigger fetch and render:
-                await refreshFilesView(currentSelectedProperty.id, null); // Start with 'All Files'
+                // Refresh the files view
+                await refreshFilesView(currentSelectedProperty.id, null);
             } else {
                 showCustomAlert('Please select a property to view files.');
             }
@@ -881,29 +899,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    if (deleteSelectedFilesButton) {
-        deleteSelectedFilesButton.addEventListener('click', async () => { // ADD ASYNC
-            if (currentSelectedFileIds.size === 0) { // CHANGE FROM filesListContainer.querySelectorAll ...
-                showCustomAlert('No files selected.');
-                return;
-            }
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-            const filesToDelete = Array.from(currentSelectedFileIds); // Use the global set
-
-            showModal(
-                verificationModal,
-                `${filesToDelete.length} selected file(s)`,
-                `deleting`,
-                async (username, password) => {
-                    const success = await deleteFiles(propertyId, filesToDelete, username, password); // ADD CONST SUCCESS
-                    if (success) { // ADD IF SUCCESS
-                        await refreshFilesView(propertyId, currentActiveFolderId); // Refresh current view
-                    } // ADD CLOSING BRACE
-                }
-            );
-        });
-    }
-
+    if (deleteSelectedFilesButton) {
+        deleteSelectedFilesButton.addEventListener('click', async () => {
+            if (currentSelectedFileIds.size === 0) {
+                showCustomAlert('No files selected.');
+                return;
+            }
+            
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+            const filesToDelete = Array.from(currentSelectedFileIds);
+    
+            showModal(
+                verificationModal,
+                `${filesToDelete.length} selected file(s)`,
+                `deleting`,
+                async (username, password) => {
+                    const success = await deleteFilesService(propertyId, filesToDelete, username, password);
+                    if (success) {
+                        await refreshFilesView(propertyId, currentActiveFolderId);
+                    }
+                }
+            );
+        });
+    }
     if (moveToFolderButton) {
         moveToFolderButton.addEventListener('click', async () => {
             if (currentSelectedFileIds.size === 0) { // CHANGE FROM filesListContainer.querySelectorAll ...
