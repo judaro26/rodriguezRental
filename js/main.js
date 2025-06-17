@@ -25,6 +25,7 @@ import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersL
 let currentSelectedProperty = null;
 let currentSelectedCategoryName = null;
 let currentLoggedInUsername = '';
+let currentSelectedFileIds = new Set(); // Track selected file IDs for operations
 // Global state for files module managed by main.js
 let currentActiveFolderId = null; // null for 'All Files', stores folder ID for current view
 
