@@ -179,6 +179,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('addDetailCategoryNameSpan:', addDetailCategoryNameSpan);
 
     // Update Category Detail Page Elements
+    const backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn'); // <-- ADD THIS LINE
+    console.log('backFromAddNewCategoryBtn:', backFromAddNewCategoryBtn); // <-- ADD THIS LINE
     const updateDetailForm = document.getElementById('update-detail-form');
     console.log('updateDetailForm:', updateDetailForm);
     const updateDetailIdInput = document.getElementById('update-detail-id');
