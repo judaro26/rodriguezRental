@@ -25,18 +25,22 @@ exports.handler = async function(event, context) {
     }
     console.log("DATABASE_URL environment variable is set.");
 
-    // Define a JWT secret. IMPORTANT: Use a strong, randomly generated secret in production!
-    // Store this in Netlify Environment Variables as JWT_SECRET
     if (!process.env.JWT_SECRET) {
-        console.error("JWT_SECRET environment variable is NOT set.");
-        return {
-            statusCode: 500,
-            headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "JWT secret missing." })
-        };
+      console.error("JWT_SECRET missing");
+      return { statusCode: 500, body: JSON.stringify({ error: "Server configuration error" }) };
     }
-    const JWT_SECRET = process.env.JWT_SECRET;
-    console.log("JWT_SECRET environment variable is set.");
+    
+    // Generate token with expiration
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+        foreign_approved: user.foreign_approved,
+        domestic_approved: user.domestic_approved
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '4h' } // Shorter expiration for security
+    );
 
 
     const client = new Client({
