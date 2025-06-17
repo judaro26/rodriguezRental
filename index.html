@@ -173,68 +173,13 @@
                 <h2 id="current-property-title" class="text-3xl font-bold text-gray-800">Category Details</h2>
             </div>
 
-        <div class="flex-grow relative">
-                        <div id="category-details-content" class="absolute inset-0 flex-grow overflow-y-auto pr-2">
-                            <p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p>
-                            <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                            </div>
+            <div class="flex-grow relative">
+                <div id="category-details-content" class="absolute inset-0 flex-grow overflow-y-auto pr-2">
+                    <p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p>
+                    <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                         </div>
-        
-                        <div id="property-files-content" class="absolute inset-0 flex-grow flex flex-col p-4" style="display: none;">
-                            <div class="property-header p-4 bg-gray-100 border-b border-gray-200 flex items-center mb-6">
-                                <img id="files-property-thumbnail" src="https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property" alt="Property Thumbnail" class="w-16 h-16 object-cover rounded-lg mr-4">
-                                <h3 class="text-2xl font-bold text-gray-800">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
-                            </div>
-        
-                            <div class="flex flex-col md:flex-row gap-6 flex-grow overflow-hidden">
-                                <div class="w-full md:w-1/4 bg-gray-100 p-4 rounded-lg overflow-y-auto">
-                                    <div class="flex justify-between items-center mb-4">
-                                        <h4 class="text-lg font-semibold">Folders</h4>
-                                        <button id="create-folder-button" class="bg-green-600 text-white p-1 rounded-md hover:bg-green-700">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <ul id="folders-list" class="space-y-2">
-                                        <li class="p-2 rounded hover:bg-gray-200 cursor-pointer font-medium" data-folder-id="all">All Files</li>
-                                    </ul>
-                                </div>
-        
-                                <div class="flex-grow bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden flex flex-col">
-                                    <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                                        <h4 class="text-lg font-semibold" id="current-folder-title">All Files</h4>
-                                        <div class="flex gap-2">
-                                            <button id="move-to-folder-button" class="bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 disabled:opacity-50" disabled>
-                                                Move to Folder
-                                            </button>
-                                            <button id="delete-selected-files-button" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 disabled:opacity-50" disabled>
-                                                Delete Selected
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div id="files-list-container" class="flex-grow overflow-y-auto">
-                                        <p class="text-gray-500 p-4 text-center">No files uploaded yet for this property.</p>
-                                    </div>
-                                </div>
-                            </div>
-        
-                            <div class="bg-gray-100 p-4 rounded-lg mt-4">
-                                <h4 class="text-lg font-semibold text-gray-700 mb-3">Upload New File</h4>
-                                <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-md mb-3">
-                                <button type="submit" id="upload-file-button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-semibold w-full">
-                                    Upload File
-                                </button>
-                                <div id="file-upload-status" class="mt-3 text-center text-sm hidden"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
-                        Add Vendor's Details
-                    </button>
-                </main>
-            </div>
-            
+                </div>
+                
             <div id="property-files-content" class="absolute inset-0 flex-grow flex flex-col p-4" style="display: none;">
                 <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
             
