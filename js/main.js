@@ -827,41 +827,41 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // File Management
     // Helper function to encapsulate fetching and rendering files/folders
-    async function refreshFilesView(propertyId, folderId = null) {
-        currentActiveFolderId = folderId; // Update global state
-        filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`; // Show loading
+    async function refreshFilesView(propertyId, folderId = null) {
+        currentActiveFolderId = folderId; // Update global state
+        filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`; // Show loading
+    
+        const { files, folders } = await fetchFileAndFolderData(propertyId, folderId); // Call the service to GET DATA
+    
+        // Render folders list using the UI renderer
+        renderFoldersList(folders, foldersList, currentFolderTitle, folderId);
+    
+        // Render files list using the UI renderer
+        renderFilesList(files, filesListContainer);
+    
+        // Update selected files UI after re-render (clears selection and updates buttons)
+        updateSelectionUI(new Set(), moveToFolderButton, deleteSelectedFilesButton);
+    }
 
-        const { files, folders } = await displayPropertyFiles(propertyId, folderId); // Call the service
-
-        // Render folders list using the UI renderer
-        renderFoldersList(folders, foldersList, currentFolderTitle, folderId);
-
-        // Render files list using the UI renderer
-        renderFilesList(files, filesListContainer);
-
-        // Update selected files UI after re-render
-        // currentSelectedFileIds is managed directly by ui/file-renderer.js's toggleFileSelection now,
-        // so no need for a global one in main.js
-        updateSelectionUI(new Set(), moveToFolderButton, deleteSelectedFilesButton); // Pass empty Set to clear selection and update buttons
-    }
-
-    if (viewFilesButton) {
-        viewFilesButton.addEventListener('click', async () => { // ADD ASYNC
-            if (currentSelectedProperty) {
-                document.getElementById('category-details-content').style.display = 'none';
-                propertyFilesContent.style.display = 'flex';
-                filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
-                filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // ADD THIS LINE
-                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
-
-                propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
-
-                await refreshFilesView(currentSelectedProperty.id, null); // Start with 'All Files'
-            } else {
-                showCustomAlert('Please select a property to view files.');
-            }
-        });
-    }
+    if (viewFilesButton) {
+        viewFilesButton.addEventListener('click', async () => { // ADD 'async' HERE
+            if (currentSelectedProperty) {
+                document.getElementById('category-details-content').style.display = 'none';
+                propertyFilesContent.style.display = 'flex';
+                filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
+                // ADD THIS LINE for thumbnail:
+                filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
+    
+                propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
+    
+                // CALL THE NEW HELPER FUNCTION HERE:
+                await refreshFilesView(currentSelectedProperty.id, null); // Start with 'All Files'
+            } else {
+                showCustomAlert('Please select a property to view files.');
+            }
+        });
+    }
 
     if (createFolderButton) {
         createFolderButton.addEventListener('click', async () => {
