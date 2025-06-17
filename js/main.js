@@ -4,18 +4,17 @@
 import { showPage, showCustomAlert, showModal, hideModal } from './utils/dom.js';
 import { login, register, getUserApprovalStatuses } from './services/auth.js';
 import { fetchProperties, getPropertyById, saveNewProperty, updateExistingProperty, setPropertiesFilter } from './services/properties.js';
-import { addCategoryDetail, updateCategoryDetail, deleteCategoryDetail, getCategoryDetails, addNewCategoryToProperty } from './services/categories.js';
-import { displayPropertyFiles, createFolder, deleteFiles, moveFiles, initFileUploadProcess } from './services/files.js';
-import { renderPropertyCards, updateFilterButtonsHighlight } from './ui/property-renderer.js';
-import { renderPropertyCategories, displayCategoryDetails as renderCategoryDetailsUI } from './ui/category-renderer.js';
+import { displayPropertyFiles as fetchFileAndFolderData, createFolder as createFolderService, uploadFile as uploadFileService, moveFiles as moveFilesService, deleteFiles as deleteFilesService, initFileUploadProcess as initFileUploadProcessService } from './services/files.js';
+import { renderPropertyCategories, displayCategoryDetails as renderCategoryDetailsUI, renderPresetLogosForForm } from './ui/category-renderer.js';
 import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersList } from './ui/file-renderer.js';
-
 
 // --- Global Application State (NOT DOM elements - these are data states) ---
 let currentSelectedProperty = null;
 let currentSelectedCategoryName = null;
 let currentLoggedInUsername = ''; // Keep these here for passing to functions
-
+let currentActiveFolderId = null; // null for 'All Files'
+// currentSelectedFileIds is managed directly by ui/file-renderer.js's toggleFileSelection now,
+// so no need for a global one in main.js
 
 // --- Application Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -486,11 +485,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Render categories in the left sidebar
                     renderPropertyCategories(
-                        currentSelectedProperty, 
+                        currentSelectedProperty,
                         null, // Start with no specific category highlighted
-                        propertyCategoriesNav, 
-                        categoryDetailsHeading, 
-                        currentPropertyThumbnail
+                        propertyCategoriesNav,
+                        categoryDetailsHeading,
+                        currentPropertyThumbnail,
+                        deleteCategoryButton, // ADD THIS
+                        addNewCategoryButton, // ADD THIS
+                        refreshCategoriesButtonOnCategoriesPage // ADD THIS
                     );
                     
                     // Store selected property ID on the page element for easier access by other listeners
