@@ -317,6 +317,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ... (register form listeners) ...
+        if (showRegisterFormBtn) {
+            showRegisterFormBtn.addEventListener('click', () => {
+                showPage(registerPage);
+                registerForm.reset();
+            });
+        }
+    
+        if (registerForm) {
+        registerForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            try {
+                const username = regUsernameInput.value.trim();
+                const password = regPasswordInput.value.trim();
+                
+                if (!username || !password) {
+                    showCustomAlert('Please enter both username and password');
+                    return;
+                }
+                
+                const success = await register(username, password);
+                if (success) {
+                    showCustomAlert('Registration successful! Please login with your new credentials.');
+                    showPage(loginPage);
+                    registerForm.reset();
+                } else {
+                    showCustomAlert('Registration failed. The username might already be taken.');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showCustomAlert('Registration failed. Please try again.');
+            }
+        });
+    }
+    
 
     // Property Filters
     if (filterAllPropertiesBtn) {
