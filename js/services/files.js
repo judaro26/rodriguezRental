@@ -14,42 +14,58 @@ import { getLoggedInCredentials } from './auth.js';
  * @returns {Promise<{files: Array, folders: Array}>} An object containing 'files' (array) and 'folders' (array).
  * Returns { files: [], folders: [] } on error or no data.
  */
-export async function displayPropertyFiles(propertyId, folderId = null) {
-    try {
-        const { username, password } = getLoggedInCredentials(); // Assuming needed for getFolders/getFiles
-
-        // Fetch folders
-        const foldersResponse = await fetch('/.netlify/functions/getFolders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ property_id: propertyId, username, password })
-        });
-        if (!foldersResponse.ok) {
-            const errorBody = await foldersResponse.json();
-            throw new Error(`Failed to load folders: ${errorBody.message || foldersResponse.statusText}`);
+    export async function displayPropertyFiles(propertyId, folderId = null) {
+        console.log('--- Entering displayPropertyFiles (fetchFileAndFolderData) ---'); // ADD THIS
+        console.log(`Fetching files for propertyId: ${propertyId}, folderId: ${folderId}`); // ADD THIS
+    
+        try {
+            if (!localStorage.getItem('token')) {
+                console.warn('No authentication token found. User might not be logged in.'); // ADD THIS
+                return { files: [], folders: [] }; // Return empty if no token
+            }
+    
+            const url = folderId
+                ? `/api/properties/${propertyId}/files?folderId=${folderId}`
+                : `/api/properties/${propertyId}/files`;
+            console.log('API Request URL:', url); // ADD THIS
+    
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json' // Ensure content type is set
+                }
+            });
+    
+            console.log('API Response Status:', response.status); // ADD THIS
+            if (!response.ok) {
+                const errorText = await response.text(); // Get raw text for better debugging
+                console.error('API Response not OK. Raw error:', errorText); // ADD THIS
+                let errorMessage = 'Failed to fetch files and folders.';
+                try {
+                    const errorData = JSON.parse(errorText); // Try parsing as JSON
+                    errorMessage = errorData.message || errorMessage;
+                } catch (parseError) {
+                    // Not a JSON response, use raw text or default
+                    console.warn('Could not parse error response as JSON:', parseError); // ADD THIS
+                }
+                throw new Error(errorMessage);
+            }
+    
+            const data = await response.json();
+            console.log('Successfully received file and folder data:', data); // ADD THIS
+            // Ensure the backend always returns { files: [], folders: [] } structure, even if empty
+            return {
+                files: Array.isArray(data.files) ? data.files : [],
+                folders: Array.isArray(data.folders) ? data.folders : []
+            };
+        } catch (error) {
+            console.error('Error in displayPropertyFiles (fetchFileAndFolderData):', error); // This is good
+            showCustomAlert('Failed to fetch files: ' + error.message, 'error'); // Using showCustomAlert from main.js
+            return { files: [], folders: [] }; // Always return expected structure
+        } finally {
+            console.log('--- Exiting displayPropertyFiles (fetchFileAndFolderData) ---'); // ADD THIS
         }
-        const foldersData = await foldersResponse.json();
-
-        // Fetch files (potentially filtered by folderId at the backend, or filter locally if backend returns all)
-        const filesResponse = await fetch(`/.netlify/functions/getFiles?property_id=${propertyId}${folderId ? `&folder_id=${folderId}` : ''}`);
-        if (!filesResponse.ok) {
-            const errorBody = await filesResponse.json();
-            throw new Error(`Failed to load files: ${errorBody.message || filesResponse.statusText}`);
-        }
-        const filesData = await filesResponse.json();
-
-        // Return raw data. Filtering (if not done by backend) and rendering will happen in main.js/UI layer.
-        return {
-            files: Array.isArray(filesData) ? filesData : [], // Ensure it's an array
-            folders: Array.isArray(foldersData) ? foldersData : [] // Ensure it's an array
-        };
-
-    } catch (error) {
-        console.error('Error fetching files/folders from Netlify Function:', error);
-        showCustomAlert(`Error loading files and folders: ${error.message}`);
-        return { files: [], folders: [] }; // Always return an empty structured object on error
     }
-}
 
 /**
  * Initiates the file upload/move process by checking file types/selection.
