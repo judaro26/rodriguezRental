@@ -198,6 +198,17 @@ export function isTokenValid() {
   return Date.now() < exp * 1000; // Convert Unix timestamp to milliseconds
 }
 
+
+// In your auth.js login function
+if (data.token) {
+  localStorage.setItem('token', data.token); 
+  // Also store expiration time
+  const decoded = jwt.decode(data.token);
+  if (decoded?.exp) {
+    localStorage.setItem('token_exp', decoded.exp);
+  }
+}
+
 export function getAuthHeader() {
   return {
     'Authorization': `Bearer ${localStorage.getItem('token')}`
