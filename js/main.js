@@ -842,20 +842,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update selected files UI after re-render (clears selection and updates buttons)
         updateSelectionUI(new Set(), moveToFolderButton, deleteSelectedFilesButton);
     }
-
+    
     if (viewFilesButton) {
-        viewFilesButton.addEventListener('click', async () => { // ADD 'async' HERE
+        viewFilesButton.addEventListener('click', async () => { // <--- ADD 'async' HERE
             if (currentSelectedProperty) {
                 document.getElementById('category-details-content').style.display = 'none';
                 propertyFilesContent.style.display = 'flex';
                 filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
-                // ADD THIS LINE for thumbnail:
+                // Add this line for the thumbnail, which was missing in your prior version:
                 filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
                 if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
     
                 propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
     
-                // CALL THE NEW HELPER FUNCTION HERE:
+                // CALL THE NEW HELPER FUNCTION HERE to trigger fetch and render:
                 await refreshFilesView(currentSelectedProperty.id, null); // Start with 'All Files'
             } else {
                 showCustomAlert('Please select a property to view files.');
