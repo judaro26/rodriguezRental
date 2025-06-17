@@ -1,13 +1,10 @@
 // js/ui/file-renderer.js
 
-import { getFileIcon, formatFileSize } from '../utils/helpers.js'; // Moved here
-import { showCustomAlert } from '../utils/dom.js'; // If needed for UI-specific alerts
+import { getFileIcon, formatFileSize } from '../utils/helpers.js';
+// No need for showCustomAlert, as main.js handles top-level alerts.
 
-// No document.getElementById calls at top-level here either, generally.
-// DOM elements should be passed as arguments to rendering functions.
-
-// You might need a way to manage selected files here, as this is the UI layer that reacts to clicks.
-let selectedFiles = new Set(); // Manage selection state in the UI layer
+// Manage selection state here, as it's purely UI-related
+let currentSelectedFileIds = new Set();
 
 /**
  * Renders the list of folders in the UI sidebar.
@@ -17,8 +14,11 @@ let selectedFiles = new Set(); // Manage selection state in the UI layer
  * @param {string|null} activeFolderId - The ID of the currently active folder (for highlighting).
  */
 export function renderFoldersList(folders, foldersListContainer, currentFolderTitleElement, activeFolderId = null) {
-    if (!foldersListContainer) return;
-    foldersListContainer.innerHTML = ''; // Clear existing folders
+    if (!foldersListContainer) {
+        console.error("foldersListContainer not provided to renderFoldersList.");
+        return;
+    }
+    foldersListContainer.innerHTML = '';
 
     // Add "All Files" option
     const allFilesItem = document.createElement('li');
@@ -57,13 +57,13 @@ export function renderFoldersList(folders, foldersListContainer, currentFolderTi
  * Renders the list of files in the main content area.
  * @param {Array<Object>} files - The array of file objects to render.
  * @param {HTMLElement} filesListContainer - The DIV or UL element where files should be rendered.
- * @param {Function} toggleSelectionCallback - Callback for when a file is selected/deselected.
- * @param {Function} deleteFileSingleCallback - Callback for single file delete button.
  */
-export function renderFilesList(files, filesListContainer) { // Removed toggleFileSelection, deleteFileSingle from params as they are internal or main.js handlers
-    if (!filesListContainer) return;
-
-    filesListContainer.innerHTML = ''; // Clear existing files
+export function renderFilesList(files, filesListContainer) {
+    if (!filesListContainer) {
+        console.error("filesListContainer not provided to renderFilesList.");
+        return;
+    }
+    filesListContainer.innerHTML = '';
 
     if (files.length === 0) {
         filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">No files found in this view.</p>`;
@@ -78,13 +78,13 @@ export function renderFilesList(files, filesListContainer) { // Removed toggleFi
         );
         fileDiv.dataset.fileId = file.id;
 
-        const isSelected = selectedFiles.has(file.id);
+        const isSelected = currentSelectedFileIds.has(file.id); // Use local state
         if (isSelected) {
             fileDiv.classList.add('bg-blue-100'); // Highlight selected files
         }
 
-        const fileIcon = getFileIcon(file.filename); // Use helper here
-        const fileSizeFormatted = formatFileSize(file.size); // Use helper here
+        const fileIcon = getFileIcon(file.filename);
+        const fileSizeFormatted = formatFileSize(file.size);
 
         fileDiv.innerHTML = `
             <div class="flex items-center gap-3 flex-grow">
@@ -107,23 +107,24 @@ export function renderFilesList(files, filesListContainer) { // Removed toggleFi
 
 /**
  * Toggles the selection state of a file and updates the UI.
+ * This directly modifies `currentSelectedFileIds` and updates buttons.
  * @param {number} fileId - The ID of the file.
  * @param {HTMLElement} moveToButton - The "Move to Folder" button.
  * @param {HTMLElement} deleteButton - The "Delete Selected Files" button.
  */
 export function toggleFileSelection(fileId, moveToButton, deleteButton) {
-    if (selectedFiles.has(fileId)) {
-        selectedFiles.delete(fileId);
+    if (currentSelectedFileIds.has(fileId)) {
+        currentSelectedFileIds.delete(fileId);
     } else {
-        selectedFiles.add(fileId);
+        currentSelectedFileIds.add(fileId);
     }
-    updateSelectionUI(selectedFiles, moveToButton, deleteButton);
-    // You might also want to visually update the checkbox/item highlight directly here
+    updateSelectionUI(currentSelectedFileIds, moveToButton, deleteButton);
+    // Also visually update the specific file item's checkbox/highlight
     const checkbox = document.querySelector(`.file-checkbox[data-file-id="${fileId}"]`);
-    if (checkbox) checkbox.checked = selectedFiles.has(fileId);
+    if (checkbox) checkbox.checked = currentSelectedFileIds.has(fileId);
     const fileItem = document.querySelector(`.file-item[data-file-id="${fileId}"]`);
     if (fileItem) {
-        if (selectedFiles.has(fileId)) {
+        if (currentSelectedFileIds.has(fileId)) {
             fileItem.classList.add('bg-blue-100');
         } else {
             fileItem.classList.remove('bg-blue-100');
