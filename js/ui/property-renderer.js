@@ -1,28 +1,29 @@
 // js/ui/property-renderer.js
 
-import { showPage, showCustomAlert } from '../utils/dom.js'; // Assuming you still use showCustomAlert here
-import { getPropertyById, fetchProperties } from '../services/properties.js'; // Import data source and fetcher
+import { showPage, showCustomAlert } from '../utils/dom.js';
+// Removed: const propertyCardsContainer = document.getElementById('property-cards-container');
+// Removed: const filterAllPropertiesBtn = document.getElementById('filter-all-properties');
+// Removed: const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
+// Removed: const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
 
-// DOM elements that this renderer needs to interact with
-const propertyCardsContainer = document.getElementById('property-cards-container');
-const filterAllPropertiesBtn = document.getElementById('filter-all-properties');
-const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
-const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
-
-// Function to store/retrieve current UI selection state (if needed across page refreshes)
-let currentUIFilter = null; // null for all, false for domestic, true for foreign
+let currentUIFilter = null;
 
 /**
  * Renders a list of properties as cards in the UI.
  * @param {Array<Object>} propertiesToDisplay - The filtered list of properties to render.
+ * @param {HTMLElement} containerElement - The DOM element where property cards will be rendered. // ADD THIS
  */
-export function renderPropertyCards(propertiesToDisplay) {
-    if (!propertyCardsContainer) return;
+export function renderPropertyCards(propertiesToDisplay, containerElement) { // ADD containerElement parameter
+    // Use containerElement instead of the global propertyCardsContainer
+    if (!containerElement) {
+        console.error('Error: Property cards container element not provided to renderPropertyCards.');
+        return;
+    }
 
-    propertyCardsContainer.innerHTML = ''; // Clear existing cards
+    containerElement.innerHTML = ''; // Clear existing cards
 
     if (propertiesToDisplay.length === 0) {
-        propertyCardsContainer.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found matching this filter. Add a new one!</p>`;
+        containerElement.innerHTML = `<p class="text-gray-600 w-full text-center">No properties found matching this filter. Add a new one!</p>`;
         return;
     }
 
@@ -33,7 +34,7 @@ export function renderPropertyCards(propertiesToDisplay) {
             'hover:shadow-lg', 'transition-shadow', 'duration-200', 'border', 'border-gray-200',
             'flex', 'flex-col'
         );
-        propertyCard.dataset.propertyId = property.id; // Store ID on the card
+        propertyCard.dataset.propertyId = property.id;
 
         const imageUrl = property.image || 'https://placehold.co/400x250/CCCCCC/FFFFFF?text=No+Image';
 
@@ -48,43 +49,45 @@ export function renderPropertyCards(propertiesToDisplay) {
                 <button class="w-1/2 bg-gray-400 text-gray-800 py-2 rounded-lg hover:bg-gray-500 transition-colors duration-200 font-semibold" data-action="edit-property" data-property-id="${property.id}">Edit</button>
             </div>
         `;
-        propertyCardsContainer.appendChild(propertyCard);
-
-        // Event listeners are set in main.js, which acts as the orchestrator.
-        // This renderer focuses purely on creating the HTML.
+        containerElement.appendChild(propertyCard); // Use containerElement
     });
 }
 
 /**
  * Updates the visual highlight of the property filter buttons.
  * @param {boolean|null} activeFilter - The currently active filter (null, false, or true).
+ * @param {HTMLElement} allBtn - The "All Properties" button element. // ADD THIS
+ * @param {HTMLElement} domesticBtn - The "Domestic Properties" button element. // ADD THIS
+ * @param {HTMLElement} foreignBtn - The "Foreign Properties" button element. // ADD THIS
  */
-export function updateFilterButtonsHighlight(activeFilter) {
-    currentUIFilter = activeFilter; // Update internal state
+export function updateFilterButtonsHighlight(activeFilter, allBtn, domesticBtn, foreignBtn) { // ADD button parameters
+    currentUIFilter = activeFilter;
 
     // Remove active styles from all buttons
-    if (filterAllPropertiesBtn) {
-        filterAllPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
-        filterAllPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
+    // Use the passed button elements
+    if (allBtn) {
+        allBtn.classList.remove('bg-blue-500', 'text-white');
+        allBtn.classList.add('bg-gray-200', 'text-gray-800');
     }
-    if (filterDomesticPropertiesBtn) {
-        filterDomesticPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
-        filterDomesticPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
+    if (domesticBtn) {
+        domesticBtn.classList.remove('bg-blue-500', 'text-white');
+        domesticBtn.classList.add('bg-gray-200', 'text-gray-800');
     }
-    if (filterForeignPropertiesBtn) {
-        filterForeignPropertiesBtn.classList.remove('bg-blue-500', 'text-white');
-        filterForeignPropertiesBtn.classList.add('bg-gray-200', 'text-gray-800');
+    if (foreignBtn) {
+        foreignBtn.classList.remove('bg-blue-500', 'text-white');
+        foreignBtn.classList.add('bg-gray-200', 'text-gray-800');
     }
 
     // Add active style to the selected button
-    if (activeFilter === null && filterAllPropertiesBtn) {
-        filterAllPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
-        filterAllPropertiesBtn.classList.add('bg-blue-500', 'text-white');
-    } else if (activeFilter === false && filterDomesticPropertiesBtn) {
-        filterDomesticPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
-        filterDomesticPropertiesBtn.classList.add('bg-blue-500', 'text-white');
-    } else if (activeFilter === true && filterForeignPropertiesBtn) {
-        filterForeignPropertiesBtn.classList.remove('bg-gray-200', 'text-gray-800');
-        filterForeignPropertiesBtn.classList.add('bg-blue-500', 'text-white');
+    // Use the passed button elements
+    if (activeFilter === null && allBtn) {
+        allBtn.classList.remove('bg-gray-200', 'text-gray-800');
+        allBtn.classList.add('bg-blue-500', 'text-white');
+    } else if (activeFilter === false && domesticBtn) {
+        domesticBtn.classList.remove('bg-gray-200', 'text-gray-800');
+        domesticBtn.classList.add('bg-blue-500', 'text-white');
+    } else if (activeFilter === true && foreignBtn) {
+        foreignBtn.classList.remove('bg-gray-200', 'text-gray-800');
+        foreignBtn.classList.add('bg-blue-500', 'text-white');
     }
 }
