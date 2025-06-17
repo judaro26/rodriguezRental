@@ -12,6 +12,7 @@
   "dependencies": {
     "cloudinary": "^1.x.x",
     "pg": "^8.x.x",
-    "bcryptjs": "^2.4.3"
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0"
   }
 }
