@@ -189,5 +189,20 @@ export function getUserApprovalStatuses() {
     };
 }
 
+// Add to auth.js
+export function isTokenValid() {
+  const token = localStorage.getItem('token');
+  const exp = localStorage.getItem('token_exp');
+  
+  if (!token || !exp) return false;
+  return Date.now() < exp * 1000; // Convert Unix timestamp to milliseconds
+}
+
+export function getAuthHeader() {
+  return {
+    'Authorization': `Bearer ${localStorage.getItem('token')}`
+  };
+}
+
 // No DOM event listeners in this file anymore, they are handled in main.js.
 // DOM element lookups for status messages are fine here as they are directly updated.
