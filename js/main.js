@@ -829,42 +829,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     // File Management
     // Helper function to encapsulate fetching and rendering files/folders
     async function refreshFilesView(propertyId, folderId = null) {
+        console.log('--- Entering refreshFilesView ---'); // ADD THIS
+        console.log(`refreshFilesView: propertyId = ${propertyId}, folderId = ${folderId}`); // ADD THIS
+    
+        if (!propertyId) { // Basic validation
+            console.error('refreshFilesView: No propertyId provided.');
+            filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Error: Property not selected for file view.</p>`;
+            return;
+        }
+    
         try {
             currentActiveFolderId = folderId;
             filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`;
-            
+            console.log('filesListContainer cleared and loading message set.'); // ADD THIS
+    
             // Clear any previous selections
             currentSelectedFileIds.clear();
             updateSelectionUI(currentSelectedFileIds, moveToFolderButton, deleteSelectedFilesButton);
+            console.log('currentSelectedFileIds cleared and selection UI updated.'); // ADD THIS
     
             // Fetch data
+            console.log('Calling fetchFileAndFolderData...'); // ADD THIS
             const { files, folders } = await fetchFileAndFolderData(propertyId, folderId);
-            
+            console.log('fetchFileAndFolderData returned:'); // ADD THIS
+            console.log('  Files:', files); // ADD THIS
+            console.log('  Folders:', folders); // ADD THIS
+    
+            // Ensure files and folders are arrays
+            const safeFiles = Array.isArray(files) ? files : [];
+            const safeFolders = Array.isArray(folders) ? folders : [];
+            console.log(`After safety check: ${safeFiles.length} files, ${safeFolders.length} folders.`); // ADD THIS
+    
             // Render UI
-            renderFoldersList(folders, foldersList, currentFolderTitle, folderId);
-            renderFilesList(files, filesListContainer);
-            
+            console.log('Calling renderFoldersList...'); // ADD THIS
+            renderFoldersList(safeFolders, foldersList, currentFolderTitle, folderId);
+            console.log('Calling renderFilesList...'); // ADD THIS
+            renderFilesList(safeFiles, filesListContainer);
+    
             // If no files/folders, show appropriate message
-            if (files.length === 0 && folders.length === (folderId ? 1 : 0)) {
-                filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">No files found in this location.</p>`;
+            // The condition (folderId ? 1 : 0) assumes '..' parent folder might always be present if not root
+            // If your backend doesn't return '..' for subfolders, adjust this logic.
+            const effectiveFoldersCount = safeFolders.filter(f => f.id !== 'root').length; // Exclude 'root' if it's implicitly added by renderer
+            if (safeFiles.length === 0 && effectiveFoldersCount === 0) { // Adjusted condition for clarity
+                filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">No files or subfolders found in this location.</p>`;
+                console.log('No files or subfolders message displayed.'); // ADD THIS
+            } else {
+                console.log('Content rendered: Files or folders found.'); // ADD THIS
             }
+            console.log('--- Exiting refreshFilesView successfully ---'); // ADD THIS
+    
         } catch (error) {
-            console.error('Error refreshing files view:', error);
+            console.error('Error refreshing files view:', error); // This is good
             filesListContainer.innerHTML = `<p class="text-red-600 p-4 text-center">Error loading files: ${error.message}</p>`;
+            console.log('--- Exiting refreshFilesView with error ---'); // ADD THIS
         }
     }
     
     if (viewFilesButton) {
         viewFilesButton.addEventListener('click', async () => {
             if (currentSelectedProperty) {
+                console.log('User clicked "View Files" for property ID:', currentSelectedProperty.id); // ADD THIS
                 // Hide category details and show files content
                 document.getElementById('category-details-content').style.display = 'none';
                 propertyFilesContent.style.display = 'flex';
-                
+                console.log('propertyFilesContent display style after click:', propertyFilesContent.style.display); // ADD THIS
+    
                 // Update property info in files view
                 filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
                 filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-                
+    
                 if (addCategoryDetailButtonAtBottom) {
                     addCategoryDetailButtonAtBottom.style.display = 'none';
                 }
@@ -873,9 +906,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
     
                 // Refresh the files view
+                console.log('Calling refreshFilesView...'); // ADD THIS
                 await refreshFilesView(currentSelectedProperty.id, null);
+                console.log('refreshFilesView call completed.'); // ADD THIS
             } else {
                 showCustomAlert('Please select a property to view files.');
+                console.warn('View Files clicked without a selected property.'); // ADD THIS
             }
         });
     }
