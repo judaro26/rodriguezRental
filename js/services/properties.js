@@ -2,42 +2,38 @@
 
 import { showPage, showCustomAlert } from '../utils/dom.js';
 import { getLoggedInCredentials, getUserApprovalStatuses } from './auth.js';
-// Import renderPropertyCards and updateFilterButtonsHighlight from ui/property-renderer.js
-// You will pass the DOM elements to them directly.
 import { renderPropertyCards, updateFilterButtonsHighlight } from '../ui/property-renderer.js';
 
 let properties = []; // This array holds all fetched properties
 let currentPropertyFilter = null; // null for all, false for domestic, true for foreign
 
-// These DOM elements should now be passed as arguments, not retrieved here.
-// const propertiesLoadingMessage = document.getElementById('properties-loading-message');
-// const propertiesErrorMessage = document.getElementById('properties-error-message');
-// const propertiesErrorText = document.getElementById('properties-error-text');
-// const propertySelectionPage = document.getElementById('property-selection-page');
+// Removed: All document.getElementById calls for DOM elements.
+// These will now be passed as arguments from main.js.
 
 /**
  * Fetches properties from the Netlify function and updates the local properties array.
  * Optionally applies a filter after fetching.
  * @param {boolean|null} [isForeignFilter=null] - Filter by domestic (false), foreign (true), or all (null).
- * @param {HTMLElement} propertyCardsContainer - The container for property cards. // ADD THIS
- * @param {HTMLElement} loadingMsg - The loading message element. // ADD THIS
- * @param {HTMLElement} errorMsg - The error message container element. // ADD THIS
- * @param {HTMLElement} errorText - The error text element. // ADD THIS
- * @param {HTMLElement} filterAllBtn - The "All" filter button. // ADD THIS
- * @param {HTMLElement} filterDomesticBtn - The "Domestic" filter button. // ADD THIS
- * @param {HTMLElement} filterForeignBtn - The "Foreign" filter button. // ADD THIS
+ * @param {HTMLElement} propertyCardsContainer - The container for property cards.
+ * @param {HTMLElement} loadingMsg - The loading message element.
+ * @param {HTMLElement} errorMsg - The error message container element.
+ * @param {HTMLElement} errorText - The error text element.
+ * @param {HTMLElement} filterAllBtn - The "All" filter button.
+ * @param {HTMLElement} filterDomesticBtn - The "Domestic" filter button.
+ * @param {HTMLElement} filterForeignBtn - The "Foreign" filter button.
+ * @param {HTMLElement} propertySelectionPageElement - The property selection page element (for showPage). // ADDED
  */
 export async function fetchProperties(
     isForeignFilter = null,
-    propertyCardsContainer, // New parameter
-    loadingMsg,             // New parameter
-    errorMsg,               // New parameter
-    errorText,              // New parameter
-    filterAllBtn,           // New parameter
-    filterDomesticBtn,      // New parameter
-    filterForeignBtn        // New parameter
+    propertyCardsContainer,
+    loadingMsg,
+    errorMsg,
+    errorText,
+    filterAllBtn,
+    filterDomesticBtn,
+    filterForeignBtn,
+    propertySelectionPageElement // ADDED
 ) {
-    // Use passed-in elements
     if (loadingMsg) loadingMsg.style.display = 'block';
     if (errorMsg) errorMsg.classList.add('hidden');
 
@@ -51,7 +47,6 @@ export async function fetchProperties(
         properties.sort((a, b) => a.id - b.id);
         console.log('All Properties loaded from Neon DB (sorted by ID):', properties);
 
-        // Pass all necessary elements to the internal filter function
         applyPropertyFilterInternal(
             isForeignFilter,
             propertyCardsContainer,
@@ -69,29 +64,30 @@ export async function fetchProperties(
     } finally {
         if (loadingMsg) loadingMsg.style.display = 'none';
     }
+    return true; // Indicate success for main.js to handle navigation/re-fetch
 }
 
 /**
  * Applies a filter to the locally stored properties and triggers rendering.
  * This is an internal function used after fetching or when filter buttons are clicked.
  * @param {boolean|null} filter - Filter by domestic (false), foreign (true), or all (null).
- * @param {HTMLElement} propertyCardsContainer - The container for property cards. // ADD THIS
- * @param {HTMLElement} loadingMsg - The loading message element. // ADD THIS
- * @param {HTMLElement} errorMsg - The error message container element. // ADD THIS
- * @param {HTMLElement} errorText - The error text element. // ADD THIS
- * @param {HTMLElement} filterAllBtn - The "All" filter button. // ADD THIS
- * @param {HTMLElement} filterDomesticBtn - The "Domestic" filter button. // ADD THIS
- * @param {HTMLElement} filterForeignBtn - The "Foreign" filter button. // ADD THIS
+ * @param {HTMLElement} propertyCardsContainer - The container for property cards.
+ * @param {HTMLElement} loadingMsg - The loading message element.
+ * @param {HTMLElement} errorMsg - The error message container element.
+ * @param {HTMLElement} errorText - The error text element.
+ * @param {HTMLElement} filterAllBtn - The "All" filter button.
+ * @param {HTMLElement} filterDomesticBtn - The "Domestic" filter button.
+ * @param {HTMLElement} filterForeignBtn - The "Foreign" filter button.
  */
 function applyPropertyFilterInternal(
     filter,
-    propertyCardsContainer, // New parameter
-    loadingMsg,             // New parameter
-    errorMsg,               // New parameter
-    errorText,              // New parameter
-    filterAllBtn,           // New parameter
-    filterDomesticBtn,      // New parameter
-    filterForeignBtn        // New parameter
+    propertyCardsContainer,
+    loadingMsg, // Still passed, but `applyPropertyFilterInternal` doesn't directly use them for display/hide
+    errorMsg,   // Still passed, but `applyPropertyFilterInternal` doesn't directly use them for display/hide
+    errorText,  // Still passed, but `applyPropertyFilterInternal` doesn't directly use them for display/hide
+    filterAllBtn,
+    filterDomesticBtn,
+    filterForeignBtn
 ) {
     currentPropertyFilter = filter;
     const { foreignApproved, domesticApproved } = getUserApprovalStatuses();
@@ -129,7 +125,6 @@ function applyPropertyFilterInternal(
             showCustomAlert('You are not approved to view any properties. Please contact an administrator.');
         }
     }
-    // Pass container and buttons to the renderer
     renderPropertyCards(propertiesToDisplay, propertyCardsContainer);
     updateFilterButtonsHighlight(currentPropertyFilter, filterAllBtn, filterDomesticBtn, filterForeignBtn);
 }
@@ -139,10 +134,10 @@ function applyPropertyFilterInternal(
  * Called by main.js when filter buttons are clicked.
  * NOTE: This function now also needs to accept the DOM elements for rendering.
  * @param {boolean|null} filter - Filter by domestic (false), foreign (true), or all (null).
- * @param {HTMLElement} propertyCardsContainer - The container for property cards. // ADD THIS
- * @param {HTMLElement} filterAllBtn - The "All" filter button. // ADD THIS
- * @param {HTMLElement} filterDomesticBtn - The "Domestic" filter button. // ADD THIS
- * @param {HTMLElement} filterForeignBtn - The "Foreign" filter button. // ADD THIS
+ * @param {HTMLElement} propertyCardsContainer - The container for property cards.
+ * @param {HTMLElement} filterAllBtn - The "All" filter button.
+ * @param {HTMLElement} filterDomesticBtn - The "Domestic" filter button.
+ * @param {HTMLElement} filterForeignBtn - The "Foreign" filter button.
  */
 export function setPropertiesFilter(
     filter,
@@ -154,21 +149,42 @@ export function setPropertiesFilter(
     applyPropertyFilterInternal(
         filter,
         propertyCardsContainer,
-        null, // loadingMsg not directly used here, but needs placeholder
-        null, // errorMsg not directly used here, but needs placeholder
-        null, // errorText not directly used here, but needs placeholder
+        null, // loadingMsg - not used by internal filter logic, only by fetch
+        null, // errorMsg - not used by internal filter logic, only by fetch
+        null, // errorText - not used by internal filter logic, only by fetch
         filterAllBtn,
         filterDomesticBtn,
         filterForeignBtn
     );
 }
 
-// getPropertyById and other functions remain the same as they operate on the `properties` array.
 export function getPropertyById(id) {
     return properties.find(p => p.id === id);
 }
 
-export async function saveNewProperty(propertyData) {
+/**
+ * Saves a new property via Netlify function.
+ * @param {object} propertyData - The data for the new property.
+ * @param {HTMLElement} propertySelectionPageElement - The property selection page element (for showPage). // ADDED
+ * @param {HTMLElement} propertyCardsContainer - The container for property cards. // ADDED for re-fetch
+ * @param {HTMLElement} loadingMsg - The loading message element. // ADDED for re-fetch
+ * @param {HTMLElement} errorMsg - The error message container element. // ADDED for re-fetch
+ * @param {HTMLElement} errorText - The error text element. // ADDED for re-fetch
+ * @param {HTMLElement} filterAllBtn - The "All" filter button. // ADDED for re-fetch
+ * @param {HTMLElement} filterDomesticBtn - The "Domestic" filter button. // ADDED for re-fetch
+ * @param {HTMLElement} filterForeignBtn - The "Foreign" filter button. // ADDED for re-fetch
+ */
+export async function saveNewProperty(
+    propertyData,
+    propertySelectionPageElement, // ADDED
+    propertyCardsContainer,
+    loadingMsg,
+    errorMsg,
+    errorText,
+    filterAllBtn,
+    filterDomesticBtn,
+    filterForeignBtn
+) {
     const addPropertyStatus = document.getElementById('add-property-status');
     if (addPropertyStatus) {
         addPropertyStatus.classList.remove('hidden');
@@ -192,16 +208,18 @@ export async function saveNewProperty(propertyData) {
             addPropertyStatus.textContent = 'Property saved successfully!';
         }
         setTimeout(async () => {
-            // Need to pass the elements here as well if this re-fetches
-            // This would require storing these elements in a module-level variable
-            // or re-passing them. Let's adjust main.js to handle this.
-            // For now, I'm removing the immediate showPage and re-fetch for simplicity,
-            // as main.js is likely handling the navigation and initial fetch.
-            // You might need to re-think how you trigger a full re-render after save/update.
-            // The simplest is to rely on the main.js logic that initiated the flow.
-            // showPage(propertySelectionPage); // Removed for now
-            // await fetchProperties(currentPropertyFilter); // Removed for now
-            // Instead, main.js should likely re-trigger the fetch after a successful save/update.
+            showPage(propertySelectionPageElement); // Use the passed element
+            await fetchProperties(
+                currentPropertyFilter,
+                propertyCardsContainer,
+                loadingMsg,
+                errorMsg,
+                errorText,
+                filterAllBtn,
+                filterDomesticBtn,
+                filterForeignBtn,
+                propertySelectionPageElement // Pass it here too for recursion if needed
+            );
         }, 1500);
     } catch (error) {
         console.error('Error saving property:', error);
@@ -209,11 +227,34 @@ export async function saveNewProperty(propertyData) {
             addPropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
             addPropertyStatus.textContent = `Error saving property: ${error.message}`;
         }
+        return false; // Indicate failure
     }
-    return true; // Indicate success for main.js to handle navigation/re-fetch
+    return true; // Indicate success
 }
 
-export async function updateExistingProperty(propertyData) {
+/**
+ * Updates an existing property via Netlify function.
+ * @param {object} propertyData - The updated data for the property (must include ID).
+ * @param {HTMLElement} propertySelectionPageElement - The property selection page element (for showPage). // ADDED
+ * @param {HTMLElement} propertyCardsContainer - The container for property cards. // ADDED for re-fetch
+ * @param {HTMLElement} loadingMsg - The loading message element. // ADDED for re-fetch
+ * @param {HTMLElement} errorMsg - The error message container element. // ADDED for re-fetch
+ * @param {HTMLElement} errorText - The error text element. // ADDED for re-fetch
+ * @param {HTMLElement} filterAllBtn - The "All" filter button. // ADDED for re-fetch
+ * @param {HTMLElement} filterDomesticBtn - The "Domestic" filter button. // ADDED for re-fetch
+ * @param {HTMLElement} filterForeignBtn - The "Foreign" filter button. // ADDED for re-fetch
+ */
+export async function updateExistingProperty(
+    propertyData,
+    propertySelectionPageElement, // ADDED
+    propertyCardsContainer,
+    loadingMsg,
+    errorMsg,
+    errorText,
+    filterAllBtn,
+    filterDomesticBtn,
+    filterForeignBtn
+) {
     const updatePropertyStatus = document.getElementById('update-property-status');
     if (updatePropertyStatus) {
         updatePropertyStatus.classList.remove('hidden');
@@ -247,8 +288,18 @@ export async function updateExistingProperty(propertyData) {
         }
 
         setTimeout(async () => {
-            // showPage(propertySelectionPage); // Removed for now
-            // await fetchProperties(currentPropertyFilter); // Removed for now
+            showPage(propertySelectionPageElement); // Use the passed element
+            await fetchProperties(
+                currentPropertyFilter,
+                propertyCardsContainer,
+                loadingMsg,
+                errorMsg,
+                errorText,
+                filterAllBtn,
+                filterDomesticBtn,
+                filterForeignBtn,
+                propertySelectionPageElement // Pass it here too for recursion if needed
+            );
         }, 1500);
 
     } catch (error) {
@@ -257,6 +308,7 @@ export async function updateExistingProperty(propertyData) {
             updatePropertyStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
             updatePropertyStatus.textContent = `Error updating property: ${error.message}`;
         }
+        return false; // Indicate failure
     }
-    return true; // Indicate success for main.js to handle navigation/re-fetch
+    return true; // Indicate success
 }
