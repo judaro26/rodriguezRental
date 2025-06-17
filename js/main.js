@@ -22,7 +22,6 @@ import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersL
 
 
 // --- Global Application State (NOT DOM elements - these are data states) ---
-let currentSelectedFileIds = new Set(); // Track selected file IDs for operations
 let currentSelectedProperty = null;
 let currentSelectedCategoryName = null;
 let currentLoggedInUsername = '';
@@ -263,7 +262,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('foldersList:', foldersList);
     const currentFolderTitle = document.getElementById('current-folder-title');
     console.log('currentFolderTitle:', currentFolderTitle);
-    const success = await createFolderService(propertyId, folderName.trim(), username, password);
 
     // Upload Folder Modal Elements
     const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
@@ -922,6 +920,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             );
         });
     }
+
     if (moveToFolderButton) {
         moveToFolderButton.addEventListener('click', async () => {
             if (currentSelectedFileIds.size === 0) { // CHANGE FROM filesListContainer.querySelectorAll ...
