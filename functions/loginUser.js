@@ -1,11 +1,7 @@
 // netlify/functions/loginUser.js
 const { Client } = require('pg');
-const bcrypt = require('bcryptjs'); // <--- Use bcryptjs instead of crypto
-
-// REMOVE the hashPassword helper function using crypto.createHash
-// function hashPassword(password) {
-//   return crypto.createHash('sha256').update(password).digest('hex');
-// }
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken'); // <--- ADD THIS LINE
 
 exports.handler = async function(event, context) {
     console.log("loginUser function invoked.");
@@ -29,6 +25,20 @@ exports.handler = async function(event, context) {
     }
     console.log("DATABASE_URL environment variable is set.");
 
+    // Define a JWT secret. IMPORTANT: Use a strong, randomly generated secret in production!
+    // Store this in Netlify Environment Variables as JWT_SECRET
+    if (!process.env.JWT_SECRET) {
+        console.error("JWT_SECRET environment variable is NOT set.");
+        return {
+            statusCode: 500,
+            headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "JWT secret missing." })
+        };
+    }
+    const JWT_SECRET = process.env.JWT_SECRET;
+    console.log("JWT_SECRET environment variable is set.");
+
+
     const client = new Client({
         connectionString: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false }
@@ -41,8 +51,6 @@ exports.handler = async function(event, context) {
 
         const { username, password } = JSON.parse(event.body);
         console.log(`Received login attempt for username: "${username}"`);
-        // DO NOT LOG RAW PASSWORD IN PRODUCTION! Remove this line when debugging is done.
-        // console.log(`Received raw password (for debugging): "${password}"`);
 
         if (!username || !password) {
             console.log("Missing username or password in request body.");
@@ -52,10 +60,6 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({ message: "Username and password are required." })
             };
         }
-
-        // The password provided by the client is plain text.
-        // We will compare it against the stored hash using bcrypt.compareSync.
-        // NO NEED TO HASH THE INCOMING PASSWORD MANUALLY HERE WITH `hashPassword(password)`.
 
         const queryText = 'SELECT id, username, password_hash, confirmed, foreign_approved, domestic_approved FROM users WHERE username = $1';
         console.log(`Executing query: "${queryText}" with username: "${username}"`);
@@ -70,19 +74,32 @@ exports.handler = async function(event, context) {
             console.log(`User foreign_approved status from DB: "${user.foreign_approved}"`);
             console.log(`User domestic_approved status from DB: "${user.domestic_approved}"`);
 
-            // --- IMPORTANT CHANGE: Use bcrypt.compareSync for comparison ---
-            // It correctly compares the plain text password with the bcrypt hash from the DB.
-            if (bcrypt.compareSync(password, user.password_hash)) { // <--- Comparing with bcrypt
+            if (bcrypt.compareSync(password, user.password_hash)) {
                 if (user.confirmed === true) {
-                    console.log("Password matches and user is CONFIRMED. Login successful.");
+                    console.log("Password matches and user is CONFIRMED. Generating JWT...");
+
+                    // --- GENERATE JWT ---
+                    // The payload should contain minimal, non-sensitive user information
+                    // that you might need to access on the client-side without another DB query.
+                    // DO NOT include password_hash or other sensitive data.
+                    const tokenPayload = {
+                        userId: user.id,
+                        username: user.username,
+                        foreign_approved: user.foreign_approved,
+                        domestic_approved: user.domestic_approved
+                    };
+                    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' }); // Token expires in 1 hour
+                    console.log("JWT generated successfully.");
+
                     return {
                         statusCode: 200,
                         headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
                         body: JSON.stringify({
-                                message: "Login successful!",
-                                username: user.username,
-                                foreign_approved: user.foreign_approved,
-                                domestic_approved: user.domestic_approved
+                            message: "Login successful!",
+                            username: user.username,
+                            foreign_approved: user.foreign_approved,
+                            domestic_approved: user.domestic_approved,
+                            token: token // <--- CRITICAL: RETURN THE TOKEN HERE
                         })
                     };
                 } else {
