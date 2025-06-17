@@ -89,41 +89,34 @@ export async function login(username, password) {
  * @param {string} password - The password for registration.
  * @returns {Promise<boolean>} - True if registration is successful, false otherwise.
  */
-export async function register(username, password) {
-    if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
-    if (registerErrorText) registerErrorText.textContent = '';
-
-    if (!username || !password) {
-        if (registerErrorMessage) registerErrorMessage.classList.remove('hidden');
-        if (registerErrorText) registerErrorText.textContent = 'Please enter both username and password.';
-        return false;
-    }
-
-    try {
-        const response = await fetch('/.netlify/functions/registerUser', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            console.log("Registration successful:", data.message);
-            if (registrationStatusMessage) registrationStatusMessage.classList.remove('hidden');
-            return true;
-        } else {
-            if (registerErrorMessage) registerErrorMessage.classList.remove('hidden');
-            if (registerErrorText) registerErrorText.textContent = data.message || 'An unknown error occurred during registration.';
+    export async function register(username, password) {
+        if (!username || !password) {
+            showCustomAlert('Please enter both username and password');
             return false;
         }
-    } catch (error) {
-        console.error("Fetch error during registration:", error);
-        if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
-        if (registerErrorText) registerErrorText.textContent = 'Network error or server issue. Please try again later.';
-        return false;
+    
+        try {
+            const response = await fetch('/.netlify/functions/registerUser', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+    
+            const data = await response.json();
+    
+            if (response.ok) {
+                console.log("Registration successful:", data.message);
+                return true;
+            } else {
+                showCustomAlert(data.message || 'Registration failed. The username might already be taken.');
+                return false;
+            }
+        } catch (error) {
+            console.error("Registration error:", error);
+            showCustomAlert('Registration failed. Please try again later.');
+            return false;
+        }
     }
-}
 
 /**
  * Returns the currently logged-in user's credentials for verification.
