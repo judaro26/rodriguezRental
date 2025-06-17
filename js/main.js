@@ -4,22 +4,35 @@
 import { showPage, showCustomAlert, showModal, hideModal } from './utils/dom.js';
 import { login, register, getUserApprovalStatuses } from './services/auth.js';
 import { fetchProperties, getPropertyById, saveNewProperty, updateExistingProperty, setPropertiesFilter } from './services/properties.js';
-import { displayPropertyFiles as fetchFileAndFolderData, createFolder as createFolderService, uploadFile as uploadFileService, moveFiles as moveFilesService, deleteFiles as deleteFilesService, initFileUploadProcess as initFileUploadProcessService } from './services/files.js';
+import { addCategoryDetail, updateCategoryDetail, deleteCategoryDetail, getCategoryDetails, addNewCategoryToProperty } from './services/categories.js';
+// Corrected imports for files service functions (using aliases for clarity)
+import {
+    displayPropertyFiles as fetchFileAndFolderData,
+    createFolder as createFolderService,
+    uploadFile as uploadFileService,
+    moveFiles as moveFilesService,
+    deleteFiles as deleteFilesService,
+    initFileUploadProcess as initFileUploadProcessService // This function now only validates and returns true/false
+} from './services/files.js';
+import { renderPropertyCards, updateFilterButtonsHighlight } from './ui/property-renderer.js';
+// Corrected imports for category renderer (including renderPresetLogosForForm)
 import { renderPropertyCategories, displayCategoryDetails as renderCategoryDetailsUI, renderPresetLogosForForm } from './ui/category-renderer.js';
+// Corrected imports for file renderer (all rendering logic)
 import { renderFilesList, toggleFileSelection, updateSelectionUI, renderFoldersList } from './ui/file-renderer.js';
+
 
 // --- Global Application State (NOT DOM elements - these are data states) ---
 let currentSelectedProperty = null;
 let currentSelectedCategoryName = null;
-let currentLoggedInUsername = ''; // Keep these here for passing to functions
-let currentActiveFolderId = null; // null for 'All Files'
-// currentSelectedFileIds is managed directly by ui/file-renderer.js's toggleFileSelection now,
-// so no need for a global one in main.js
+let currentLoggedInUsername = '';
+// Global state for files module managed by main.js
+let currentActiveFolderId = null; // null for 'All Files', stores folder ID for current view
+
 
 // --- Application Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // Pages and Modals
+    // --- PART 1: GET ALL DOM ELEMENT REFERENCES ---
     const loginPage = document.getElementById('login-page');
     console.log('loginPage:', loginPage);
     const registerPage = document.getElementById('register-page');
@@ -171,8 +184,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('addDetailCategoryNameSpan:', addDetailCategoryNameSpan);
 
     // Update Category Detail Page Elements
-    const backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn'); // <-- ADD THIS LINE
-    console.log('backFromAddNewCategoryBtn:', backFromAddNewCategoryBtn); // <-- ADD THIS LINE
+    const backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn');
+    console.log('backFromAddNewCategoryBtn:', backFromAddNewCategoryBtn);
     const updateDetailForm = document.getElementById('update-detail-form');
     console.log('updateDetailForm:', updateDetailForm);
     const updateDetailIdInput = document.getElementById('update-detail-id');
@@ -201,8 +214,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('updateDetailCategoryNameSpan:', updateDetailCategoryNameSpan);
 
     // Update Property Page Elements
-    const backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn'); // <-- ADD THIS LINE
-    console.log('backFromAddDetailBtn:', backFromAddDetailBtn); // <-- ADD THIS LINE
+    const backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn');
+    console.log('backFromAddDetailBtn:', backFromAddDetailBtn);
     const updatePropertyForm = document.getElementById('update-property-form');
     console.log('updatePropertyForm:', updatePropertyForm);
     const updatePropertyIdInput = document.getElementById('update-property-id');
@@ -250,669 +263,927 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentFolderTitle = document.getElementById('current-folder-title');
     console.log('currentFolderTitle:', currentFolderTitle);
 
-    // Upload Folder Modal Elements
-    const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
-    console.log('uploadFolderModalStatus:', uploadFolderModalStatus);
-    const folderSelectDropdown = document.getElementById('folder-select-dropdown');
-    console.log('folderSelectDropdown:', folderSelectDropdown);
-    const newFolderNameContainer = document.getElementById('new-folder-name-container');
-    console.log('newFolderNameContainer:', newFolderNameContainer);
-    const newFolderNameInput = document.getElementById('new-folder-name-input');
-    console.log('newFolderNameInput:', newFolderNameInput);
-    const cancelFolderSelectionBtn = document.getElementById('cancel-folder-selection-btn');
-    console.log('cancelFolderSelectionBtn:', cancelFolderSelectionBtn);
-    const confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
-    console.log('confirmFolderSelectionBtn:', confirmFolderSelectionBtn);
-
-    console.log('--- DOM Element Retrieval End ---');
-    
-    // ... (rest of your DOM element retrievals) ...
-
-    // --- PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS ---
-
-    showPage(loginPage);
-
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const success = await login(usernameInput.value, passwordInput.value);
-            if (success) {
-                currentLoggedInUsername = usernameInput.value;
-
-                // Pass ALL the necessary DOM elements to fetchProperties
-                const propertiesLoaded = await fetchProperties(
-                    null, // initial filter (all)
-                    propertyCardsContainer,
-                    propertiesLoadingMessage,
-                    propertiesErrorMessage,
-                    propertiesErrorText,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn,
-                    propertySelectionPage // Pass propertySelectionPage here
-                );
-
-                if (propertiesLoaded) {
-                    showPage(propertySelectionPage);
-                } else {
-                    showCustomAlert('Failed to load properties after login. Please try again.');
-                }
-            } else {
-                passwordInput.value = '';
-                showCustomAlert('Login failed. Please check your credentials.');
-            }
-        });
-    }
-
-    // ... (register form listeners) ...
-
-    // Property Filters
-    if (filterAllPropertiesBtn) {
-        filterAllPropertiesBtn.addEventListener('click', () => {
-            const { domesticApproved, foreignApproved } = getUserApprovalStatuses();
-            if (domesticApproved || foreignApproved) {
-                // Pass ALL the necessary DOM elements to setPropertiesFilter
-                setPropertiesFilter(
-                    null, // filter for all
-                    propertyCardsContainer,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn
-                );
-            } else {
-                showCustomAlert('You are not approved to view any properties.');
-            }
-        });
-    }
-    if (filterDomesticPropertiesBtn) {
-        filterDomesticPropertiesBtn.addEventListener('click', () => {
-            const { domesticApproved } = getUserApprovalStatuses();
-            if (domesticApproved) {
-                // Pass ALL the necessary DOM elements to setPropertiesFilter
-                setPropertiesFilter(
-                    false, // filter for domestic
-                    propertyCardsContainer,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn
-                );
-            } else {
-                showCustomAlert('You are not approved to view domestic properties.');
-            }
-        });
-    }
-    if (filterForeignPropertiesBtn) {
-        filterForeignPropertiesBtn.addEventListener('click', () => {
-            const { foreignApproved } = getUserApprovalStatuses();
-            if (foreignApproved) {
-                // Pass ALL the necessary DOM elements to setPropertiesFilter
-                setPropertiesFilter(
-                    true, // filter for foreign
-                    propertyCardsContainer,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn
-                );
-            } else {
-                showCustomAlert('You are not approved to view foreign properties. Pre-registered properties are visible to everyone.');
-            }
-        });
-    }
-
-    // Refresh Properties
-    if (refreshPropertiesButton) {
-        refreshPropertiesButton.addEventListener('click', async () => {
-            try {
-                // Pass ALL the necessary DOM elements to fetchProperties
-                await fetchProperties(
-                    null, // Assuming refresh means all properties
-                    propertyCardsContainer,
-                    propertiesLoadingMessage,
-                    propertiesErrorMessage,
-                    propertiesErrorText,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn,
-                    propertySelectionPage // Pass propertySelectionPage here
-                );
-                showCustomAlert('Properties refreshed successfully');
-            } catch (error) {
-                showCustomAlert('Failed to refresh properties');
-            }
-        });
-    }
-
-    if (addPropertyForm) {
-        addPropertyForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            try {
-                const propertyData = {
-                    title: propertyTitleInput.value.trim(),
-                    image: propertyImageInput.value.trim(),
-                    description: propertyDescriptionInput.value.trim(),
-                    categories: propertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
-                    is_foreign: propertyIsForeignInput.checked
-                };
-                // Pass ALL the necessary DOM elements to saveNewProperty
-                const success = await saveNewProperty(
-                    propertyData,
-                    propertySelectionPage, // Pass propertySelectionPage here
-                    propertyCardsContainer,
-                    propertiesLoadingMessage,
-                    propertiesErrorMessage,
-                    propertiesErrorText,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn
-                );
-                if (success) {
-                    // Re-fetching is handled by saveNewProperty's setTimeout now
-                    // showPage(propertySelectionPage); // Removed as saveNewProperty handles this
-                }
-            } catch (error) {
-                showCustomAlert('Failed to add property: ' + error.message);
-            }
-        });
-    }
-
-    if (updatePropertyForm) {
-        updatePropertyForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            try {
-                const propertyData = {
-                    id: parseInt(updatePropertyIdInput.value),
-                    title: updatePropertyTitleInput.value.trim(),
-                    image: updatePropertyImageInput.value.trim(),
-                    description: updatePropertyDescriptionInput.value.trim(),
-                    categories: updatePropertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
-                    is_foreign: updatePropertyIsForeignInput.checked
-                };
-                // Pass ALL the necessary DOM elements to updateExistingProperty
-                const success = await updateExistingProperty(
-                    propertyData,
-                    propertySelectionPage, // Pass propertySelectionPage here
-                    propertyCardsContainer,
-                    propertiesLoadingMessage,
-                    propertiesErrorMessage,
-                    propertiesErrorText,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn
-                );
-                if (success) {
-                    // Re-fetching is handled by updateExistingProperty's setTimeout now
-                    // showPage(propertySelectionPage); // Removed as updateExistingProperty handles this
-                }
-            } catch (error) {
-                showCustomAlert('Failed to update property: ' + error.message);
-            }
-        });
-    }
-
-    // Property Cards (delegated event listeners)
-    if (propertyCardsContainer) {
-        propertyCardsContainer.addEventListener('click', async (event) => {
-            const viewBtn = event.target.closest('[data-action="view-property-details"]');
-            const editBtn = event.target.closest('[data-action="edit"]'); // Changed from edit-property to just edit
-
-            if (viewBtn) {
-                try {
-                    const propertyId = parseInt(viewBtn.dataset.propertyId);
-                    const selectedProperty = getPropertyById(propertyId);
-                    
-                    if (!selectedProperty) {
-                        throw new Error('Property not found');
-                    }
-
-                    currentSelectedProperty = selectedProperty;
-                    
-                    // Load categories data (not just render UI)
-                    // The getCategoryDetails function (from services/categories.js) needs to be able to fetch categories
-                    // but it also takes UI elements for rendering. Let's adjust its usage.
-                    // For now, we only need to call a function that fetches categories and updates the property object if necessary.
-                    // Let's assume currentSelectedProperty.categories is already populated by fetchProperties
-                    // and getCategoryDetails will be used to fetch the *details for a specific category*.
-
-                    showPage(propertyCategoriesPage); // Navigate first
-
-                    // Update property header visuals
-                    if (currentPropertyTitle) {
-                        currentPropertyTitle.textContent = currentSelectedProperty.title;
-                    }
-                    if (currentPropertyThumbnail) {
-                        currentPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-                    }
-
-                    // Render categories in the left sidebar
-                    renderPropertyCategories(
-                        currentSelectedProperty,
-                        null, // Start with no specific category highlighted
-                        propertyCategoriesNav,
-                        categoryDetailsHeading,
-                        currentPropertyThumbnail,
-                        deleteCategoryButton, // ADD THIS
-                        addNewCategoryButton, // ADD THIS
-                        refreshCategoriesButtonOnCategoriesPage // ADD THIS
-                    );
-                    
-                    // Store selected property ID on the page element for easier access by other listeners
-                    propertyCategoriesPage.dataset.selectedPropertyId = currentSelectedProperty.id;
-
-                    // --- AUTOMATICALLY SELECT FIRST CATEGORY WHEN PROPERTY IS VIEWED ---
-                    if (currentSelectedProperty.categories && currentSelectedProperty.categories.length > 0) {
-                        const firstCategoryName = currentSelectedProperty.categories[0];
-                        currentSelectedCategoryName = firstCategoryName; // Update global state
-                        propertyCategoriesPage.dataset.selectedCategoryName = firstCategoryName; // Update dataset
-
-                        // Explicitly highlight the first category in the sidebar
-                        const firstCategoryDiv = propertyCategoriesNav.querySelector(`[data-category-name="${firstCategoryName}"]`);
-                        if (firstCategoryDiv) {
-                            // Remove existing highlights
-                            propertyCategoriesNav.querySelectorAll('[data-category-name]').forEach(div => {
-                                div.classList.remove('bg-blue-200', 'text-blue-800');
-                            });
-                            // Add highlight to the first category
-                            firstCategoryDiv.classList.add('bg-blue-200', 'text-blue-800');
-                        }
-
-                        // Render details for the first category
-                        renderCategoryDetailsUI(
-                            currentSelectedProperty.id,
-                            currentSelectedCategoryName, // Pass the selected name
-                            dynamicCategoryButtonsContainer,
-                            categoryLoadingMessage,
-                            addCategoryDetailButtonAtBottom,
-                            presetLogoPicker,
-                            customLogoUrlInput,
-                            updatePresetLogoPicker,
-                            updateCustomLogoUrlInput
-                        );
-                    } else {
-                        // No categories for this property, show default message in details area
-                        renderCategoryDetailsUI(
-                            currentSelectedProperty.id,
-                            null, // No category selected
-                            dynamicCategoryButtonsContainer,
-                            categoryLoadingMessage,
-                            addCategoryDetailButtonAtBottom,
-                            presetLogoPicker,
-                            customLogoUrlInput,
-                            updatePresetLogoPicker,
-                            updateCustomLogoUrlInput
-                        );
-                        if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none'; // Hide button if no categories
-                    }
-                    // --- END AUTOMATIC SELECTION ---
-
-                } catch (error) {
-                    console.error('Error viewing property:', error);
-                    showCustomAlert('Failed to load property details. Please try again.');
-                }
-            } else if (editBtn) {
-                const propertyId = parseInt(editBtn.dataset.propertyId);
-                const propertyToEdit = getPropertyById(propertyId);
-                if (propertyToEdit) {
-                    showPage(updatePropertyPage);
-                    updatePropertyIdInput.value = propertyToEdit.id;
-                    updatePropertyTitleInput.value = propertyToEdit.title;
-                    updatePropertyImageInput.value = propertyToEdit.image;
-                    updatePropertyDescriptionInput.value = propertyToEdit.description;
-                    updatePropertyCategoriesInput.value = propertyToEdit.categories.join(', ');
-                    updatePropertyIsForeignInput.checked = propertyToEdit.is_foreign;
-                } else {
-                    showCustomAlert('Property not found for editing.');
-                }
-            }
-        });
-    }
-
-    // Category Actions (on Property Categories Page)
-    if (propertyCategoriesNav) {
-        propertyCategoriesNav.addEventListener('click', (event) => {
-            const categoryDiv = event.target.closest('[data-category-name]');
-            if (categoryDiv) {
-                propertyCategoriesNav.querySelectorAll('[data-category-name]').forEach(div => {
-                    div.classList.remove('bg-blue-200', 'text-blue-800');
-                });
-                categoryDiv.classList.add('bg-blue-200', 'text-blue-800');
-
-                currentSelectedCategoryName = categoryDiv.dataset.categoryName;
-                propertyCategoriesPage.dataset.selectedCategoryName = currentSelectedCategoryName;
-
-                renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
-
-                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'block';
-                if (propertyFilesContent) propertyFilesContent.style.display = 'none';
-                document.getElementById('category-details-content').style.display = 'flex';
-            }
-        });
-    }
-
-    if (addNewCategoryButton) {
-        addNewCategoryButton.addEventListener('click', () => {
-            if (currentSelectedProperty) {
-                if (categoryPropertyTitleSpan) categoryPropertyTitleSpan.textContent = `"${currentSelectedProperty.title}"`;
-                showPage(addNewCategoryPage);
-                addNewCategoryForm.reset();
-            } else {
-                showCustomAlert('Please select a property first.');
-            }
-        });
-    }
-
-    if (addNewCategoryForm) {
-        addNewCategoryForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const newCategoryName = newCategoryNameInput.value.trim();
-            if (!newCategoryName) {
-                showCustomAlert('Please enter a category name.');
-                return;
-            }
-            await addNewCategoryToProperty(currentSelectedProperty.id, newCategoryName, currentSelectedProperty);
-        });
-    }
-
-    if (deleteCategoryButton) {
-        deleteCategoryButton.addEventListener('click', () => {
-            if (!currentSelectedProperty || !currentSelectedCategoryName) {
-                showCustomAlert('Please select a category to delete.');
-                return;
-            }
-            showModal(
-                verificationModal,
-                `category: "${currentSelectedCategoryName}"`,
-                `deleting`,
-                async (username, password) => {
-                    const success = await deleteCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, username, password);
-                    if (success) {
-                        renderPropertyCategories(currentSelectedProperty, null, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
-                        renderCategoryDetailsUI(currentSelectedProperty.id, null, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
-                        currentSelectedCategoryName = null;
-                    }
-                }
-            );
-        });
-    }
-
-    if (refreshCategoriesButtonOnCategoriesPage) {
-        refreshCategoriesButtonOnCategoriesPage.addEventListener('click', () => {
-            if (currentSelectedProperty) {
-                renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail);
-                renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput);
-            } else {
-                showCustomAlert('Please select a property first.');
-            }
-        });
-    }
-
-    // Add/Update Detail Forms
-    if (addCategoryDetailButtonAtBottom) {
-        addCategoryDetailButtonAtBottom.addEventListener('click', () => {
-            if (currentSelectedProperty && currentSelectedCategoryName) {
-                if (addDetailCategoryNameSpan) addDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
-                showPage(addCategoryDetailPage);
-                addDetailForm.reset();
-                detailUsernameAddInput.value = '';
-                detailPasswordAddInput.value = '';
-                renderPresetLogosForForm(presetLogoPicker, customLogoUrlInput, '');
-            } else {
-                showCustomAlert('Please select a property category first to add details to it.');
-            }
-        });
-    }
-
-    if (addDetailForm) {
-        addDetailForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            let logoUrlToSend = '';
-            const selectedPresetRadio = presetLogoPicker.querySelector('input[name="detail-logo"]:checked');
-            if (selectedPresetRadio) {
-                logoUrlToSend = selectedPresetRadio.value;
-            } else if (customLogoUrlInput.value.trim() !== '') {
-                logoUrlToSend = customLogoUrlInput.value.trim();
-            }
-
-            const detailData = {
-                detail_name: detailNameInput.value.trim(),
-                detail_url: detailUrlInput.value.trim(),
-                detail_description: detailDescriptionInput.value.trim(),
-                detail_logo_url: logoUrlToSend,
-                detail_username: detailUsernameAddInput.value.trim(),
-                detail_password: detailPasswordAddInput.value.trim()
-            };
-            await addCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, detailData);
-        });
-    }
-
-    if (updateDetailForm) {
-        updateDetailForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            let logoUrlToSend = '';
-            const selectedUpdatePresetRadio = updatePresetLogoPicker.querySelector('input[name="update-logo"]:checked');
-            if (selectedUpdatePresetRadio) {
-                logoUrlToSend = selectedUpdatePresetRadio.value;
-            } else if (updateCustomLogoUrlInput.value.trim() !== '') {
-                logoUrlToSend = updateCustomLogoUrlInput.value.trim();
-            }
-
-            const detailData = {
-                id: parseInt(updateDetailIdInput.value),
-                detail_name: updateDetailNameInput.value.trim(),
-                detail_url: updateDetailUrlInput.value.trim(),
-                detail_description: updateDetailDescriptionInput.value.trim(),
-                detail_logo_url: logoUrlToSend,
-                detail_username: updateDetailUsernameInput.value.trim(),
-                detail_password: updateDetailPasswordInput.value.trim()
-            };
-            await updateCategoryDetail(detailData, currentSelectedProperty.id, currentSelectedCategoryName);
-        });
-    }
-
-    // Detail Tile Actions (Delegated from ui/category-renderer.js's clicks, but handled here)
-    if (dynamicCategoryButtonsContainer) {
-        dynamicCategoryButtonsContainer.addEventListener('click', (event) => {
-            const editBtn = event.target.closest('[data-action="edit"]');
-            const deleteBtn = event.target.closest('[data-action="delete-detail"]');
-            const viewBtn = event.target.closest('[data-action="view"]');
-
-            if (editBtn) {
-                const detailData = editBtn.dataset;
-                updateDetailIdInput.value = detailData.id;
-                updateDetailNameInput.value = detailData.name;
-                updateDetailUrlInput.value = detailData.url;
-                updateDetailDescriptionInput.value = detailData.description;
-                updateDetailUsernameInput.value = detailData.username;
-                updateDetailPasswordInput.value = detailData.password;
-                if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
-
-                renderPresetLogosForForm(updatePresetLogoPicker, updateCustomLogoUrlInput, detailData.logo);
-                showPage(updateCategoryDetailPage);
-
-            } else if (deleteBtn) {
-                const detailId = parseInt(deleteBtn.dataset.id);
-                const detailName = deleteBtn.dataset.name;
-                showModal(
-                    verificationModal,
-                    `detail: "${detailName}"`,
-                    `deleting`,
-                    async (username, password) => {
-                        await deleteCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, detailId, username, password);
-                    }
-                );
-            } else if (viewBtn) {
-                const url = viewBtn.dataset.url;
-                if (url) { window.open(url, '_blank'); } else { showCustomAlert('No URL provided.'); }
-            }
-        });
-    }
-
-
-    // File Management
-    if (viewFilesButton) {
-        viewFilesButton.addEventListener('click', () => {
-            if (currentSelectedProperty) {
-                document.getElementById('category-details-content').style.display = 'none';
-                propertyFilesContent.style.display = 'flex';
-                filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
-                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
-
-                displayPropertyFiles(currentSelectedProperty.id, null);
-                propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
-
-            } else {
-                showCustomAlert('Please select a property to view files.');
-            }
-        });
-    }
-
-    if (createFolderButton) {
-        createFolderButton.addEventListener('click', async () => {
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-            if (!propertyId) { showCustomAlert('Error: Property not selected.'); return; }
-
-            const folderName = prompt('Enter folder name:');
-            if (folderName && folderName.trim() !== '') {
-                await createFolder(propertyId, folderName.trim());
-            } else if (folderName !== null) {
-                showCustomAlert('Folder name cannot be empty.');
-            }
-        });
-    }
-
-    if (deleteSelectedFilesButton) {
-        deleteSelectedFilesButton.addEventListener('click', async () => {
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-            if (!propertyId) { showCustomAlert('Error: Property not selected.'); return; }
-
-            const filesToDelete = Array.from(filesListContainer.querySelectorAll('.file-checkbox:checked')).map(cb => parseInt(cb.dataset.fileId));
-            if (filesToDelete.length === 0) {
-                showCustomAlert('No files selected.');
-                return;
-            }
-            showModal(
-                verificationModal,
-                `${filesToDelete.length} selected file(s)`,
-                `deleting`,
-                async (username, password) => {
-                    await deleteFiles(propertyId, filesToDelete, username, password);
-                }
-            );
-        });
-    }
-
-    if (moveToFolderButton) {
-        moveToFolderButton.addEventListener('click', async () => {
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-            if (!propertyId) { showCustomAlert('Error: Property not selected.'); return; }
-
-            const filesToMove = Array.from(filesListContainer.querySelectorAll('.file-checkbox:checked')).map(cb => parseInt(cb.dataset.fileId));
-            if (filesToMove.length === 0) {
-                showCustomAlert('No files selected.');
-                return;
-            }
-            await initFileUploadProcess(propertyId, null, null, null, filesToMove);
-        });
-    }
-
-    if (uploadFileButton) {
-        uploadFileButton.addEventListener('click', async () => {
-            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-            if (!propertyId) { showCustomAlert('Error: Property not selected.'); return; }
-
-            if (!fileUploadInput?.files?.length) {
-                showCustomAlert('Please select a file.');
-                return;
-            }
-            await initFileUploadProcess(propertyId, fileUploadInput.files[0]);
-        });
-    }
-
-    // Folder Modal Handlers
-    if (folderSelectDropdown) {
-        folderSelectDropdown.addEventListener('change', (e) => {
-            if (newFolderNameContainer) {
-                newFolderNameContainer.style.display = e.target.value === 'new' ? 'block' : 'none';
-            }
-            if (newFolderNameInput && e.target.value === 'new') {
-                newFolderNameInput.focus();
-            }
-            if (uploadFolderModalStatus) uploadFolderModalStatus.classList.add('hidden');
-        });
-    }
-
-    if (cancelFolderSelectionBtn) {
-        cancelFolderSelectionBtn.addEventListener('click', () => {
-            hideModal(uploadFolderModal);
-            if (fileUploadInput) fileUploadInput.value = '';
-        });
-    }
-
-    if (foldersList) {
-        foldersList.addEventListener('click', async (event) => {
-            const folderItem = event.target.closest('.folder-item');
-            if (folderItem) {
-                const folderId = folderItem.dataset.folderId;
-                const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
-
-                foldersList.querySelectorAll('.folder-item').forEach(item => item.classList.remove('active'));
-                folderItem.classList.add('active');
-
-                await displayPropertyFiles(propertyId, folderId);
-            }
-        });
-    }
-
-    // --- Back Button Event Listeners ---
-    if (backToLoginBtn) {
-        backToLoginBtn.addEventListener('click', () => {
-            showPage(loginPage);
-            if (usernameInput) usernameInput.value = '';
-            if (passwordInput) passwordInput.value = '';
-        });
-    }
-
-    if (backToLoginFromRegisterBtn) {
-        backToLoginFromRegisterBtn.addEventListener('click', () => {
-            showPage(loginPage);
-            if (regUsernameInput) regUsernameInput.value = '';
-            if (regPasswordInput) regPasswordInput.value = '';
-        });
-    }
-
-    if (backFromAddPropertyBtn) {
-        backFromAddPropertyBtn.addEventListener('click', () => {
-            showPage(propertySelectionPage);
-            addPropertyForm.reset();
-        });
-    }
-
-    if (backToPropertiesBtn) {
-        backToPropertiesBtn.addEventListener('click', () => {
-            showPage(propertySelectionPage);
-            currentSelectedProperty = null;
-            currentSelectedCategoryName = null;
-            if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details';
-            if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
-        });
-    }
-
-    if (backFromAddNewCategoryBtn) {
-        backFromAddNewCategoryBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
-    }
-
-    if (backFromAddDetailBtn) {
-        backFromAddDetailBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
-    }
-
-    if (backFromUpdateDetailBtn) {
-        backFromUpdateDetailBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
-    }
-
-    if (backFromUpdatePropertyBtn) {
-        backFromUpdatePropertyBtn.addEventListener('click', () => showPage(propertySelectionPage));
-    }
-
-    if (backFromFilesButton) {
-        backFromFilesButton.addEventListener('click', () => showPage(propertyCategoriesPage));
-    }
+    // Upload Folder Modal Elements
+    const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
+    console.log('uploadFolderModalStatus:', uploadFolderModalStatus);
+    const folderSelectDropdown = document.getElementById('folder-select-dropdown');
+    console.log('folderSelectDropdown:', folderSelectDropdown);
+    const newFolderNameContainer = document.getElementById('new-folder-name-container');
+    console.log('newFolderNameContainer:', newFolderNameContainer);
+    const newFolderNameInput = document.getElementById('new-folder-name-input');
+    console.log('newFolderNameInput:', newFolderNameInput);
+    const cancelFolderSelectionBtn = document.getElementById('cancel-folder-selection-btn');
+    console.log('cancelFolderSelectionBtn:', cancelFolderSelectionBtn);
+    const confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
+    console.log('confirmFolderSelectionBtn:', confirmFolderSelectionBtn);
+
+    console.log('--- DOM Element Retrieval End ---');
+    
+    // --- PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS ---
+
+    showPage(loginPage);
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const success = await login(usernameInput.value, passwordInput.value);
+            if (success) {
+                currentLoggedInUsername = usernameInput.value;
+
+                // Pass ALL the necessary DOM elements to fetchProperties
+                const propertiesLoaded = await fetchProperties(
+                    null, // initial filter (all)
+                    propertyCardsContainer,
+                    propertiesLoadingMessage,
+                    propertiesErrorMessage,
+                    propertiesErrorText,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn,
+                    propertySelectionPage // Pass propertySelectionPage here
+                );
+
+                if (propertiesLoaded) {
+                    showPage(propertySelectionPage);
+                } else {
+                    showCustomAlert('Failed to load properties after login. Please try again.');
+                }
+            } else {
+                passwordInput.value = '';
+                showCustomAlert('Login failed. Please check your credentials.');
+            }
+        });
+    }
+
+    // ... (register form listeners) ...
+
+    // Property Filters
+    if (filterAllPropertiesBtn) {
+        filterAllPropertiesBtn.addEventListener('click', () => {
+            const { domesticApproved, foreignApproved } = getUserApprovalStatuses();
+            if (domesticApproved || foreignApproved) {
+                // Pass ALL the necessary DOM elements to setPropertiesFilter
+                setPropertiesFilter(
+                    null, // filter for all
+                    propertyCardsContainer,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn
+                );
+            } else {
+                showCustomAlert('You are not approved to view any properties.');
+            }
+        });
+    }
+    if (filterDomesticPropertiesBtn) {
+        filterDomesticPropertiesBtn.addEventListener('click', () => {
+            const { domesticApproved } = getUserApprovalStatuses();
+            if (domesticApproved) {
+                // Pass ALL the necessary DOM elements to setPropertiesFilter
+                setPropertiesFilter(
+                    false, // filter for domestic
+                    propertyCardsContainer,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn
+                );
+            } else {
+                showCustomAlert('You are not approved to view domestic properties.');
+            }
+        });
+    }
+    if (filterForeignPropertiesBtn) {
+        filterForeignPropertiesBtn.addEventListener('click', () => {
+            const { foreignApproved } = getUserApprovalStatuses();
+            if (foreignApproved) {
+                // Pass ALL the necessary DOM elements to setPropertiesFilter
+                setPropertiesFilter(
+                    true, // filter for foreign
+                    propertyCardsContainer,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn
+                );
+            } else {
+                showCustomAlert('You are not approved to view foreign properties. Pre-registered properties are visible to everyone.');
+            }
+        });
+    }
+
+    // Refresh Properties
+    if (refreshPropertiesButton) {
+        refreshPropertiesButton.addEventListener('click', async () => {
+            try {
+                // Pass ALL the necessary DOM elements to fetchProperties
+                await fetchProperties(
+                    null, // Assuming refresh means all properties
+                    propertyCardsContainer,
+                    propertiesLoadingMessage,
+                    propertiesErrorMessage,
+                    propertiesErrorText,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn,
+                    propertySelectionPage // Pass propertySelectionPage here
+                );
+                showCustomAlert('Properties refreshed successfully');
+            } catch (error) {
+                showCustomAlert('Failed to refresh properties');
+            }
+        });
+    }
+
+    if (addPropertyForm) {
+        addPropertyForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            try {
+                const propertyData = {
+                    title: propertyTitleInput.value.trim(),
+                    image: propertyImageInput.value.trim(),
+                    description: propertyDescriptionInput.value.trim(),
+                    categories: propertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
+                    is_foreign: propertyIsForeignInput.checked
+                };
+                // Pass ALL the necessary DOM elements to saveNewProperty
+                const success = await saveNewProperty(
+                    propertyData,
+                    propertySelectionPage, // Pass propertySelectionPage here
+                    propertyCardsContainer,
+                    propertiesLoadingMessage,
+                    propertiesErrorMessage,
+                    propertiesErrorText,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn
+                );
+                if (success) {
+                    // Re-fetching is handled by saveNewProperty's setTimeout now
+                    // showPage(propertySelectionPage); // Removed as saveNewProperty handles this
+                }
+            } catch (error) {
+                showCustomAlert('Failed to add property: ' + error.message);
+            }
+        });
+    }
+
+    if (updatePropertyForm) {
+        updatePropertyForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            try {
+                const propertyData = {
+                    id: parseInt(updatePropertyIdInput.value),
+                    title: updatePropertyTitleInput.value.trim(),
+                    image: updatePropertyImageInput.value.trim(),
+                    description: updatePropertyDescriptionInput.value.trim(),
+                    categories: updatePropertyCategoriesInput.value.trim().split(',').map(cat => cat.trim()).filter(cat => cat !== ''),
+                    is_foreign: updatePropertyIsForeignInput.checked
+                };
+                // Pass ALL the necessary DOM elements to updateExistingProperty
+                const success = await updateExistingProperty(
+                    propertyData,
+                    propertySelectionPage, // Pass propertySelectionPage here
+                    propertyCardsContainer,
+                    propertiesLoadingMessage,
+                    propertiesErrorMessage,
+                    propertiesErrorText,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn
+                );
+                if (success) {
+                    // Re-fetching is handled by updateExistingProperty's setTimeout now
+                    // showPage(propertySelectionPage); // Removed as updateExistingProperty handles this
+                }
+            } catch (error) {
+                showCustomAlert('Failed to update property: ' + error.message);
+            }
+        });
+    }
+
+    // Property Cards (delegated event listeners)
+    if (propertyCardsContainer) {
+        propertyCardsContainer.addEventListener('click', async (event) => {
+            const viewBtn = event.target.closest('[data-action="view-property-details"]');
+            const editBtn = event.target.closest('[data-action="edit"]'); // Changed from edit-property to just edit
+
+            if (viewBtn) {
+                try {
+                    const propertyId = parseInt(viewBtn.dataset.propertyId);
+                    const selectedProperty = getPropertyById(propertyId);
+                    
+                    if (!selectedProperty) {
+                        throw new Error('Property not found');
+                    }
+
+                    currentSelectedProperty = selectedProperty;
+                    
+                    // Load categories data (not just render UI)
+                    // The getCategoryDetails function (from services/categories.js) needs to be able to fetch categories
+                    // but it also takes UI elements for rendering. Let's adjust its usage.
+                    // For now, we only need to call a function that fetches categories and updates the property object if necessary.
+                    // Let's assume currentSelectedProperty.categories is already populated by fetchProperties
+                    // and getCategoryDetails will be used to fetch the *details for a specific category*.
+
+                    showPage(propertyCategoriesPage); // Navigate first
+
+                    // Update property header visuals
+                    if (currentPropertyTitle) {
+                        currentPropertyTitle.textContent = currentSelectedProperty.title;
+                    }
+                    if (currentPropertyThumbnail) {
+                        currentPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+                    }
+
+                    // Render categories in the left sidebar
+                    renderPropertyCategories(
+                        currentSelectedProperty,
+                        null, // Start with no specific category highlighted
+                        propertyCategoriesNav,
+                        categoryDetailsHeading,
+                        currentPropertyThumbnail,
+                        deleteCategoryButton, // ADD THIS
+                        addNewCategoryButton, // ADD THIS
+                        refreshCategoriesButtonOnCategoriesPage // ADD THIS
+                    );
+                    
+                    // Store selected property ID on the page element for easier access by other listeners
+                    propertyCategoriesPage.dataset.selectedPropertyId = currentSelectedProperty.id;
+
+                    // --- AUTOMATICALLY SELECT FIRST CATEGORY WHEN PROPERTY IS VIEWED ---
+                    if (currentSelectedProperty.categories && currentSelectedProperty.categories.length > 0) {
+                        const firstCategoryName = currentSelectedProperty.categories[0];
+                        currentSelectedCategoryName = firstCategoryName; // Update global state
+                        propertyCategoriesPage.dataset.selectedCategoryName = firstCategoryName; // Update dataset
+
+                        // Explicitly highlight the first category in the sidebar
+                        const firstCategoryDiv = propertyCategoriesNav.querySelector(`[data-category-name="${firstCategoryName}"]`);
+                        if (firstCategoryDiv) {
+                            // Remove existing highlights
+                            propertyCategoriesNav.querySelectorAll('[data-category-name]').forEach(div => {
+                                div.classList.remove('bg-blue-200', 'text-blue-800');
+                            });
+                            // Add highlight to the first category
+                            firstCategoryDiv.classList.add('bg-blue-200', 'text-blue-800');
+                        }
+
+                        // Render details for the first category
+                        await renderCategoryDetailsUI( // ADD AWAIT
+                            currentSelectedProperty.id,
+                            currentSelectedCategoryName, // Pass the selected name
+                            dynamicCategoryButtonsContainer,
+                            categoryLoadingMessage,
+                            addCategoryDetailButtonAtBottom,
+                            presetLogoPicker,
+                            customLogoUrlInput,
+                            updatePresetLogoPicker,
+                            updateCustomLogoUrlInput,
+                            currentSelectedProperty // ADD THIS
+                        );
+                    } else {
+                        // No categories for this property, show default message in details area
+                        await renderCategoryDetailsUI( // ADD AWAIT
+                            currentSelectedProperty.id,
+                            null, // No category selected
+                            dynamicCategoryButtonsContainer,
+                            categoryLoadingMessage,
+                            addCategoryDetailButtonAtBottom,
+                            presetLogoPicker,
+                            customLogoUrlInput,
+                            updatePresetLogoPicker,
+                            updateCustomLogoUrlInput,
+                            currentSelectedProperty // ADD THIS
+                        );
+                        if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none'; // Hide button if no categories
+                    }
+                    // --- END AUTOMATIC SELECTION ---
+
+                } catch (error) {
+                    console.error('Error viewing property:', error);
+                    showCustomAlert('Failed to load property details. Please try again.');
+                }
+            } else if (editBtn) {
+                const propertyId = parseInt(editBtn.dataset.propertyId);
+                const propertyToEdit = getPropertyById(propertyId);
+                if (propertyToEdit) {
+                    showPage(updatePropertyPage);
+                    updatePropertyIdInput.value = propertyToEdit.id;
+                    updatePropertyTitleInput.value = propertyToEdit.title;
+                    updatePropertyImageInput.value = propertyToEdit.image;
+                    updatePropertyDescriptionInput.value = propertyToEdit.description;
+                    updatePropertyCategoriesInput.value = propertyToEdit.categories.join(', ');
+                    updatePropertyIsForeignInput.checked = propertyToEdit.is_foreign;
+                } else {
+                    showCustomAlert('Property not found for editing.');
+                }
+            }
+        });
+    }
+
+    // Category Actions (on Property Categories Page)
+    if (propertyCategoriesNav) {
+        propertyCategoriesNav.addEventListener('click', async (event) => { // ADD ASYNC
+            const categoryDiv = event.target.closest('[data-category-name]');
+            if (categoryDiv) {
+                propertyCategoriesNav.querySelectorAll('[data-category-name]').forEach(div => {
+                    div.classList.remove('bg-blue-200', 'text-blue-800');
+                });
+                categoryDiv.classList.add('bg-blue-200', 'text-blue-800');
+
+                currentSelectedCategoryName = categoryDiv.dataset.categoryName;
+                propertyCategoriesPage.dataset.selectedCategoryName = currentSelectedCategoryName;
+
+                await renderCategoryDetailsUI( // ADD AWAIT
+                    currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer,
+                    categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker,
+                    customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput,
+                    currentSelectedProperty // ADD THIS
+                );
+
+                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'block';
+                if (propertyFilesContent) propertyFilesContent.style.display = 'none';
+                document.getElementById('category-details-content').style.display = 'flex';
+            }
+        });
+    }
+
+    if (addNewCategoryButton) {
+        addNewCategoryButton.addEventListener('click', () => {
+            if (currentSelectedProperty) {
+                if (categoryPropertyTitleSpan) categoryPropertyTitleSpan.textContent = `"${currentSelectedProperty.title}"`;
+                showPage(addNewCategoryPage);
+                addNewCategoryForm.reset();
+                newCategoryNameInput.value = ''; // ADD THIS LINE
+            } else {
+                showCustomAlert('Please select a property first.');
+            }
+        });
+    }
+
+    if (addNewCategoryForm) {
+        addNewCategoryForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const newCategoryName = newCategoryNameInput.value.trim();
+            if (!newCategoryName) {
+                showCustomAlert('Please enter a category name.');
+                return;
+            }
+            const success = await addNewCategoryToProperty(currentSelectedProperty.id, newCategoryName, currentSelectedProperty); // ADD CONST SUCCESS
+            if (success) { // ADD IF SUCCESS
+                showPage(propertyCategoriesPage); // Go back to categories page
+                // Re-render categories sidebar and details
+                renderPropertyCategories(
+                    currentSelectedProperty, null, propertyCategoriesNav,
+                    categoryDetailsHeading, currentPropertyThumbnail,
+                    deleteCategoryButton, addNewCategoryButton, refreshCategoriesButtonOnCategoriesPage // ADD BUTTONS
+                );
+                await renderCategoryDetailsUI(
+                    currentSelectedProperty.id, null, dynamicCategoryButtonsContainer,
+                    categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker,
+                    customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput,
+                    currentSelectedProperty // ADD THIS
+                );
+            } // ADD CLOSING BRACE
+        });
+    }
+
+    if (deleteCategoryButton) {
+        deleteCategoryButton.addEventListener('click', () => {
+            if (!currentSelectedProperty || !currentSelectedCategoryName) {
+                showCustomAlert('Please select a category to delete.');
+                return;
+            }
+            showModal(
+                verificationModal,
+                `category: "${currentSelectedCategoryName}"`,
+                `deleting`,
+                async (username, password) => {
+                    const success = await deleteCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, username, password);
+                    if (success) {
+                        // After deletion, refresh categories in sidebar and clear details
+                        renderPropertyCategories(
+                            currentSelectedProperty, null, propertyCategoriesNav,
+                            categoryDetailsHeading, currentPropertyThumbnail,
+                            deleteCategoryButton, addNewCategoryButton, refreshCategoriesButtonOnCategoriesPage // ADD BUTTONS
+                        );
+                        await renderCategoryDetailsUI( // Clear details by passing null category
+                            currentSelectedProperty.id, null, dynamicCategoryButtonsContainer,
+                            categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker,
+                            customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput,
+                            currentSelectedProperty // ADD THIS
+                        );
+                        currentSelectedCategoryName = null; // Clear global state
+                    }
+                }
+            );
+        });
+    }
+
+    if (refreshCategoriesButtonOnCategoriesPage) {
+        refreshCategoriesButtonOnCategoriesPage.addEventListener('click', async () => { // ADD ASYNC
+            if (currentSelectedProperty) {
+                renderPropertyCategories(currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav, categoryDetailsHeading, currentPropertyThumbnail, deleteCategoryButton, addNewCategoryButton, refreshCategoriesButtonOnCategoriesPage); // ADD BUTTONS
+                await renderCategoryDetailsUI(currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer, categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker, customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput, currentSelectedProperty); // ADD AWAIT AND CURRENT SELECTED PROPERTY
+            } else {
+                showCustomAlert('Please select a property first.');
+            }
+        });
+    }
+
+    // Add/Update Detail Forms
+    if (addCategoryDetailButtonAtBottom) {
+        addCategoryDetailButtonAtBottom.addEventListener('click', () => {
+            if (currentSelectedProperty && currentSelectedCategoryName) {
+                if (addDetailCategoryNameSpan) addDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+                showPage(addCategoryDetailPage);
+                addDetailForm.reset();
+                detailUsernameAddInput.value = '';
+                detailPasswordAddInput.value = '';
+                renderPresetLogosForForm(presetLogoPicker, customLogoUrlInput, '');
+            } else {
+                showCustomAlert('Please select a property category first to add details to it.');
+            }
+        });
+    }
+
+    if (addDetailForm) {
+        addDetailForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            let logoUrlToSend = '';
+            const selectedPresetRadio = presetLogoPicker.querySelector('input[name="detail-logo"]:checked');
+            if (selectedPresetRadio) {
+                logoUrlToSend = selectedPresetRadio.value;
+            } else if (customLogoUrlInput.value.trim() !== '') {
+                logoUrlToSend = customLogoUrlInput.value.trim();
+            }
+
+            const detailData = {
+                detail_name: detailNameInput.value.trim(),
+                detail_url: detailUrlInput.value.trim(),
+                detail_description: detailDescriptionInput.value.trim(),
+                detail_logo_url: logoUrlToSend,
+                detail_username: detailUsernameAddInput.value.trim(),
+                detail_password: detailPasswordAddInput.value.trim()
+            };
+            const success = await addCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, detailData); // ADD CONST SUCCESS
+            if (success) { // ADD IF SUCCESS
+                showPage(propertyCategoriesPage); // Navigate back
+                // Re-render category details
+                await renderCategoryDetailsUI(
+                    currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer,
+                    categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker,
+                    customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput,
+                    currentSelectedProperty // ADD THIS
+                );
+            } // ADD CLOSING BRACE
+        });
+    }
+
+    if (updateDetailForm) {
+        updateDetailForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            let logoUrlToSend = '';
+            const selectedUpdatePresetRadio = updatePresetLogoPicker.querySelector('input[name="update-logo"]:checked');
+            if (selectedUpdatePresetRadio) {
+                logoUrlToSend = selectedUpdatePresetRadio.value;
+            } else if (updateCustomLogoUrlInput.value.trim() !== '') {
+                logoUrlToSend = updateCustomLogoUrlInput.value.trim();
+            }
+
+            const detailData = {
+                id: parseInt(updateDetailIdInput.value),
+                detail_name: updateDetailNameInput.value.trim(),
+                detail_url: updateDetailUrlInput.value.trim(),
+                detail_description: updateDetailDescriptionInput.value.trim(),
+                detail_logo_url: logoUrlToSend,
+                detail_username: updateDetailUsernameInput.value.trim(),
+                detail_password: updateDetailPasswordInput.value.trim()
+            };
+            const success = await updateCategoryDetail(detailData, currentSelectedProperty.id, currentSelectedCategoryName); // ADD CONST SUCCESS
+            if (success) { // ADD IF SUCCESS
+                showPage(propertyCategoriesPage); // Navigate back
+                // Re-render category details
+                await renderCategoryDetailsUI(
+                    currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer,
+                    categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker,
+                    customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput,
+                    currentSelectedProperty // ADD THIS
+                );
+            } // ADD CLOSING BRACE
+        });
+    }
+
+    // Detail Tile Actions (Delegated from ui/category-renderer.js's clicks, but handled here)
+    if (dynamicCategoryButtonsContainer) {
+        dynamicCategoryButtonsContainer.addEventListener('click', async (event) => { // ADD ASYNC
+            const editBtn = event.target.closest('[data-action="edit"]');
+            const deleteBtn = event.target.closest('[data-action="delete-detail"]');
+            const viewBtn = event.target.closest('[data-action="view"]');
+
+            if (editBtn) {
+                const detailData = editBtn.dataset;
+                updateDetailIdInput.value = detailData.id;
+                updateDetailNameInput.value = detailData.name;
+                updateDetailUrlInput.value = detailData.url;
+                updateDetailDescriptionInput.value = detailData.description;
+                updateDetailUsernameInput.value = detailData.username;
+                updateDetailPasswordInput.value = detailData.password;
+                if (updateDetailCategoryNameSpan) updateDetailCategoryNameSpan.textContent = `"${currentSelectedCategoryName}" for ${currentSelectedProperty.title}`;
+
+                renderPresetLogosForForm(updatePresetLogoPicker, updateCustomLogoUrlInput, detailData.logo);
+                showPage(updateCategoryDetailPage);
+
+            } else if (deleteBtn) {
+                const detailId = parseInt(deleteBtn.dataset.id);
+                const detailName = deleteBtn.dataset.name;
+                showModal(
+                    verificationModal,
+                    `detail: "${detailName}"`,
+                    `deleting`,
+                    async (username, password) => {
+                        const success = await deleteCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, detailId, username, password); // ADD CONST SUCCESS
+                        if (success) { // ADD IF SUCCESS
+                            // After deletion, refresh categories in sidebar and details
+                            renderPropertyCategories(
+                                currentSelectedProperty, currentSelectedCategoryName, propertyCategoriesNav,
+                                categoryDetailsHeading, currentPropertyThumbnail,
+                                deleteCategoryButton, addNewCategoryButton, refreshCategoriesButtonOnCategoriesPage // ADD BUTTONS
+                            );
+                            await renderCategoryDetailsUI(
+                                currentSelectedProperty.id, currentSelectedCategoryName, dynamicCategoryButtonsContainer,
+                                categoryLoadingMessage, addCategoryDetailButtonAtBottom, presetLogoPicker,
+                                customLogoUrlInput, updatePresetLogoPicker, updateCustomLogoUrlInput,
+                                currentSelectedProperty // ADD THIS
+                            );
+                        } // ADD CLOSING BRACE
+                    }
+                );
+            } else if (viewBtn) {
+                const url = viewBtn.dataset.url;
+                if (url) { window.open(url, '_blank'); } else { showCustomAlert('No URL provided.'); }
+            }
+        });
+    }
+
+
+    // File Management
+    // Helper function to encapsulate fetching and rendering files/folders
+    async function refreshFilesView(propertyId, folderId = null) {
+        currentActiveFolderId = folderId; // Update global state
+        filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">Loading files and folders...</p>`; // Show loading
+
+        const { files, folders } = await displayPropertyFiles(propertyId, folderId); // Call the service
+
+        // Render folders list using the UI renderer
+        renderFoldersList(folders, foldersList, currentFolderTitle, folderId);
+
+        // Render files list using the UI renderer
+        renderFilesList(files, filesListContainer);
+
+        // Update selected files UI after re-render
+        // currentSelectedFileIds is managed directly by ui/file-renderer.js's toggleFileSelection now,
+        // so no need for a global one in main.js
+        updateSelectionUI(new Set(), moveToFolderButton, deleteSelectedFilesButton); // Pass empty Set to clear selection and update buttons
+    }
+
+    if (viewFilesButton) {
+        viewFilesButton.addEventListener('click', async () => { // ADD ASYNC
+            if (currentSelectedProperty) {
+                document.getElementById('category-details-content').style.display = 'none';
+                propertyFilesContent.style.display = 'flex';
+                filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
+                filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property'; // ADD THIS LINE
+                if (addCategoryDetailButtonAtBottom) addCategoryDetailButtonAtBottom.style.display = 'none';
+
+                propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
+
+                await refreshFilesView(currentSelectedProperty.id, null); // Start with 'All Files'
+            } else {
+                showCustomAlert('Please select a property to view files.');
+            }
+        });
+    }
+
+    if (createFolderButton) {
+        createFolderButton.addEventListener('click', async () => {
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+            if (!propertyId) { showCustomAlert('Error: Property not selected.'); return; }
+
+            const folderName = prompt('Enter folder name:');
+            if (folderName && folderName.trim() !== '') {
+                const { username, password } = getUserApprovalStatuses(); // ADD THIS LINE
+                const success = await createFolder(propertyId, folderName.trim(), username, password); // ADD CONST SUCCESS, USERNAME, PASSWORD
+                if (success) { // ADD IF SUCCESS
+                    await refreshFilesView(propertyId, currentActiveFolderId); // Refresh current view
+                } // ADD CLOSING BRACE
+            } else if (folderName !== null) {
+                showCustomAlert('Folder name cannot be empty.');
+            }
+        });
+    }
+
+    if (deleteSelectedFilesButton) {
+        deleteSelectedFilesButton.addEventListener('click', async () => { // ADD ASYNC
+            if (currentSelectedFileIds.size === 0) { // CHANGE FROM filesListContainer.querySelectorAll ...
+                showCustomAlert('No files selected.');
+                return;
+            }
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+            const filesToDelete = Array.from(currentSelectedFileIds); // Use the global set
+
+            showModal(
+                verificationModal,
+                `${filesToDelete.length} selected file(s)`,
+                `deleting`,
+                async (username, password) => {
+                    const success = await deleteFiles(propertyId, filesToDelete, username, password); // ADD CONST SUCCESS
+                    if (success) { // ADD IF SUCCESS
+                        await refreshFilesView(propertyId, currentActiveFolderId); // Refresh current view
+                    } // ADD CLOSING BRACE
+                }
+            );
+        });
+    }
+
+    if (moveToFolderButton) {
+        moveToFolderButton.addEventListener('click', async () => {
+            if (currentSelectedFileIds.size === 0) { // CHANGE FROM filesListContainer.querySelectorAll ...
+                showCustomAlert('No files selected.');
+                return;
+            }
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+
+            // Prepare for upload/move modal
+            const processInitiated = await initFileUploadProcess(null, Array.from(currentSelectedFileIds)); // CHANGE PARAMS
+            if (processInitiated) { // ADD IF PROCESS INITIATED
+                // Now, show the modal. The modal's confirmation handler will call moveFilesService.
+                await showUploadFolderSelectionModal(propertyId, null, null, null, Array.from(currentSelectedFileIds));
+            } else { // ADD ELSE
+                showCustomAlert('Failed to initiate move process.');
+            } // ADD CLOSING BRACE
+        });
+    }
+
+    if (uploadFileButton) {
+        uploadFileButton.addEventListener('click', async () => {
+            const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+            if (!propertyId) { showCustomAlert('Error: Property not selected.'); return; }
+
+            if (!fileUploadInput?.files?.length) {
+                showCustomAlert('Please select a file.');
+                return;
+            }
+            const file = fileUploadInput.files[0]; // ADD CONST FILE
+            const processInitiated = await initFileUploadProcess(file); // CHANGE PARAMS
+            if (processInitiated) { // ADD IF PROCESS INITIATED
+                // Now, show the modal and pass the file details it needs for upload
+                await showUploadFolderSelectionModal(propertyId, file, null, null); // base64/mime will be read in modal
+            } else { // ADD ELSE
+                showCustomAlert('File preparation failed.');
+            } // ADD CLOSING BRACE
+        });
+    }
+
+    // Handler for showUploadFolderSelectionModal's confirmation
+    // This function encapsulates the UI logic for the modal and calls the service.
+    async function showUploadFolderSelectionModal(propertyId, file = null, initialBase64data = null, initialMimeType = null, filesToMove = null) { // ADD THIS ENTIRE FUNCTION
+        let fileToUploadTemp = file;
+        let base64DataToUploadTemp = initialBase64data;
+        let mimeTypeToUploadTemp = initialMimeType;
+        let filesToMoveTemp = filesToMove;
+
+        // If it's a new file upload and base64 not yet read, read it first
+        if (fileToUploadTemp && !base64DataToUploadTemp) {
+            const reader = new FileReader();
+            reader.onprogress = (event) => {
+                if (event.lengthComputable && fileUploadStatus) {
+                    const progressElement = fileUploadStatus.querySelector('progress');
+                    if (progressElement) {
+                        progressElement.value = event.loaded;
+                    }
+                }
+            };
+            reader.onloadend = async () => {
+                base64DataToUploadTemp = reader.result.split(',')[1];
+                mimeTypeToUploadTemp = reader.result.split(',')[0].split(':')[1].split(';')[0];
+                // Once data is read, show the modal (recursive call to self, but now with data)
+                await showModalLogic();
+            };
+            fileUploadStatus.classList.remove('hidden');
+            fileUploadStatus.className = 'mt-3 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+            fileUploadStatus.innerHTML = 'Preparing file for upload... <progress value="0" max="100"></progress>';
+            const progress = fileUploadStatus.querySelector('progress');
+            if (progress) progress.max = file.size;
+            reader.readAsDataURL(file);
+            return; // Exit, as modal will be shown after reading
+        } else {
+            // If data is already prepared (for file move or already read base64), show modal directly
+            await showModalLogic();
+        }
+
+        async function showModalLogic() {
+            uploadFolderModalStatus.classList.add('hidden');
+            uploadFolderModalStatus.textContent = '';
+            newFolderNameContainer.classList.add('hidden');
+            newFolderNameInput.value = '';
+            folderSelectDropdown.innerHTML = '<option value="none">-- No Folder (All Files) --</option><option value="new">+ Create New Folder</option>';
+            folderSelectDropdown.value = 'none';
+
+            try {
+                const { username, password } = getUserApprovalStatuses();
+                const foldersData = (await fetchFileAndFolderData(propertyId, null)).folders; // Fetch folders for dropdown
+                foldersData.forEach(f => {
+                    const option = document.createElement('option');
+                    option.value = f.id;
+                    option.textContent = f.name;
+                    folderSelectDropdown.insertBefore(option, folderSelectDropdown.lastElementChild);
+                });
+                uploadFolderModalStatus.classList.add('hidden');
+            } catch (error) {
+                console.error('Error populating folder dropdown:', error);
+                uploadFolderModalStatus.classList.remove('hidden');
+                uploadFolderModalStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-100 text-red-700';
+                uploadFolderModalStatus.textContent = `Error loading folders: ${error.message}`;
+            }
+
+            showModal(uploadFolderModal, '', 'selection', async (username, password) => {
+                const selectedFolderId = folderSelectDropdown.value;
+                let finalFolderId = null;
+                let finalFolderName = null;
+
+                if (selectedFolderId === 'new') {
+                    const newName = newFolderNameInput.value.trim();
+                    if (!newName) {
+                        showCustomAlert('Please enter a name for the new folder.');
+                        return;
+                    }
+                    finalFolderName = newName;
+                    finalFolderId = newName.toLowerCase().replace(/\s+/g, '-');
+                    const folderCreated = await createFolder(propertyId, finalFolderName, username, password);
+                    if (!folderCreated) {
+                        showCustomAlert('Failed to create new folder.');
+                        hideModal(uploadFolderModal);
+                        return;
+                    }
+                } else if (selectedFolderId !== 'none') {
+                    const selectedFolder = foldersData.find(f => f.id === selectedFolderId);
+                    finalFolderId = selectedFolderId;
+                    finalFolderName = selectedFolder ? selectedFolder.name : selectedFolderId;
+                }
+
+                if (fileToUploadTemp && base64DataToUploadTemp && mimeTypeToUploadTemp) {
+                    const success = await uploadFile(propertyId, fileToUploadTemp.name, base64DataToUploadTemp, mimeTypeToUploadTemp, finalFolderId, finalFolderName, username, password);
+                    if (success) {
+                        showCustomAlert('File uploaded successfully!');
+                    } else {
+                        showCustomAlert('File upload failed.');
+                    }
+                } else if (filesToMoveTemp && filesToMoveTemp.length > 0) {
+                    const success = await moveFiles(propertyId, filesToMoveTemp, finalFolderId, finalFolderName, username, password);
+                    if (success) {
+                        showCustomAlert('Files moved successfully!');
+                    } else {
+                        showCustomAlert('Failed to move files.');
+                    }
+                }
+
+                hideModal(uploadFolderModal);
+                if (fileUploadInput) fileUploadInput.value = '';
+                if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
+                await refreshFilesView(propertyId, currentActiveFolderId); // Refresh view after operation
+            });
+            uploadFolderModal.classList.remove('hidden');
+        }
+    }
+
+
+    // --- General File/Folder Event Listeners (Delegated from main.js) ---
+    if (filesListContainer) {
+        filesListContainer.addEventListener('click', async (event) => {
+            const checkbox = event.target.closest('.file-checkbox');
+            const fileItem = event.target.closest('.file-item');
+            const deleteBtn = event.target.closest('.delete-file-btn');
+            const editBtn = event.target.closest('.edit-file-btn');
+            const viewLink = event.target.closest('a[target="_blank"]');
+
+            if (checkbox) {
+                const fileId = parseInt(checkbox.dataset.fileId);
+                // currentSelectedFileIds state is managed in ui/file-renderer's toggleFileSelection
+                // and updated there directly.
+                toggleFileSelection(fileId, moveToFolderButton, deleteSelectedFilesButton);
+            } else if (fileItem && !deleteBtn && !editBtn && !viewLink) {
+                const fileId = parseInt(fileItem.dataset.fileId);
+                toggleFileSelection(fileId, moveToFolderButton, deleteSelectedFilesButton);
+            } else if (deleteBtn) {
+                const fileId = parseInt(deleteBtn.dataset.fileId);
+                const fileName = deleteBtn.dataset.fileName;
+                const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+
+                showModal(
+                    verificationModal,
+                    `file: "${fileName}"`,
+                    `deleting`,
+                    async (username, password) => {
+                        const success = await deleteFiles(propertyId, [fileId], username, password);
+                        if (success) {
+                            await refreshFilesView(propertyId, currentActiveFolderId);
+                        }
+                    }
+                );
+            } else if (editBtn) {
+                const fileId = parseInt(editBtn.dataset.fileId);
+                const fileName = editBtn.dataset.fileName;
+                showCustomAlert(`Edit functionality for file "${fileName}" (ID: ${fileId}) is not yet fully implemented. Implement a modal to edit file details here.`);
+            }
+        });
+    }
+
+    if (foldersList) {
+        foldersList.addEventListener('click', async (event) => {
+            const folderItem = event.target.closest('.folder-item');
+            if (folderItem) {
+                const folderId = folderItem.dataset.folderId === 'root' ? null : folderItem.dataset.folderId;
+                const propertyId = parseInt(propertyFilesContent.dataset.selectedPropertyId);
+
+                // No direct DOM manipulation here, renderFoldersList in ui/file-renderer will handle active class
+                await refreshFilesView(propertyId, folderId);
+            }
+        });
+    }
+
+    // Folder Modal Handlers (These were already in main.js previously)
+    if (folderSelectDropdown) {
+        folderSelectDropdown.addEventListener('change', (e) => {
+            if (newFolderNameContainer) {
+                newFolderNameContainer.style.display = e.target.value === 'new' ? 'block' : 'none';
+            }
+            if (newFolderNameInput && e.target.value === 'new') {
+                newFolderNameInput.focus();
+            }
+            if (uploadFolderModalStatus) uploadFolderModalStatus.classList.add('hidden');
+        });
+    }
+
+    if (cancelFolderSelectionBtn) {
+        cancelFolderSelectionBtn.addEventListener('click', () => {
+            hideModal(uploadFolderModal);
+            if (fileUploadInput) fileUploadInput.value = '';
+            // Clear selection when canceling move
+            updateSelectionUI(new Set(), moveToFolderButton, deleteSelectedFilesButton); // Pass empty set
+            if (fileUploadStatus) fileUploadStatus.classList.add('hidden'); // Hide upload status
+        });
+    }
+
+    // --- Back Button Event Listeners ---
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', () => {
+            showPage(loginPage);
+            if (usernameInput) usernameInput.value = '';
+            if (passwordInput) passwordInput.value = '';
+        });
+    }
+
+    if (backToLoginFromRegisterBtn) {
+        backToLoginFromRegisterBtn.addEventListener('click', () => {
+            showPage(loginPage);
+            if (regUsernameInput) regUsernameInput.value = '';
+            if (regPasswordInput) regPasswordInput.value = '';
+        });
+    }
+
+    if (backFromAddPropertyBtn) {
+        backFromAddPropertyBtn.addEventListener('click', () => {
+            showPage(propertySelectionPage);
+            addPropertyForm.reset();
+        });
+    }
+
+    if (backToPropertiesBtn) {
+        backToPropertiesBtn.addEventListener('click', () => {
+            showPage(propertySelectionPage);
+            currentSelectedProperty = null;
+            currentSelectedCategoryName = null;
+            if (currentPropertyTitle) currentPropertyTitle.textContent = 'Category Details';
+            if (currentPropertyThumbnail) currentPropertyThumbnail.src = 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
+        });
+    }
+
+    if (backFromAddNewCategoryBtn) {
+        backFromAddNewCategoryBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
+    }
+
+    if (backFromAddDetailBtn) {
+        backFromAddDetailBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
+    }
+
+    if (backFromUpdateDetailBtn) {
+        backFromUpdateDetailBtn.addEventListener('click', () => showPage(propertyCategoriesPage));
+    }
+
+    if (backFromUpdatePropertyBtn) {
+        backFromUpdatePropertyBtn.addEventListener('click', () => showPage(propertySelectionPage));
+    }
+
+    if (backFromFilesButton) {
+        backFromFilesButton.addEventListener('click', () => showPage(propertyCategoriesPage));
+    }
 }); // End DOMContentLoaded
