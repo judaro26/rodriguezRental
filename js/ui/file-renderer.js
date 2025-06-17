@@ -13,96 +13,121 @@ let currentSelectedFileIds = new Set();
  * @param {HTMLElement} currentFolderTitleElement - The element displaying the current folder name.
  * @param {string|null} activeFolderId - The ID of the currently active folder (for highlighting).
  */
-export function renderFoldersList(folders, foldersListContainer, currentFolderTitleElement, activeFolderId = null) {
-    if (!foldersListContainer) {
-        console.error("foldersListContainer not provided to renderFoldersList.");
-        return;
-    }
-    foldersListContainer.innerHTML = '';
+export function renderFoldersList(folders, foldersListElement, currentFolderTitleElement, activeFolderId) {
+    console.log('--- Entering renderFoldersList ---'); // ADD THIS
+    console.log('renderFoldersList received folders:', folders); // ADD THIS
+    console.log('renderFoldersList target element:', foldersListElement); // ADD THIS
 
-    // Add "All Files" option
-    const allFilesItem = document.createElement('li');
-    allFilesItem.classList.add('folder-item', 'cursor-pointer', 'p-2', 'rounded-md', 'hover:bg-gray-200');
-    if (activeFolderId === null) { // 'all' is represented as null for root
-        allFilesItem.classList.add('bg-blue-200', 'text-blue-800');
-    }
-    allFilesItem.dataset.folderId = 'root'; // Use a special ID for 'all files'
-    allFilesItem.textContent = 'All Files';
-    foldersListContainer.appendChild(allFilesItem);
+    // Clear previous content
+    foldersListElement.innerHTML = '';
 
-    // Render actual folders
-    folders.forEach(folder => {
-        const folderItem = document.createElement('li');
-        folderItem.classList.add('folder-item', 'cursor-pointer', 'p-2', 'rounded-md', 'hover:bg-gray-200');
-        if (folder.id === activeFolderId) {
-            folderItem.classList.add('bg-blue-200', 'text-blue-800');
+    // Add 'All Files' or 'Back to Parent' folder
+    // This logic might need refinement based on your backend's folder hierarchy structure.
+    // Assuming 'root' means the top level, and subfolders have a parentId.
+    const isRoot = (activeFolderId === null || activeFolderId === 'none');
+
+    const parentFolderDiv = document.createElement('div');
+    parentFolderDiv.className = `folder-item p-2 hover:bg-gray-100 cursor-pointer rounded-md ${isRoot ? 'bg-blue-200 text-blue-800 font-bold' : ''}`; // Highlight 'All Files' when at root
+    parentFolderDiv.dataset.folderId = 'root'; // Always link 'All Files' to 'root'
+    parentFolderDiv.innerHTML = `<i class="fas fa-folder mr-2"></i>${isRoot ? 'All Files' : '.. (Back)'}`;
+    foldersListElement.appendChild(parentFolderDiv);
+    console.log(`Added "${isRoot ? 'All Files' : '.. (Back)'}" folder item.`); // ADD THIS
+
+    // Render actual subfolders of the current activeFolderId
+    // If activeFolderId is null (root), show folders with parentId == null
+    const foldersToRender = folders.filter(f => {
+        if (isRoot) {
+            return f.parentId === null || f.parentId === undefined || f.parentId === 'none';
+        } else {
+            return f.parentId === activeFolderId;
         }
-        folderItem.dataset.folderId = folder.id;
-        folderItem.textContent = folder.name;
-        foldersListContainer.appendChild(folderItem);
     });
 
-    // Update current folder title
+    console.log('Folders to render based on activeFolderId:', foldersToRender); // ADD THIS
+
+    if (foldersToRender.length === 0 && !isRoot) {
+        // If in a subfolder and no more subfolders, no need to show anything but "Back"
+    } else {
+        foldersToRender.forEach(folder => {
+            const folderDiv = document.createElement('div');
+            folderDiv.className = `folder-item p-2 hover:bg-gray-100 cursor-pointer rounded-md ${folder.id === activeFolderId ? 'bg-blue-200 text-blue-800 font-bold' : ''}`;
+            folderDiv.dataset.folderId = folder.id;
+            folderDiv.innerHTML = `<i class="fas fa-folder mr-2"></i>${folder.name}`;
+            foldersListElement.appendChild(folderDiv);
+            console.log(`Added folder: ${folder.name} (ID: ${folder.id})`); // ADD THIS
+        });
+    }
+
+    // Set current folder title
     if (currentFolderTitleElement) {
-        if (activeFolderId === null) {
+        if (isRoot) {
             currentFolderTitleElement.textContent = 'All Files';
         } else {
-            const folder = folders.find(f => f.id === activeFolderId);
-            currentFolderTitleElement.textContent = `Folder: ${folder ? folder.name : 'Unknown Folder'}`;
+            const currentFolder = folders.find(f => f.id === activeFolderId);
+            currentFolderTitleElement.textContent = currentFolder ? currentFolder.name : 'Unknown Folder';
         }
+        console.log('Current folder title set to:', currentFolderTitleElement.textContent); // ADD THIS
     }
+
+    console.log('--- Exiting renderFoldersList ---'); // ADD THIS
 }
 
-/**
- * Renders the list of files in the main content area.
- * @param {Array<Object>} files - The array of file objects to render.
- * @param {HTMLElement} filesListContainer - The DIV or UL element where files should be rendered.
- */
-export function renderFilesList(files, filesListContainer) {
-    if (!filesListContainer) {
-        console.error("filesListContainer not provided to renderFilesList.");
-        return;
-    }
-    filesListContainer.innerHTML = '';
+export function renderFilesList(files, filesListContainerElement) {
+    console.log('--- Entering renderFilesList ---'); // ADD THIS
+    console.log('renderFilesList received files:', files); // ADD THIS
+    console.log('renderFilesList target element:', filesListContainerElement); // ADD THIS
 
-    if (files.length === 0) {
-        filesListContainer.innerHTML = `<p class="text-gray-600 p-4 text-center">No files found in this view.</p>`;
+    // Clear previous content but preserve loading message if it's there
+    // This is important: if `filesListContainer.innerHTML` was set to a loading message
+    // and no files are returned, you want the "No files" message to replace it,
+    // not just append. So clearing is generally fine.
+    filesListContainerElement.innerHTML = '';
+
+    if (!files || files.length === 0) {
+        filesListContainerElement.innerHTML = `<p class="text-gray-600 p-4 text-center">No files found in this folder.</p>`;
+        console.log('No files message displayed in filesListContainer.'); // ADD THIS
         return;
     }
 
     files.forEach(file => {
         const fileDiv = document.createElement('div');
-        fileDiv.classList.add(
-            'file-item', 'flex', 'items-center', 'justify-between', 'p-3', 'border-b', 'border-gray-200',
-            'hover:bg-gray-50', 'transition-colors', 'duration-100', 'cursor-pointer'
-        );
+        fileDiv.className = 'file-item flex items-center justify-between p-2 hover:bg-gray-100 rounded-md';
         fileDiv.dataset.fileId = file.id;
+        fileDiv.dataset.fileName = file.name; // Add for easier debugging/access
 
-        const isSelected = currentSelectedFileIds.has(file.id); // Use local state
-        if (isSelected) {
-            fileDiv.classList.add('bg-blue-100'); // Highlight selected files
-        }
+        // Construct the image URL. Assuming 'file.thumbnailUrl' or similar for visual.
+        // If not, maybe a generic icon based on file type.
+        const fileIcon = file.mimeType && file.mimeType.startsWith('image/') ? file.url : 'https://placehold.co/24x24/E0E0E0/808080?text=Doc'; // Generic doc icon
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        let iconClass = 'fas fa-file'; // Default icon
 
-        const fileIcon = getFileIcon(file.filename);
-        const fileSizeFormatted = formatFileSize(file.size);
+        // More specific icons based on extension
+        if (['pdf'].includes(fileExtension)) iconClass = 'fas fa-file-pdf';
+        else if (['doc', 'docx'].includes(fileExtension)) iconClass = 'fas fa-file-word';
+        else if (['xls', 'xlsx'].includes(fileExtension)) iconClass = 'fas fa-file-excel';
+        else if (['ppt', 'pptx'].includes(fileExtension)) iconClass = 'fas fa-file-powerpoint';
+        else if (['zip', 'rar', '7z'].includes(fileExtension)) iconClass = 'fas fa-file-archive';
+        else if (['txt', 'log'].includes(fileExtension)) iconClass = 'fas fa-file-alt';
+        else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(fileExtension)) iconClass = 'fas fa-file-image';
+        else if (['mp4', 'mov', 'avi'].includes(fileExtension)) iconClass = 'fas fa-file-video';
+        else if (['mp3', 'wav'].includes(fileExtension)) iconClass = 'fas fa-file-audio';
+
 
         fileDiv.innerHTML = `
-            <div class="flex items-center gap-3 flex-grow">
-                <input type="checkbox" class="file-checkbox mr-2" data-file-id="${file.id}" ${isSelected ? 'checked' : ''}>
-                <img src="${fileIcon}" alt="File icon" class="w-8 h-8 flex-shrink-0">
-                <div class="flex flex-col min-w-0">
-                    <span class="font-medium text-gray-800 truncate" title="${file.filename}">${file.filename}</span>
-                    <span class="text-xs text-gray-500">${fileSizeFormatted}</span>
-                </div>
+            <div class="flex items-center">
+                <input type="checkbox" class="file-checkbox mr-2" data-file-id="${file.id}">
+                <i class="${iconClass} mr-2 text-gray-500"></i>
+                <a href="${file.url}" target="_blank" class="text-blue-600 hover:underline">${file.name}</a>
             </div>
-            <div class="flex-shrink-0 ml-4">
-                <a href="${file.url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline mr-2">View</a>
-                <button class="edit-file-btn text-gray-600 hover:text-gray-800 mr-2" data-file-id="${file.id}" data-file-name="${file.filename}">Edit</button>
-                <button class="delete-file-btn text-red-600 hover:text-red-800" data-file-id="${file.id}" data-file-name="${file.filename}">Delete</button>
+            <div class="flex items-center space-x-2">
+                <button class="edit-file-btn text-gray-500 hover:text-blue-600" data-file-id="${file.id}" data-file-name="${file.name}" title="Edit File"><i class="fas fa-edit"></i></button>
+                <button class="delete-file-btn text-red-500 hover:text-red-700" data-file-id="${file.id}" data-file-name="${file.name}" title="Delete File"><i class="fas fa-trash"></i></button>
             </div>
         `;
-        filesListContainer.appendChild(fileDiv);
+        filesListContainerElement.appendChild(fileDiv);
+        console.log(`Added file: ${file.name} (ID: ${file.id})`); // ADD THIS
     });
+    console.log('--- Exiting renderFilesList ---'); // ADD THIS
 }
 
 /**
