@@ -209,6 +209,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('updateDetailCategoryNameSpan:', updateDetailCategoryNameSpan);
 
     // Update Property Page Elements
+    const backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn'); // <-- ADD THIS LINE
+    console.log('backFromAddDetailBtn:', backFromAddDetailBtn); // <-- ADD THIS LINE
     const updatePropertyForm = document.getElementById('update-property-form');
     console.log('updatePropertyForm:', updatePropertyForm);
     const updatePropertyIdInput = document.getElementById('update-property-id');
