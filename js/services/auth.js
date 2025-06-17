@@ -2,11 +2,13 @@
 
 import { showPage, showCustomAlert } from '../utils/dom.js'; // Import UI helpers
 
-// User state variables
-let currentUserForeignApprovedStatus = false;
-let currentUserDomesticApprovedStatus = false;
-let currentLoggedInUsername = '';
-let currentLoggedInPassword = ''; // WARNING: Storing plain-text password is a HIGH SECURITY RISK for production.
+// User state variables (local state should probably be derived from localStorage/session storage for consistency)
+// For this fix, we'll focus on storing the token and approval statuses in localStorage.
+let currentLoggedInUsername = ''; // Still useful for displaying username in UI, etc.
+
+// No need to store plain-text password globally here if it's stored securely in backend and used via token.
+// let currentLoggedInPassword = ''; // WARNING: Storing plain-text password is a HIGH SECURITY RISK for production. REMOVE THIS IF YOU DON'T ABSOLUTELY NEED IT FOR NON-AUTH PURPOSES.
+
 
 // DOM elements specific to auth module that are interacted with (e.g., status messages)
 // These can remain here as they are directly updated by this module's logic.
@@ -23,7 +25,7 @@ const registerErrorText = document.getElementById('register-error-text');
  * @param {string} password - The password entered by the user.
  * @returns {Promise<boolean>} - True if login is successful, false otherwise.
  */
-export async function login(username, password) { // Now accepts username and password
+export async function login(username, password) {
     if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
     if (loginErrorText) loginErrorText.textContent = '';
 
@@ -44,22 +46,39 @@ export async function login(username, password) { // Now accepts username and pa
 
         if (response.ok) {
             console.log("Login successful:", data.message);
-            currentUserForeignApprovedStatus = data.foreign_approved;
-            currentUserDomesticApprovedStatus = data.domestic_approved;
+            // --- CRITICAL FIX: STORE THE TOKEN AND APPROVAL STATUSES IN LOCAL STORAGE ---
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                console.log('JWT token stored in localStorage.');
+            } else {
+                console.warn('Login successful but no token received from backend!');
+                // You might want to show an alert or handle this case where a token is expected but not provided.
+                showCustomAlert('Login successful, but no session token received. You may experience limited functionality.', 'warning');
+            }
+
+            // Store approval statuses in localStorage as well, so they persist across sessions
+            // and can be read by getUserApprovalStatuses.
+            localStorage.setItem('foreignApproved', data.foreign_approved ? 'true' : 'false');
+            localStorage.setItem('domesticApproved', data.domestic_approved ? 'true' : 'false');
+            console.log(`Foreign Approved: ${data.foreign_approved}, Domestic Approved: ${data.domestic_approved} stored.`);
+
+
+            // Update local state for immediate use within the current session, though localStorage is the source of truth
             currentLoggedInUsername = username;
-            currentLoggedInPassword = password; // Store plain-text for demo, see warning above.
+            // No longer storing plain-text password in global state here due to security risk.
+            // currentLoggedInPassword = password; // REMOVE THIS LINE
+
+
             return true;
         } else {
             if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
             if (loginErrorText) loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
-            // Do not clear password here, main.js will handle clearing input field
             return false;
         }
     } catch (error) {
         console.error("Fetch error during login:", error);
         if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
         if (loginErrorText) loginErrorText.textContent = 'Network error or server issue. Please try again later.';
-        // Do not clear password here
         return false;
     }
 }
@@ -70,7 +89,7 @@ export async function login(username, password) { // Now accepts username and pa
  * @param {string} password - The password for registration.
  * @returns {Promise<boolean>} - True if registration is successful, false otherwise.
  */
-export async function register(username, password) { // Now accepts username and password
+export async function register(username, password) {
     if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
     if (registerErrorText) registerErrorText.textContent = '';
 
@@ -96,40 +115,8 @@ export async function register(username, password) { // Now accepts username and
         } else {
             if (registerErrorMessage) registerErrorMessage.classList.remove('hidden');
             if (registerErrorText) registerErrorText.textContent = data.message || 'An unknown error occurred during registration.';
-            // Do not clear password here
             return false;
         }
     } catch (error) {
         console.error("Fetch error during registration:", error);
-        if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
-        if (registerErrorText) registerErrorText.textContent = 'Network error or server issue. Please try again later.';
-        // Do not clear password here
-        return false;
-    }
-}
-
-/**
- * Returns the currently logged-in user's credentials.
- * IMPORTANT: In a real app, you'd return an auth token, not plain password.
- * @returns {{username: string, password: string}}
- */
-export function getLoggedInCredentials() {
-    return {
-        username: currentLoggedInUsername,
-        password: currentLoggedInPassword
-    };
-}
-
-/**
- * Returns the current user's approval statuses for foreign and domestic properties.
- * @returns {{foreignApproved: boolean, domesticApproved: boolean}}
- */
-export function getUserApprovalStatuses() {
-    return {
-        foreignApproved: currentUserForeignApprovedStatus,
-        domesticApproved: currentUserDomesticApprovedStatus
-    };
-}
-
-// No DOM event listeners in this file anymore, they are handled in main.js.
-// DOM element lookups for status messages are fine here as they are directly updated.
+        if (registerErrorMessage) registerErrorMessage.
