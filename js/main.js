@@ -299,35 +299,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     showPage(loginPage);
     
     // Login Form Listener
-    if (loginForm) {
-        console.log('Attempting to attach event listener to loginForm.'); // Add this log
-        loginForm.addEventListener('submit', async (event) => {
-            console.log('Login form submit event detected!'); // This should always fire if listener is attached
-            event.preventDefault(); // IMPORTANT: Prevent default form submission and page refresh
-            console.log("Default form submission prevented."); // Confirm this line executes
-
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-
-            if (!username || !password) {
-                showCustomAlert('Please enter both username and password.');
-                return;
-            }
-
-            try {
-                // Clear inputs immediately for security/UX
-                usernameInput.value = '';
-                passwordInput.value = '';
-
-                const success = await login(username, password);
-                console.log("Login service result:", success);
-
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const success = await login(usernameInput.value, passwordInput.value);
                 if (success) {
-                    currentLoggedInUsername = username;
-                    console.log("Login successful. Attempting to fetch and display properties.");
-
+                    currentLoggedInUsername = usernameInput.value;
+    
+                    // Pass ALL the necessary DOM elements to fetchProperties
                     const propertiesLoaded = await fetchProperties(
-                        null, // filter by all initially
+                        null, // initial filter (all)
                         propertyCardsContainer,
                         propertiesLoadingMessage,
                         propertiesErrorMessage,
@@ -335,28 +316,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                         filterAllPropertiesBtn,
                         filterDomesticPropertiesBtn,
                         filterForeignPropertiesBtn,
-                        propertySelectionPage
+                        propertySelectionPage // Pass propertySelectionPage here
                     );
-
+    
                     if (propertiesLoaded) {
                         showPage(propertySelectionPage);
                     } else {
-                        showCustomAlert('Failed to load properties after login. Please refresh.');
-                        // Optionally, stay on login page or show an error on properties page
+                        showCustomAlert('Failed to load properties after login. Please try again.');
                     }
                 } else {
-                    // auth.js should ideally handle specific error messages (e.g., wrong credentials)
-                    // If not, a generic message like this is fine.
-                    showCustomAlert('Login failed. Please check your credentials or try again.');
+                    passwordInput.value = '';
+                    showCustomAlert('Login failed. Please check your credentials.');
                 }
-            } catch (error) {
-                console.error("Login event listener error:", error);
-                showCustomAlert('An unexpected error occurred during login. Please try again.');
-            }
-        });
-    } else {
-        console.error("Error: loginForm element not found!");
-    }
+            });
+        }
+
 
     // Register Form Listeners
     if (showRegisterFormBtn) {
