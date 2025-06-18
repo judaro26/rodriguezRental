@@ -69,68 +69,43 @@ exports.handler = async (event) => {
 
         // --- Fetch Files from 'property_files' table ---
         let filesQuery;
-        let filesQueryParams;
-
-        if (current_view_folder_id) {
-            // Fetch files whose folder_id matches the current_view_folder_id
-            filesQuery = `
-                SELECT id, filename, file_url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
-                FROM property_files
-                WHERE property_id = $1 AND folder_id = $2
-                ORDER BY uploaded_at DESC
-            `;
-            filesQueryParams = [numeric_property_id, current_view_folder_id];
-        } else {
-            // Fetch files that are NOT in any subfolder (root files)
-            filesQuery = `
-                SELECT id, filename, file_url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
-                FROM property_files
-                WHERE property_id = $1 AND folder_id IS NULL
-                ORDER BY uploaded_at DESC
-            `;
-            filesQueryParams = [numeric_property_id];
-        }
-        const filesResult = await client.query(filesQuery, filesQueryParams);
-        const files = filesResult.rows;
+            let filesQueryParams;
+    
+            if (current_view_folder_id) {
+                filesQuery = `
+                    SELECT id, filename AS name, file_url AS url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
+                    FROM property_files
+                    WHERE property_id = $1 AND folder_id = $2
+                    ORDER BY uploaded_at DESC
+                `;
+                filesQueryParams = [numeric_property_id, current_view_folder_id];
+            } else {
+                filesQuery = `
+                    SELECT id, filename AS name, file_url AS url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
+                    FROM property_files
+                    WHERE property_id = $1 AND folder_id IS NULL
+                    ORDER BY uploaded_at DESC
+                `;
+                filesQueryParams = [numeric_property_id];
+            }
+            const filesResult = await client.query(filesQuery, filesQueryParams);
+            const files = filesResult.rows;
 
 
         // --- Fetch Folders from your 'folders' table ---
-        // This is the CRUCIAL change. You have a 'folders' table.
-        // Assuming your 'folders' table stores top-level folders for a property,
-        // and doesn't have a parent_folder_id for nesting folders *within* the 'folders' table itself.
-        // If your folders table also has parent_folder_id for nested folders, adjust this query.
-
         let foldersQuery;
         let foldersQueryParams;
 
-        // If current_view_folder_id is provided, it means we are trying to view *inside* a folder.
-        // If your 'folders' table only contains top-level folders, then you'd only query for
-        // folders where property_id matches and there's no parent link.
-        // If 'folders' table *also* supports nesting (e.g., with a 'parent_id' column), then adjust below.
-        
-        // For now, let's assume 'folders' table only contains top-level folders per property,
-        // or that 'current_view_folder_id' is only for filtering *files* within a folder.
-        // If 'folders' table has a 'parent_folder_id' column, then use this:
-        // foldersQuery = `SELECT id, name FROM folders WHERE property_id = $1 AND parent_folder_id = $2 ORDER BY name ASC`;
-        // foldersQueryParams = [numeric_property_id, current_view_folder_id];
-
-        // Based on your columns: "id", "name", "property_id", "property"
-        // It sounds like your 'folders' table stores *top-level* folders for a property.
-        // So, we fetch all folders for the given property. If a folder can have sub-folders defined in this table,
-        // you'd need a 'parent_id' or similar column in the 'folders' table itself.
-        // Given just "property_id", it sounds like all folders fetched are direct children of the property.
-        // The `current_view_folder_id` only filters files, not folders hierarchy *within the folders table itself*.
-
-        // Let's assume for now your 'folders' table only holds direct children of a property (no nested folders in the 'folders' table itself)
-        // If it DOES have nesting, you'll need a 'parent_id' column in your 'folders' table.
-        
+        // Assuming your 'folders' table has 'id', 'name', 'property_id'.
+        // If it supports nesting, you'll need a 'parent_id' column in the folders table itself
+        // and adjust this query to filter by current_view_folder_id
         foldersQuery = `
-            SELECT id, name
+            SELECT id, name, property_id
             FROM folders
             WHERE property_id = $1
             ORDER BY name ASC
         `;
-        foldersQueryParams = [numeric_property_id];
+        foldersQueryParams = [numeric_property_id]; // Filter by property_id
         
         const foldersResult = await client.query(foldersQuery, foldersQueryParams);
         const folders = foldersResult.rows;
