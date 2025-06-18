@@ -36,9 +36,7 @@ exports.handler = async (event) => {
     }
 
     // `folderId` from queryStringParameters will indicate the current parent folder to view.
-    // Assuming 'parent_folder_id' column for folders if they can be nested.
-    // If your 'folders' table doesn't have parent_folder_id, and only stores top-level folders for a property,
-    // then this 'folderId' parameter might only filter files, not folders hierarchy.
+    // This will be null for the "All Files" view.
     const current_view_folder_id = event.queryStringParameters ? event.queryStringParameters.folderId : null;
     console.log(`Resolved property_id: ${property_id}, current_view_folder_id: ${current_view_folder_id}`);
 
@@ -69,43 +67,38 @@ exports.handler = async (event) => {
 
         // --- Fetch Files from 'property_files' table ---
         let filesQuery;
-            let filesQueryParams;
-    
-            if (current_view_folder_id) {
-                filesQuery = `
-                    SELECT id, filename AS name, file_url AS url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
-                    FROM property_files
-                    WHERE property_id = $1 AND folder_id = $2
-                    ORDER BY uploaded_at DESC
-                `;
-                filesQueryParams = [numeric_property_id, current_view_folder_id];
-            } else {
-                filesQuery = `
-                    SELECT id, filename AS name, file_url AS url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
-                    FROM property_files
-                    WHERE property_id = $1 AND folder_id IS NULL
-                    ORDER BY uploaded_at DESC
-                `;
-                filesQueryParams = [numeric_property_id];
-            }
-            const filesResult = await client.query(filesQuery, filesQueryParams);
-            const files = filesResult.rows;
+        let filesQueryParams;
 
+        if (current_view_folder_id) { // If a specific folder is selected
+            filesQuery = `
+                SELECT id, filename AS name, file_url AS url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
+                FROM property_files
+                WHERE property_id = $1 AND folder_id = $2
+                ORDER BY uploaded_at DESC
+            `;
+            filesQueryParams = [numeric_property_id, current_view_folder_id];
+        } else { // If "All Files" is selected (current_view_folder_id is NULL)
+            filesQuery = `
+                SELECT id, filename AS name, file_url AS url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
+                FROM property_files
+                WHERE property_id = $1
+                ORDER BY uploaded_at DESC
+            `;
+            filesQueryParams = [numeric_property_id];
+        }
+        const filesResult = await client.query(filesQuery, filesQueryParams);
+        const files = filesResult.rows;
 
         // --- Fetch Folders from your 'folders' table ---
-        let foldersQuery;
-        let foldersQueryParams;
-
-        // Assuming your 'folders' table has 'id', 'name', 'property_id'.
-        // If it supports nesting, you'll need a 'parent_id' column in the folders table itself
-        // and adjust this query to filter by current_view_folder_id
-        foldersQuery = `
+        // This query fetches all top-level folders for the given property_id.
+        // It assumes your 'folders' table does not have a 'parent_folder_id' column for nesting.
+        const foldersQuery = `
             SELECT id, name, property_id
             FROM folders
             WHERE property_id = $1
             ORDER BY name ASC
         `;
-        foldersQueryParams = [numeric_property_id]; // Filter by property_id
+        const foldersQueryParams = [numeric_property_id];
         
         const foldersResult = await client.query(foldersQuery, foldersQueryParams);
         const folders = foldersResult.rows;
