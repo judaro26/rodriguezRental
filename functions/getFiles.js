@@ -10,12 +10,15 @@ exports.handler = async (event) => {
         };
     }
 
-    const { property_id } = event.queryStringParameters;
+    // --- CHANGE START ---
+    // If using a rewrite like /api/properties/:property_id/files to the function
+    const property_id = event.pathParameters ? event.pathParameters.property_id : null;
+    // --- CHANGE END ---
 
     if (!property_id) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ message: 'Missing required field: property_id.', details: 'property_id is required as a query parameter.' }),
+            body: JSON.stringify({ message: 'Missing required field: property_id.', details: 'property_id is required either as a path parameter or query parameter.' }),
         };
     }
 
@@ -29,7 +32,6 @@ exports.handler = async (event) => {
         });
         client = await pool.connect();
 
-        // Fetch all files for the given property_id from the 'property_files' table
         const result = await client.query(
             `SELECT id, filename, file_url, size, uploaded_at, folder_id, folder_name, uploaded_by_username
              FROM property_files
