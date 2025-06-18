@@ -25,36 +25,37 @@ const registerErrorText = document.getElementById('register-error-text');
  * @param {string} password - The password entered by the user.
  * @returns {Promise<boolean>} - True if login is successful, false otherwise.
  */
-export async function login(username, password) {
-  try {
-    const response = await fetch('/.netlify/functions/loginUser', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await response.json();
-    
-    if (response.ok) {
-      // Store token and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        username: data.username,
-        foreign_approved: data.foreign_approved,
-        domestic_approved: data.domestic_approved
-      }));
-      
-      return true;
-    } else {
-      showCustomAlert(data.message || 'Login failed');
-      return false;
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    showCustomAlert('Network error during login');
-    return false;
+  export async function login(username, password) {
+      try {
+          const response = await fetch('/.netlify/functions/loginUser', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username, password })
+          });
+  
+          const data = await response.json();
+          
+          if (response.ok) {
+              // Store token and user data
+              if (data.token) {
+                  localStorage.setItem('token', data.token);
+                  localStorage.setItem('user', JSON.stringify({
+                      username: data.username,
+                      foreign_approved: data.foreign_approved,
+                      domestic_approved: data.domestic_approved
+                  }));
+                  return true;
+              }
+          }
+          
+          showCustomAlert(data.message || 'Login failed');
+          return false;
+      } catch (error) {
+          console.error('Login error:', error);
+          showCustomAlert('Network error during login');
+          return false;
+      }
   }
-}
 
 /**
  * Handles user registration.
