@@ -284,69 +284,124 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     showPage(loginPage);
 
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const success = await login(usernameInput.value, passwordInput.value);
-            if (success) {
-                currentLoggedInUsername = usernameInput.value;
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            console.log('Login form submitted.'); // Add log
 
-                // Pass ALL the necessary DOM elements to fetchProperties
-                const propertiesLoaded = await fetchProperties(
-                    null, // initial filter (all)
-                    propertyCardsContainer,
-                    propertiesLoadingMessage,
-                    propertiesErrorMessage,
-                    propertiesErrorText,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn,
-                    propertySelectionPage // Pass propertySelectionPage here
-                );
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
 
-                if (propertiesLoaded) {
-                    showPage(propertySelectionPage);
-                } else {
-                    showCustomAlert('Failed to load properties after login. Please try again.');
-                }
-            } else {
-                passwordInput.value = '';
-                showCustomAlert('Login failed. Please check your credentials.');
-            }
-        });
-    }
+            if (!username || !password) {
+                showCustomAlert('Please enter both username and password.');
+                console.log('Login attempt: Missing username or password.'); // Add log
+                return;
+            }
 
-    // ... (register form listeners) ...
-        if (showRegisterFormBtn) {
-            showRegisterFormBtn.addEventListener('click', () => {
-                showPage(registerPage);
-                registerForm.reset();
-            });
-        }
-    
-        if (registerForm) {
+            // Clear previous login error messages before a new attempt
+            // Assuming you have loginErrorMessage and loginErrorText defined and imported/accessible
+            const loginErrorMessage = document.getElementById('login-error-message');
+            const loginErrorText = document.getElementById('login-error-text');
+            if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
+            if (loginErrorText) loginErrorText.textContent = '';
+
+
+            console.log('Calling login service...'); // Add log
+            const success = await login(username, password); // Call your login service function
+            console.log('Login service returned:', success); // Add log
+
+            if (success) {
+                // IMPORTANT: currentLoggedInUsername should be set here if not already done in auth.js
+                // Your services/auth.js is already setting currentLoggedInUsername globally, which is fine.
+
+                // Pass ALL the necessary DOM elements to fetchProperties
+                // This is the full list of arguments your fetchProperties expects based on your main.js
+                console.log('Login successful. Attempting to fetch properties...'); // Add log
+                const propertiesLoaded = await fetchProperties(
+                    null, // initial filter (all)
+                    propertyCardsContainer,
+                    propertiesLoadingMessage,
+                    propertiesErrorMessage,
+                    propertiesErrorText,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn,
+                    propertySelectionPage // Pass propertySelectionPage here
+                );
+
+                if (propertiesLoaded) {
+                    console.log('Properties loaded. Showing property selection page.'); // Add log
+                    showPage(propertySelectionPage);
+                } else {
+                    showCustomAlert('Failed to load properties after login. Please try again.');
+                    console.error('Failed to load properties after login.'); // Add log
+                    // Potentially show login page again or keep login error visible
+                }
+            } else {
+                // Login failed - the auth.js service should display the specific error
+                console.log('Login failed. Clearing password input.'); // Add log
+                passwordInput.value = ''; // Clear password input on failure
+                // showCustomAlert('Login failed. Please check your credentials.'); // auth.js should handle this alert
+            }
+        });
+    }
+
+    // --- Register Form Listeners (already looked good, just re-included for context) ---
+    if (showRegisterFormBtn) {
+        showRegisterFormBtn.addEventListener('click', () => {
+            console.log('showRegisterFormBtn clicked!'); // Added from previous debugging step
+            showPage(registerPage);
+            console.log('Attempted to show registerPage.'); // Added from previous debugging step
+            registerForm.reset();
+            // Also good to clear any status messages when navigating to register page
+            const registrationStatusMessage = document.getElementById('registration-status-message');
+            const registerErrorMessage = document.getElementById('register-error-message');
+            const registerErrorText = document.getElementById('register-error-text');
+            if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
+            if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
+            if (registerErrorText) registerErrorText.textContent = '';
+        });
+    }
+
+    if (registerForm) {
         registerForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            console.log('Register form submitted.'); // Added from previous debugging step
             try {
                 const username = regUsernameInput.value.trim();
                 const password = regPasswordInput.value.trim();
-                
+
                 if (!username || !password) {
                     showCustomAlert('Please enter both username and password');
+                    console.log('Registration attempt: Missing username or password.'); // Added from previous debugging step
                     return;
                 }
-                
+
+                // Clear any status messages before new attempt
+                const registrationStatusMessage = document.getElementById('registration-status-message');
+                const registerErrorMessage = document.getElementById('register-error-message');
+                const registerErrorText = document.getElementById('register-error-text');
+                if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
+                if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
+                if (registerErrorText) registerErrorText.textContent = '';
+
+                console.log('Calling register service...'); // Added from previous debugging step
                 const success = await register(username, password);
+                console.log('Register service returned:', success); // Added from previous debugging step
+
                 if (success) {
                     showCustomAlert('Registration successful! Please login with your new credentials.');
                     showPage(loginPage);
                     registerForm.reset();
+                    if (regUsernameInput) regUsernameInput.value = ''; // Ensure individual inputs are cleared
+                    if (regPasswordInput) regPasswordInput.value = ''; // Ensure individual inputs are cleared
                 } else {
-                    showCustomAlert('Registration failed. The username might already be taken.');
+                    // showCustomAlert('Registration failed. The username might already be taken.'); // auth.js handles this
+                    console.log('Registration failed. Auth service should have displayed an alert.'); // Add log
                 }
             } catch (error) {
-                console.error('Registration error:', error);
-                showCustomAlert('Registration failed. Please try again.');
+                console.error('Registration error caught in main.js:', error); // More specific error log
+                showCustomAlert('Registration failed due to a client-side error. Please try again.'); // Generic alert
             }
         });
     }
