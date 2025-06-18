@@ -16,25 +16,32 @@ exports.handler = async (event) => {
 
     let property_id = null;
 
-    // STRATEGY: Try to get property_id from pathParameters first (ideal)
-    // If that fails (as it currently seems to on your setup), extract from the raw path
+    // 1. Try to get property_id from pathParameters (for /api/properties/:id/files URLs with rewrite)
     if (event.pathParameters && event.pathParameters.property_id) {
         property_id = event.pathParameters.property_id;
-    } else {
-        // Fallback: Extract property_id from the path string
-        // Expected path format: /api/properties/{id}/files
+    }
+
+    // 2. If not found in pathParameters, try to get it from queryStringParameters
+    if (!property_id && event.queryStringParameters && event.queryStringParameters.property_id) {
+        property_id = event.queryStringParameters.property_id;
+    }
+
+    // 3. Fallback: Extract property_id from the raw path string (if rewrite fails to populate pathParameters)
+    //    This is for URLs like /api/properties/3/files where pathParameters might be empty.
+    if (!property_id && event.path) {
         const pathSegments = event.path.split('/');
         // Assuming path is like /api/properties/3/files, '3' would be at index 3 (0-indexed)
-        // [ '', 'api', 'properties', '3', 'files' ]
+        // Check if it matches the expected structure before trying to extract
         if (pathSegments.length >= 4 && pathSegments[2] === 'properties' && pathSegments[4] === 'files') {
             property_id = pathSegments[3];
         }
     }
 
+
     if (!property_id) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ message: 'Missing required field: property_id.', details: 'Could not extract property_id from path or query parameters.' }),
+            body: JSON.stringify({ message: 'Missing required field: property_id.', details: 'Could not extract property_id from path parameters, query parameters, or URL path segments.' }),
         };
     }
 
