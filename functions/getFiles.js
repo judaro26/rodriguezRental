@@ -10,15 +10,14 @@ exports.handler = async (event) => {
         };
     }
 
-    // --- CHANGE START ---
-    // If using a rewrite like /api/properties/:property_id/files to the function
-    const property_id = event.pathParameters ? event.pathParameters.property_id : null;
-    // --- CHANGE END ---
+    // THIS IS THE CRITICAL CHANGE FROM YOUR ORIGINAL CODE
+    const property_id = event.pathParameters ? event.pathParameters.property_id : null; 
 
     if (!property_id) {
+        // This 400 will now trigger if the path parameter isn't correctly extracted
         return {
             statusCode: 400,
-            body: JSON.stringify({ message: 'Missing required field: property_id.', details: 'property_id is required either as a path parameter or query parameter.' }),
+            body: JSON.stringify({ message: 'Missing required field: property_id in path.', details: 'property_id is required as a path parameter, e.g., /api/properties/{id}/files.' }),
         };
     }
 
