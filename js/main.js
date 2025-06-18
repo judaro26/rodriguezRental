@@ -63,7 +63,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loginForm = document.getElementById('login-form');
     console.log('loginForm (after getElementById):', loginForm); // Add this specific log
     const usernameInput = document.getElementById('username');
-    const usernameInput = document.getElementById('username');
     console.log('usernameInput:', usernameInput);
     const passwordInput = document.getElementById('password');
     console.log('passwordInput:', passwordInput);
