@@ -2,6 +2,9 @@
 const { Pool } = require('pg');
 
 exports.handler = async (event) => {
+    // Add this line at the very top of your handler
+    console.log('Incoming event object:', JSON.stringify(event, null, 2));
+
     if (event.httpMethod !== 'GET') {
         return {
             statusCode: 405,
@@ -14,7 +17,7 @@ exports.handler = async (event) => {
     const property_id = event.pathParameters ? event.pathParameters.property_id : null; 
 
     if (!property_id) {
-        // This 400 will now trigger if the path parameter isn't correctly extracted
+        // This is the error you're getting
         return {
             statusCode: 400,
             body: JSON.stringify({ message: 'Missing required field: property_id in path.', details: 'property_id is required as a path parameter, e.g., /api/properties/{id}/files.' }),
