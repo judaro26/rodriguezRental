@@ -1,7 +1,6 @@
 // js/services/files.js
 
 import { showCustomAlert } from '../utils/dom.js'; // Keep this for service-level alerts
-import { getLoggedInCredentials } from './auth.js';
 
 // REMOVE ALL direct DOM element references and UI rendering logic from this file.
 // This file only fetches data and sends/receives it from the backend.
