@@ -14,78 +14,73 @@ let currentSelectedFileIds = new Set();
  * @param {string|null} activeFolderId - The ID of the currently active folder (for highlighting).
  */
 export function renderFoldersList(folders, foldersListElement, currentFolderTitleElement, activeFolderId) {
-    console.log('--- Entering renderFoldersList ---'); // ADD THIS
-    console.log('renderFoldersList received folders:', folders); // ADD THIS
-    console.log('renderFoldersList target element:', foldersListElement); // ADD THIS
+    console.log('--- Entering renderFoldersList ---');
+    console.log('renderFoldersList received folders:', folders);
+    console.log('renderFoldersList target element:', foldersListElement);
 
     // Clear previous content
     foldersListElement.innerHTML = '';
 
-    // Add 'All Files' or 'Back to Parent' folder
-    // This logic might need refinement based on your backend's folder hierarchy structure.
-    // Assuming 'root' means the top level, and subfolders have a parentId.
-    const isRoot = (activeFolderId === null || activeFolderId === 'none');
+    // Always add an "All Files" (root) folder option at the top
+    // This serves as the "back to root" or initial view
+    const isRootView = (activeFolderId === null || activeFolderId === 'none');
 
-    const parentFolderDiv = document.createElement('div');
-    parentFolderDiv.className = `folder-item p-2 hover:bg-gray-100 cursor-pointer rounded-md ${isRoot ? 'bg-blue-200 text-blue-800 font-bold' : ''}`; // Highlight 'All Files' when at root
-    parentFolderDiv.dataset.folderId = 'root'; // Always link 'All Files' to 'root'
-    parentFolderDiv.innerHTML = `<i class="fas fa-folder mr-2"></i>${isRoot ? 'All Files' : '.. (Back)'}`;
-    foldersListElement.appendChild(parentFolderDiv);
-    console.log(`Added "${isRoot ? 'All Files' : '.. (Back)'}" folder item.`); // ADD THIS
+    const allFilesFolderDiv = document.createElement('div');
+    allFilesFolderDiv.className = `folder-item p-2 hover:bg-gray-100 cursor-pointer rounded-md ${isRootView ? 'bg-blue-200 text-blue-800 font-bold' : ''}`;
+    allFilesFolderDiv.dataset.folderId = 'root'; // Consistent ID for the root view
+    allFilesFolderDiv.innerHTML = `<i class="fas fa-folder mr-2"></i>All Files`;
+    foldersListElement.appendChild(allFilesFolderDiv);
+    console.log(`Added "All Files" folder item.`);
 
-    // Render actual subfolders of the current activeFolderId
-    // If activeFolderId is null (root), show folders with parentId == null
-    const foldersToRender = folders.filter(f => {
-        if (isRoot) {
-            return f.parentId === null || f.parentId === undefined || f.parentId === 'none';
-        } else {
-            return f.parentId === activeFolderId;
-        }
+    // Sort folders by name for consistent display
+    const sortedFolders = [...folders].sort((a, b) => a.name.localeCompare(b.name));
+
+    // Render actual subfolders of the current property
+    // IMPORTANT: This logic assumes your 'folders' table does NOT have a 'parent_folder_id' column
+    // and thus only stores top-level folders for a property.
+    // If you add nested folders in your DB, you'll need to filter 'folders' here by 'parent_folder_id'.
+    sortedFolders.forEach(folder => {
+        const folderDiv = document.createElement('div');
+        // Ensure folder.id is converted to string for comparison with activeFolderId (which might be string 'null' or actual string ID)
+        folderDiv.className = `folder-item p-2 hover:bg-gray-100 cursor-pointer rounded-md ${folder.id.toString() === activeFolderId ? 'bg-blue-200 text-blue-800 font-bold' : ''}`;
+        folderDiv.dataset.folderId = folder.id.toString(); // Store ID as string
+        folderDiv.innerHTML = `<i class="fas fa-folder mr-2"></i>${folder.name}`;
+        foldersListElement.appendChild(folderDiv);
+        console.log(`Added folder: ${folder.name} (ID: ${folder.id})`);
     });
-
-    console.log('Folders to render based on activeFolderId:', foldersToRender); // ADD THIS
-
-    if (foldersToRender.length === 0 && !isRoot) {
-        // If in a subfolder and no more subfolders, no need to show anything but "Back"
-    } else {
-        foldersToRender.forEach(folder => {
-            const folderDiv = document.createElement('div');
-            folderDiv.className = `folder-item p-2 hover:bg-gray-100 cursor-pointer rounded-md ${folder.id === activeFolderId ? 'bg-blue-200 text-blue-800 font-bold' : ''}`;
-            folderDiv.dataset.folderId = folder.id;
-            folderDiv.innerHTML = `<i class="fas fa-folder mr-2"></i>${folder.name}`;
-            foldersListElement.appendChild(folderDiv);
-            console.log(`Added folder: ${folder.name} (ID: ${folder.id})`); // ADD THIS
-        });
-    }
 
     // Set current folder title
     if (currentFolderTitleElement) {
-        if (isRoot) {
+        if (isRootView) {
             currentFolderTitleElement.textContent = 'All Files';
         } else {
-            const currentFolder = folders.find(f => f.id === activeFolderId);
+            // Find the folder object that matches the activeFolderId
+            // Ensure folder.id is converted to string for comparison
+            const currentFolder = folders.find(f => f.id.toString() === activeFolderId);
             currentFolderTitleElement.textContent = currentFolder ? currentFolder.name : 'Unknown Folder';
         }
-        console.log('Current folder title set to:', currentFolderTitleElement.textContent); // ADD THIS
+        console.log('Current folder title set to:', currentFolderTitleElement.textContent);
     }
 
-    console.log('--- Exiting renderFoldersList ---'); // ADD THIS
+    console.log('--- Exiting renderFoldersList ---');
 }
 
+/**
+ * Renders the list of files in the main content area.
+ * @param {Array<Object>} files - The array of file objects to render.
+ * @param {HTMLElement} filesListContainerElement - The DIV element where files should be rendered.
+ */
 export function renderFilesList(files, filesListContainerElement) {
-    console.log('--- Entering renderFilesList ---'); // ADD THIS
-    console.log('renderFilesList received files:', files); // ADD THIS
-    console.log('renderFilesList target element:', filesListContainerElement); // ADD THIS
+    console.log('--- Entering renderFilesList ---');
+    console.log('renderFilesList received files:', files);
+    console.log('renderFilesList target element:', filesListContainerElement);
 
-    // Clear previous content but preserve loading message if it's there
-    // This is important: if `filesListContainer.innerHTML` was set to a loading message
-    // and no files are returned, you want the "No files" message to replace it,
-    // not just append. So clearing is generally fine.
+    // Clear previous content
     filesListContainerElement.innerHTML = '';
 
     if (!files || files.length === 0) {
         filesListContainerElement.innerHTML = `<p class="text-gray-600 p-4 text-center">No files found in this folder.</p>`;
-        console.log('No files message displayed in filesListContainer.'); // ADD THIS
+        console.log('No files message displayed in filesListContainer.');
         return;
     }
 
@@ -93,12 +88,11 @@ export function renderFilesList(files, filesListContainerElement) {
         const fileDiv = document.createElement('div');
         fileDiv.className = 'file-item flex items-center justify-between p-2 hover:bg-gray-100 rounded-md';
         fileDiv.dataset.fileId = file.id;
-        fileDiv.dataset.fileName = file.name; // Add for easier debugging/access
+        fileDiv.dataset.fileName = file.name; // This should now be populated correctly from 'filename AS name'
 
-        // Construct the image URL. Assuming 'file.thumbnailUrl' or similar for visual.
-        // If not, maybe a generic icon based on file type.
-        const fileIcon = file.mimeType && file.mimeType.startsWith('image/') ? file.url : 'https://placehold.co/24x24/E0E0E0/808080?text=Doc'; // Generic doc icon
-        const fileExtension = file.name.split('.').pop().toLowerCase();
+        // Determine file icon based on extension
+        // This relies on file.name being a string from the backend.
+        const fileExtension = file.name ? file.name.split('.').pop().toLowerCase() : '';
         let iconClass = 'fas fa-file'; // Default icon
 
         // More specific icons based on extension
@@ -125,9 +119,9 @@ export function renderFilesList(files, filesListContainerElement) {
             </div>
         `;
         filesListContainerElement.appendChild(fileDiv);
-        console.log(`Added file: ${file.name} (ID: ${file.id})`); // ADD THIS
+        console.log(`Added file: ${file.name} (ID: ${file.id})`);
     });
-    console.log('--- Exiting renderFilesList ---'); // ADD THIS
+    console.log('--- Exiting renderFilesList ---');
 }
 
 /**
