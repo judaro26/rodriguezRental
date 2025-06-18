@@ -286,62 +286,50 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            console.log('Login form submitted.'); // Add log
-
+            event.preventDefault(); // This must be the first line
+            
+            console.log("Login form submitted"); // Debug log
+            
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
-
+            
             if (!username || !password) {
-                showCustomAlert('Please enter both username and password.');
-                console.log('Login attempt: Missing username or password.'); // Add log
+                showCustomAlert('Please enter both username and password');
                 return;
             }
-
-            // Clear previous login error messages before a new attempt
-            // Assuming you have loginErrorMessage and loginErrorText defined and imported/accessible
-            const loginErrorMessage = document.getElementById('login-error-message');
-            const loginErrorText = document.getElementById('login-error-text');
-            if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
-            if (loginErrorText) loginErrorText.textContent = '';
-
-
-            console.log('Calling login service...'); // Add log
-            const success = await login(username, password); // Call your login service function
-            console.log('Login service returned:', success); // Add log
-
-            if (success) {
-                // IMPORTANT: currentLoggedInUsername should be set here if not already done in auth.js
-                // Your services/auth.js is already setting currentLoggedInUsername globally, which is fine.
-
-                // Pass ALL the necessary DOM elements to fetchProperties
-                // This is the full list of arguments your fetchProperties expects based on your main.js
-                console.log('Login successful. Attempting to fetch properties...'); // Add log
-                const propertiesLoaded = await fetchProperties(
-                    null, // initial filter (all)
-                    propertyCardsContainer,
-                    propertiesLoadingMessage,
-                    propertiesErrorMessage,
-                    propertiesErrorText,
-                    filterAllPropertiesBtn,
-                    filterDomesticPropertiesBtn,
-                    filterForeignPropertiesBtn,
-                    propertySelectionPage // Pass propertySelectionPage here
-                );
-
-                if (propertiesLoaded) {
-                    console.log('Properties loaded. Showing property selection page.'); // Add log
-                    showPage(propertySelectionPage);
+    
+            try {
+                const success = await login(username, password);
+                console.log("Login result:", success); // Debug log
+                
+                if (success) {
+                    currentLoggedInUsername = username;
+                    console.log("Login successful, loading properties...");
+                    
+                    const propertiesLoaded = await fetchProperties(
+                        null,
+                        propertyCardsContainer,
+                        propertiesLoadingMessage,
+                        propertiesErrorMessage,
+                        propertiesErrorText,
+                        filterAllPropertiesBtn,
+                        filterDomesticPropertiesBtn,
+                        filterForeignPropertiesBtn,
+                        propertySelectionPage
+                    );
+                    
+                    if (propertiesLoaded) {
+                        showPage(propertySelectionPage);
+                    } else {
+                        showCustomAlert('Failed to load properties after login');
+                    }
                 } else {
-                    showCustomAlert('Failed to load properties after login. Please try again.');
-                    console.error('Failed to load properties after login.'); // Add log
-                    // Potentially show login page again or keep login error visible
+                    passwordInput.value = '';
+                    showCustomAlert('Login failed. Please check your credentials.');
                 }
-            } else {
-                // Login failed - the auth.js service should display the specific error
-                console.log('Login failed. Clearing password input.'); // Add log
-                passwordInput.value = ''; // Clear password input on failure
-                // showCustomAlert('Login failed. Please check your credentials.'); // auth.js should handle this alert
+            } catch (error) {
+                console.error("Login error:", error);
+                showCustomAlert('An error occurred during login');
             }
         });
     }
