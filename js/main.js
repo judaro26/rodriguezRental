@@ -1385,48 +1385,61 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+   
     async function showModalConfirmation(propertyId, file, base64Data, mimeType, filesToMove, modalTitle, modalItemDescription) {
-        console.log('showModalConfirmation called.');
+        console.log('showModalConfirmation called.'); // This confirms you're about to show the modal
         // This is the core logic that runs after file data (if any) is ready, or immediately for move operations.
+
+        // The `showModal` function takes a callback.
+        // Let's add logs inside this callback to see if the confirm action is triggered.
         showModal(uploadFolderModal, modalItemDescription, modalTitle, async (modalUsername, modalPassword) => {
-            console.log('Upload/Move Modal confirmed. Initiating file operation...');
+            console.log('--- Modal Confirm button CLICKED (callback executing) ---'); // THIS IS CRITICAL
+            console.log('Modal Username:', modalUsername);
+            console.log('Modal Password:', modalPassword ? '********' : 'N/A'); // Don't log actual password
+
             const selectedFolderId = folderSelectDropdown?.value;
+            console.log('Selected Folder ID from dropdown:', selectedFolderId);
+
             let finalFolderId = null;
             let finalFolderName = null;
-            let operationResult = false; // Track the outcome of the specific file operation
+            let operationResult = false;
 
             if (selectedFolderId === 'new') {
                 const newName = newFolderNameInput.value.trim();
+                console.log('New folder name input:', newName); // Check if newName is captured
                 if (!newName) {
                     showCustomAlert('Please enter a name for the new folder.');
+                    console.warn('New folder name empty, returning false.');
                     return false; // Prevent modal from closing if input is invalid
                 }
                 finalFolderName = newName;
                 console.log('Attempting to create new folder:', finalFolderName);
                 const folderCreatedResponse = await createFolderService(propertyId, finalFolderName, modalUsername, modalPassword);
+                console.log('createFolderService response:', folderCreatedResponse); // Check response
                 if (!folderCreatedResponse.success) {
                     showCustomAlert('Failed to create new folder: ' + (folderCreatedResponse.message || 'Unknown error.'));
-                    return false; // Prevent modal from closing
+                    return false;
                 }
                 finalFolderId = folderCreatedResponse.folderId;
                 console.log('New folder created with ID:', finalFolderId);
 
             } else if (selectedFolderId && selectedFolderId !== 'none') {
+                console.log('Existing folder selected.');
                 // Fetch folders again just to get the name for logging, could optimize if foldersData is globally available
                 const allFolders = (await fetchFileAndFolderData(propertyId, null)).folders;
-                const selectedFolder = allFolders.find(f => f.id === selectedFolderId);
+                const selectedFolder = allFolders.find(f => f.id.toString() === selectedFolderId); // Convert ID to string for robust comparison
                 finalFolderId = selectedFolderId;
-                finalFolderName = selectedFolder ? selectedFolder.name : 'Unknown Folder'; // Fallback
+                finalFolderName = selectedFolder ? selectedFolder.name : 'Unknown Folder';
                 console.log('Selected existing folder:', finalFolderName, 'ID:', finalFolderId);
             } else {
-                console.log('No specific folder selected (root directory).');
-                // finalFolderId remains null for 'none'
+                console.log('No specific folder selected (root directory). finalFolderId remains null.');
             }
 
             // Execute the actual file operation (upload or move)
             if (file && base64Data && mimeType) { // This is an upload operation
                 console.log('Proceeding with file upload...');
                 operationResult = await uploadFileService(propertyId, file.name, base64Data, mimeType, finalFolderId, finalFolderName, modalUsername, modalPassword);
+                console.log('uploadFileService result:', operationResult); // Check upload result
                 if (operationResult) {
                     showCustomAlert('File uploaded successfully!');
                 } else {
@@ -1435,13 +1448,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (filesToMove && filesToMove.length > 0) { // This is a move operation
                 console.log('Proceeding with file move...');
                 operationResult = await moveFilesService(propertyId, filesToMove, finalFolderId, finalFolderName, modalUsername, modalPassword);
+                console.log('moveFilesService result:', operationResult); // Check move result
                 if (operationResult) {
                     showCustomAlert('Files moved successfully!');
                 } else {
                     showCustomAlert('Failed to move files.');
                 }
             } else {
-                console.error('No file to upload or files to move specified.');
+                console.error('No file to upload or files to move specified. This should not happen here.');
                 showCustomAlert('No valid file operation detected.');
                 operationResult = false;
             }
@@ -1449,13 +1463,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             hideModal(uploadFolderModal); // Hide the folder selection modal
             if (fileUploadInput) fileUploadInput.value = ''; // Clear file input
             if (fileUploadStatus) fileUploadStatus.classList.add('hidden'); // Hide upload status
+
+            console.log('Refreshing files view after operation. propertyId:', propertyId, 'currentActiveFolderId:', currentActiveFolderId);
             await refreshFilesView(propertyId, currentActiveFolderId); // Refresh the main files view
+            
+            console.log('--- Modal Confirm callback ENDED. Returning:', operationResult, '---');
             return operationResult; // Return the success status to the verification modal
         });
         if (uploadFolderModal) uploadFolderModal.classList.remove('hidden'); // Ensure modal is visible if reading file data didn't re-call this
     }
-
-
     // --- General File/Folder Event Listeners (Delegated) ---
     if (filesListContainer) {
         filesListContainer.addEventListener('click', async (event) => {
