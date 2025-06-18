@@ -1,193 +1,233 @@
 // js/services/auth.js
 
-import { showPage, showCustomAlert } from '../utils/dom.js'; // Import UI helpers
+import { showCustomAlert } from '../utils/dom.js'; // Import UI helpers
 
-// User state variables (local state should probably be derived from localStorage/session storage for consistency)
-// For this fix, we'll focus on storing the token and approval statuses in localStorage.
-let currentLoggedInUsername = ''; // Still useful for displaying username in UI, etc.
+// User state variables - derived from localStorage for persistence
+// `currentLoggedInUsername` is still useful for UI display (e.g., "Welcome, [username]!")
+let currentLoggedInUsername = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).username : '';
 
-// No need to store plain-text password globally here if it's stored securely in backend and used via token.
-// let currentLoggedInPassword = ''; // WARNING: Storing plain-text password is a HIGH SECURITY RISK for production. REMOVE THIS IF YOU DON'T ABSOLUTELY NEED IT FOR NON-AUTH PURPOSES.
+// --- IMPORTANT SECURITY NOTE ---
+// Do NOT store sensitive information like plain-text passwords in client-side global variables or localStorage.
+// The `showModal` function in `main.js` correctly prompts the user for their username and password
+// when a sensitive operation requires re-verification. This is the secure approach.
+// Removed: let currentLoggedInPassword = '';
 
-
-// DOM elements specific to auth module that are interacted with (e.g., status messages)
-// These can remain here as they are directly updated by this module's logic.
+// DOM elements specific to auth module (for status messages, though `showCustomAlert` handles most of this)
+// These are declared here, but their manipulation is primarily abstracted by `showCustomAlert` in `utils/dom.js`.
 const loginErrorMessage = document.getElementById('login-error-message');
 const loginErrorText = document.getElementById('login-error-text');
 const registrationStatusMessage = document.getElementById('registration-status-message');
 const registerErrorMessage = document.getElementById('register-error-message');
 const registerErrorText = document.getElementById('register-error-text');
 
+/**
+ * Updates a specific status message DOM element.
+ * Useful for direct feedback that showCustomAlert might not cover,
+ * or for more persistent messages on a form.
+ * @param {HTMLElement | null} element - The DOM element to update.
+ * @param {string} message - The message to display.
+ * @param {boolean} isError - True if it's an error message, false for success/info.
+ * @param {boolean} show - True to show, false to hide.
+ */
+function updateStatusMessage(element, message, isError, show = true) {
+    if (element) {
+        element.textContent = message;
+        element.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
+        if (show) {
+            element.classList.add(isError ? 'bg-red-100' : 'bg-green-100', isError ? 'text-red-700' : 'text-green-700');
+        } else {
+            element.classList.add('hidden');
+        }
+    }
+}
+
 
 /**
  * Handles user login.
+ * Stores token and user approval statuses in localStorage upon success.
  * @param {string} username - The username entered by the user.
  * @param {string} password - The password entered by the user.
  * @returns {Promise<boolean>} - True if login is successful, false otherwise.
  */
-  export async function login(username, password) {
-      try {
-          const response = await fetch('/.netlify/functions/loginUser', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ username, password })
-          });
-  
-          const data = await response.json();
-          
-          if (response.ok) {
-              // Store token and user data
-              if (data.token) {
-                  localStorage.setItem('token', data.token);
-                  localStorage.setItem('user', JSON.stringify({
-                      username: data.username,
-                      foreign_approved: data.foreign_approved,
-                      domestic_approved: data.domestic_approved
-                  }));
-                  return true;
-              }
-          }
-          
-          showCustomAlert(data.message || 'Login failed');
-          return false;
-      } catch (error) {
-          console.error('Login error:', error);
-          showCustomAlert('Network error during login');
-          return false;
-      }
-  }
+export async function login(username, password) {
+    try {
+        const response = await fetch('/.netlify/functions/loginUser', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                // Store user details for quick access
+                localStorage.setItem('user', JSON.stringify({
+                    username: data.username,
+                    foreign_approved: data.foreign_approved,
+                    domestic_approved: data.domestic_approved
+                }));
+                // Explicitly store approval statuses for direct retrieval by getUserApprovalStatuses
+                localStorage.setItem('foreignApproved', data.foreign_approved ? 'true' : 'false');
+                localStorage.setItem('domesticApproved', data.domestic_approved ? 'true' : 'false');
+
+                // Update the local currentLoggedInUsername for immediate use in UI (if any)
+                currentLoggedInUsername = data.username;
+
+                console.log('Login successful. Token and user data stored.');
+                return true;
+            }
+        }
+
+        // If response is not ok or token is missing
+        showCustomAlert(data.message || 'Login failed. Please check your credentials.');
+        console.error('Login failed:', data.message || 'Unknown error');
+        return false;
+
+    } catch (error) {
+        console.error('Login network or parsing error:', error);
+        showCustomAlert('Network error or unexpected response during login. Please try again.');
+        return false;
+    }
+}
 
 /**
  * Handles user registration.
+ * Displays appropriate messages based on success or failure.
  * @param {string} username - The username for registration.
  * @param {string} password - The password for registration.
  * @returns {Promise<boolean>} - True if registration is successful, false otherwise.
  */
-    export async function register(username, password) {
-        if (!username || !password) {
-            showCustomAlert('Please enter both username and password');
-            return false;
-        }
-    
-        try {
-            const response = await fetch('/.netlify/functions/registerUser', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-    
-            const data = await response.json();
-    
-            if (response.ok) {
-                console.log("Registration successful:", data.message);
-                return true;
-            } else {
-                showCustomAlert(data.message || 'Registration failed. The username might already be taken.');
-                return false;
-            }
-        } catch (error) {
-            console.error("Registration error:", error);
-            showCustomAlert('Registration failed. Please try again later.');
-            return false;
-        }
+export async function register(username, password) {
+    if (!username || !password) {
+        showCustomAlert('Please enter both username and password.');
+        return false;
     }
 
-/**
- * Returns the currently logged-in user's credentials for verification.
- * It now reads username/password from currentLoggedInUsername/currentLoggedInPassword.
- * In a real app, you would pass the token here and backend validates.
- * Since your modal requires username/password, we retrieve it from the (DEMO ONLY) stored state.
- * @returns {{username: string, password: string}}
- */
-export function getLoggedInCredentials() {
-    // For demo purposes, we'll retrieve the username from currentLoggedInUsername.
-    // However, the password is a high security risk if stored in plain text.
-    // Ideally, for verification modals, you'd re-authenticate or use a short-lived token.
-    const username = currentLoggedInUsername;
-    // For the password, we need to temporarily get it from localStorage if it's used for verification.
-    // Your current setup passes username/password to the verification modal's callback.
-    // The previous implementation was setting currentLoggedInPassword, which is bad practice.
-    // If your modal *needs* the password for re-validation, it should prompt the user for it.
-    // Since the main.js showModal is designed to take username and password inputs,
-    // we should modify getUserApprovalStatuses to provide these to the modal, not getLoggedInCredentials.
-    // Let's ensure showModal is correctly prompting the user for username and password.
+    try {
+        // Clear previous messages before new attempt
+        updateStatusMessage(registrationStatusMessage, '', false, false);
+        updateStatusMessage(registerErrorMessage, '', true, false);
+        if (registerErrorText) registerErrorText.textContent = '';
 
-    // Given your main.js code's `showModal` usage:
-    // showModal(verificationModal, ..., async (username, password) => { ... })
-    // The `username` and `password` inside this callback are the *user-entered* values from the modal itself.
-    // So, `getLoggedInCredentials` might not be strictly needed by the modal's callback,
-    // as it's prompting the user.
+        const response = await fetch('/.netlify/functions/registerUser', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
 
-    // If you need the *currently logged-in username* to pre-fill the modal,
-    // you would return `currentLoggedInUsername`. The password shouldn't be here.
-    return {
-        username: currentLoggedInUsername,
-        // *** DANGER: Never store plaintext passwords in client-side state in production! ***
-        // For your current demo verification modal, the modal itself collects username/password.
-        // So, this function's `password` return is problematic and likely unused by current modal.
-        // If your backend *requires* the password to be sent from the client for a sensitive operation,
-        // the UI should prompt the user for it at that specific moment.
-        // If the modal expects the *user's stored password*, then the architecture needs a rethink.
-        // For now, I'll remove `currentLoggedInPassword` from here to prevent misconceptions.
-        password: "" // Or remove this line entirely if not used
-    };
+        const data = await response.json();
+
+        if (response.ok) {
+            console.log("Registration successful:", data.message);
+            updateStatusMessage(registrationStatusMessage, 'Registration successful! You can now log in.', false);
+            return true;
+        } else {
+            const errorMessage = data.message || 'Registration failed. The username might already be taken.';
+            showCustomAlert(errorMessage);
+            updateStatusMessage(registerErrorMessage, errorMessage, true);
+            if (registerErrorText) registerErrorText.textContent = errorMessage; // Redundant if errorMessage is already shown
+            console.error("Registration failed:", errorMessage);
+            return false;
+        }
+    } catch (error) {
+        console.error("Registration network error:", error);
+        showCustomAlert('Registration failed. Please try again later.');
+        updateStatusMessage(registerErrorMessage, 'Registration failed due to a network error.', true);
+        return false;
+    }
 }
 
+/**
+ * Retrieves the currently logged-in user's username from localStorage.
+ * This should *not* return the password for security reasons.
+ * The verification modal itself should prompt the user for their password for sensitive operations.
+ * @returns {string} - The username, or an empty string if not logged in.
+ */
+export function getLoggedInUsername() {
+    const user = localStorage.getItem('user');
+    if (user) {
+        try {
+            return JSON.parse(user).username || '';
+        } catch (e) {
+            console.error('Error parsing user data from localStorage:', e);
+            return '';
+        }
+    }
+    return '';
+}
 
 /**
  * Returns the current user's approval statuses for foreign and domestic properties.
- * This now reads directly from localStorage for persistence.
- * @returns {{foreignApproved: boolean, domesticApproved: boolean}}
+ * Reads directly from localStorage for persistence.
+ * @returns {{username: string, foreignApproved: boolean, domesticApproved: boolean}}
  */
 export function getUserApprovalStatuses() {
-    // Read directly from localStorage
     const foreignApproved = localStorage.getItem('foreignApproved') === 'true';
     const domesticApproved = localStorage.getItem('domesticApproved') === 'true';
+    const username = getLoggedInUsername(); // Get username via dedicated function
 
-    console.log('getUserApprovalStatuses: Foreign Approved from localStorage:', foreignApproved);
-    console.log('getUserApprovalStatuses: Domestic Approved from localStorage:', domesticApproved);
+    console.log(`User approval statuses for ${username || 'N/A'}: Foreign Approved = ${foreignApproved}, Domestic Approved = ${domesticApproved}`);
 
-    // Also, provide the username/password for the modal if needed, but this should ideally come from user input in the modal
-    // For the modal's internal use where it asks for credentials, it should get them from the modal form itself.
-    // The `showModal` function in `dom.js` actually receives `username` and `password` as parameters
-    // within its callback, implying the modal itself prompts for them. This is the correct approach.
-    // So, we should not return a password from here.
-
-    // If the modal *does* need the logged-in username to pre-fill, you can return it.
-    // Otherwise, this function should strictly be about approval statuses.
     return {
-        username: currentLoggedInUsername, // Still useful for reference or pre-filling some UI elements
+        username: username,
         foreignApproved: foreignApproved,
         domesticApproved: domesticApproved,
-        // Do NOT return password here. The modal collects it.
     };
 }
 
-// Add to auth.js
+/**
+ * Checks if the stored authentication token is valid (not expired).
+ * Assumes 'token_exp' is a Unix timestamp (seconds since epoch).
+ * @returns {boolean} - True if the token is present and not expired, false otherwise.
+ */
 export function isTokenValid() {
-  const token = localStorage.getItem('token');
-  const exp = localStorage.getItem('token_exp');
-  
-  if (!token || !exp) return false;
-  return Date.now() < exp * 1000; // Convert Unix timestamp to milliseconds
+    const token = localStorage.getItem('token');
+    const exp = localStorage.getItem('token_exp');
+
+    if (!token || !exp) {
+        console.log('isTokenValid: No token or expiration found.');
+        return false;
+    }
+
+    const expirationTimeMs = parseInt(exp) * 1000; // Convert Unix timestamp to milliseconds
+    const isValid = Date.now() < expirationTimeMs;
+    console.log(`isTokenValid: Token expires at ${new Date(expirationTimeMs).toLocaleString()}. Current time: ${new Date().toLocaleString()}. Valid: ${isValid}`);
+    return isValid;
 }
 
-
-// In your auth.js login function
-if (data.token) {
-  localStorage.setItem('token', data.token); 
-  // Also store expiration time
-  const decoded = jwt.decode(data.token);
-  if (decoded?.exp) {
-    localStorage.setItem('token_exp', decoded.exp);
-  }
-}
-
+/**
+ * Provides the Authorization header for API requests using the stored token.
+ * @returns {Object} - An object containing the Authorization header, or an empty object if no token.
+ */
 export function getAuthHeader() {
-  return {
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
-  };
+    const token = localStorage.getItem('token');
+    if (token) {
+        return {
+            'Authorization': `Bearer ${token}`
+        };
+    }
+    return {};
 }
 
-// No DOM event listeners in this file anymore, they are handled in main.js.
-// DOM element lookups for status messages are fine here as they are directly updated.
+/**
+ * Handles user logout by clearing local storage.
+ */
+export function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('token_exp');
+    localStorage.removeItem('user');
+    localStorage.removeItem('foreignApproved');
+    localStorage.removeItem('domesticApproved');
+    currentLoggedInUsername = ''; // Clear local state
+    console.log('User logged out. Local storage cleared.');
+    showCustomAlert('You have been logged out.');
+    // Optionally, redirect to login page immediately after logout
+    // showPage(document.getElementById('login-page')); // Requires showPage import if not already there
+}
+
+// Add a public function to set currentLoggedInUsername, if needed from outside (e.g., on initial load check)
+export function setCurrentLoggedInUsername(username) {
+    currentLoggedInUsername = username;
+}
