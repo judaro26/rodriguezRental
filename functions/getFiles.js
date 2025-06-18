@@ -15,8 +15,7 @@ exports.handler = async (event) => {
     }
 
     // TEMPORARY CHANGE FOR DEBUGGING: Use queryStringParameters
-    const { property_id } = event.queryStringParameters; 
-
+    const property_id = event.pathParameters ? event.pathParameters.property_id : null;
     if (!property_id) {
         return {
             statusCode: 400,
