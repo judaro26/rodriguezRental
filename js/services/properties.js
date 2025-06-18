@@ -1,7 +1,7 @@
 // js/services/properties.js
 
 import { showPage, showCustomAlert } from '../utils/dom.js';
-import { getLoggedInCredentials, getUserApprovalStatuses } from './auth.js';
+import { getUserApprovalStatuses } from './auth.js';
 import { renderPropertyCards, updateFilterButtonsHighlight } from '../ui/property-renderer.js';
 
 let properties = []; // This array holds all fetched properties
@@ -263,7 +263,7 @@ export async function updateExistingProperty(
     }
 
     try {
-        const { username, password } = getLoggedInCredentials();
+        const { username } = getUserApprovalStatuses();
         const response = await fetch('/.netlify/functions/updateProperty', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
