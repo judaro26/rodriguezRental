@@ -286,50 +286,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
-            event.preventDefault(); // This must be the first line
-            
-            console.log("Login form submitted"); // Debug log
-            
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-            
-            if (!username || !password) {
-                showCustomAlert('Please enter both username and password');
-                return;
-            }
-    
-            try {
-                const success = await login(username, password);
-                console.log("Login result:", success); // Debug log
-                
-                if (success) {
-                    currentLoggedInUsername = username;
-                    console.log("Login successful, loading properties...");
-                    
-                    const propertiesLoaded = await fetchProperties(
-                        null,
-                        propertyCardsContainer,
-                        propertiesLoadingMessage,
-                        propertiesErrorMessage,
-                        propertiesErrorText,
-                        filterAllPropertiesBtn,
-                        filterDomesticPropertiesBtn,
-                        filterForeignPropertiesBtn,
-                        propertySelectionPage
-                    );
-                    
-                    if (propertiesLoaded) {
-                        showPage(propertySelectionPage);
-                    } else {
-                        showCustomAlert('Failed to load properties after login');
-                    }
+            event.preventDefault();
+            const success = await login(usernameInput.value, passwordInput.value);
+            if (success) {
+                currentLoggedInUsername = usernameInput.value;
+
+                // Pass ALL the necessary DOM elements to fetchProperties
+                const propertiesLoaded = await fetchProperties(
+                    null, // initial filter (all)
+                    propertyCardsContainer,
+                    propertiesLoadingMessage,
+                    propertiesErrorMessage,
+                    propertiesErrorText,
+                    filterAllPropertiesBtn,
+                    filterDomesticPropertiesBtn,
+                    filterForeignPropertiesBtn,
+                    propertySelectionPage // Pass propertySelectionPage here
+                );
+
+                if (propertiesLoaded) {
+                    showPage(propertySelectionPage);
                 } else {
-                    passwordInput.value = '';
-                    showCustomAlert('Login failed. Please check your credentials.');
+                    showCustomAlert('Failed to load properties after login. Please try again.');
                 }
-            } catch (error) {
-                console.error("Login error:", error);
-                showCustomAlert('An error occurred during login');
+            } else {
+                passwordInput.value = '';
+                showCustomAlert('Login failed. Please check your credentials.');
             }
         });
     }
