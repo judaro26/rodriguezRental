@@ -61,7 +61,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Login/Register Elements
     const loginForm = document.getElementById('login-form');
-    console.log('loginForm:', loginForm);
+    console.log('loginForm (after getElementById):', loginForm); // Add this specific log
+    const usernameInput = document.getElementById('username');
     const usernameInput = document.getElementById('username');
     console.log('usernameInput:', usernameInput);
     const passwordInput = document.getElementById('password');
@@ -290,9 +291,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial page load
     showPage(loginPage);
 
-    const loginForm = document.getElementById('login-form');
-    console.log('loginForm (after getElementById):', loginForm); // Add this specific log
-    const usernameInput = document.getElementById('username');
+
+
     // ... (rest of your DOM elements)
 
     // --- PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS ---
