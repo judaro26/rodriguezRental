@@ -1,23 +1,19 @@
-# netlify.toml
 [functions]
   directory = "functions"
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
 
-# MOST SPECIFIC FIRST: This will capture the ID
 [[redirects]]
   from = "/api/properties/:property_id/files"
   to = "/.netlify/functions/getFiles"
   status = 200
 
-# More general API wildcard for other functions (if you have them)
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
-# Catch-all for your SPA
 [[redirects]]
   from = "/*"
   to = "/index.html"
