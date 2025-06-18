@@ -384,47 +384,61 @@
         </div>
     </div>
 
-    <div id="verification-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Confirm Action</h3>
-            <p class="text-gray-600 mb-4 text-center"><span id="modal-prompt-action">Please enter your credentials to confirm</span> <span id="modal-item-to-delete-name" class="font-bold text-red-600"></span></p>
-            <form id="verification-form" class="space-y-4">
-                <div>
-                    <label for="modal-username" class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
-                    <input type="text" id="modal-username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Your username" required>
-                </div>
-                <div>
-                    <label for="modal-password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
-                    <input type="password" id="modal-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Your password" required>
-                </div>
-                <div id="verification-status" class="mt-4 p-3 rounded-md text-sm text-center hidden"></div>
-                <div class="flex justify-between gap-4 mt-6">
-                    <button type="button" id="cancel-verification-btn" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
-                    <button type="submit" id="confirm-action-button" class="w-1/2 bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold">Confirm Delete</button>
-                </div>
-            </form>
+    <div id="verification-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-1/3 min-w-[300px]">
+            <h3 class="text-xl font-semibold mb-4" data-modal-title>Verify Action</h3>
+            <p class="text-gray-700 mb-4">
+                <span data-modal-action-description>Please enter your credentials to confirm action for </span>
+                <span class="font-bold" data-modal-item-description>item</span>.
+            </p>
+            <div class="mb-4">
+                <label for="verification-username" class="block text-sm font-medium text-gray-700 mb-1">Username:</label>
+                <input type="text" id="verification-username" data-modal-username-input class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="mb-6">
+                <label for="verification-password" class="block text-sm font-medium text-gray-700 mb-1">Password:</label>
+                <input type="password" id="verification-password" data-modal-password-input class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+            </div>
+    
+            <p class="mt-4 p-2 text-sm text-center text-red-700 bg-red-100 rounded hidden" data-modal-status-message>
+                </p>
+    
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-verification-btn" class="btn-secondary">Cancel</button>
+                <button id="confirm-verification-btn" class="btn-primary">Confirm</button>
+            </div>
         </div>
     </div>
-    <div id="upload-folder-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 class="text-xl font-bold mb-4">Select or Create Folder</h3>
+    <div id="upload-folder-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-1/3 min-w-[300px]">
+            <h3 class="text-xl font-semibold mb-4" data-modal-title>Select Upload Destination</h3> <p class="text-gray-700 mb-4">
+                <span data-modal-action-description>For </span> <span class="font-bold" data-modal-item-description>file: "your_file.pdf"</span> </p>
+    
             <div class="mb-4">
-                <label for="folder-select-dropdown" class="block text-gray-700 text-sm font-bold mb-2">Select Existing Folder:</label>
-                <select id="folder-select-dropdown" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                <label for="folder-select-dropdown" class="block text-sm font-medium text-gray-700 mb-1">Select Folder:</label>
+                <select id="folder-select-dropdown" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                    <option value="none">-- No Folder (All Files) --</option>
+                    <option value="new">+ Create New Folder</option>
                 </select>
             </div>
             <div id="new-folder-name-container" class="mb-4 hidden">
-                <label for="new-folder-name-input" class="block text-gray-700 text-sm font-bold mb-2">New Folder Name:</label>
-                <input type="text" id="new-folder-name-input" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter new folder name">
+                <label for="new-folder-name-input" class="block text-sm font-medium text-gray-700 mb-1">New Folder Name:</label>
+                <input type="text" id="new-folder-name-input" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="Enter new folder name">
             </div>
-            <div id="upload-folder-modal-status" class="hidden mt-4 p-3 rounded-md text-sm text-center"></div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button id="cancel-folder-selection-btn" type="button" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                    Cancel
-                </button>
-                <button id="confirm-folder-selection-btn" type="button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                    Confirm
-                </button>
+    
+            <div class="mb-4">
+                <label for="modal-upload-username" class="block text-sm font-medium text-gray-700 mb-1">Username:</label> <input type="text" id="modal-upload-username" data-modal-username-input class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="mb-6">
+                <label for="modal-upload-password" class="block text-sm font-medium text-gray-700 mb-1">Password:</label> <input type="password" id="modal-upload-password" data-modal-password-input class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+            </div>
+    
+            <p id="upload-folder-modal-status" data-modal-status-message class="mt-4 p-2 text-sm text-center text-red-700 bg-red-100 rounded hidden">
+                </p>
+    
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-folder-selection-btn" class="btn-secondary">Cancel</button>
+                <button id="confirm-folder-selection-btn" class="btn-primary">Confirm</button>
             </div>
         </div>
     </div>
