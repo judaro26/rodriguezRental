@@ -14,12 +14,36 @@ exports.handler = async (event) => {
         };
     }
 
-    // TEMPORARY CHANGE FOR DEBUGGING: Use queryStringParameters
-    const property_id = event.pathParameters ? event.pathParameters.property_id : null;
+    let property_id = null;
+
+    // STRATEGY: Try to get property_id from pathParameters first (ideal)
+    // If that fails (as it currently seems to on your setup), extract from the raw path
+    if (event.pathParameters && event.pathParameters.property_id) {
+        property_id = event.pathParameters.property_id;
+    } else {
+        // Fallback: Extract property_id from the path string
+        // Expected path format: /api/properties/{id}/files
+        const pathSegments = event.path.split('/');
+        // Assuming path is like /api/properties/3/files, '3' would be at index 3 (0-indexed)
+        // [ '', 'api', 'properties', '3', 'files' ]
+        if (pathSegments.length >= 4 && pathSegments[2] === 'properties' && pathSegments[4] === 'files') {
+            property_id = pathSegments[3];
+        }
+    }
+
     if (!property_id) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ message: 'Missing required field: property_id in query string. For debugging, use ?property_id=X' }),
+            body: JSON.stringify({ message: 'Missing required field: property_id.', details: 'Could not extract property_id from path or query parameters.' }),
+        };
+    }
+
+    // Ensure property_id is a number if your DB expects it that way
+    const numeric_property_id = parseInt(property_id, 10);
+    if (isNaN(numeric_property_id)) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Invalid property_id.', details: 'property_id must be a valid number.' }),
         };
     }
 
@@ -38,7 +62,7 @@ exports.handler = async (event) => {
              FROM property_files
              WHERE property_id = $1
              ORDER BY uploaded_at DESC`,
-            [property_id]
+            [numeric_property_id] // Use the parsed numeric ID
         );
 
         return {
