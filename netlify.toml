@@ -1,23 +1,23 @@
+# netlify.toml
 [functions]
   directory = "functions"
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
 
-# 1. Most specific API endpoint should come first
+# MOST SPECIFIC FIRST: This will capture the ID
 [[redirects]]
   from = "/api/properties/:property_id/files"
   to = "/.netlify/functions/getFiles"
   status = 200
 
-# 2. Then, the general API wildcard for other functions
-#    (e.g., if you had /api/users, /api/auth, etc.)
+# More general API wildcard for other functions (if you have them)
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
-# 3. Finally, the catch-all for your single-page application (SPA)
+# Catch-all for your SPA
 [[redirects]]
   from = "/*"
   to = "/index.html"
