@@ -290,12 +290,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial page load
     showPage(loginPage);
 
+    const loginForm = document.getElementById('login-form');
+    console.log('loginForm (after getElementById):', loginForm); // Add this specific log
+    const usernameInput = document.getElementById('username');
+    // ... (rest of your DOM elements)
+
+    // --- PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS ---
+
+    showPage(loginPage);
+    
     // Login Form Listener
     if (loginForm) {
+        console.log('Attempting to attach event listener to loginForm.'); // Add this log
         loginForm.addEventListener('submit', async (event) => {
+            console.log('Login form submit event detected!'); // This should always fire if listener is attached
             event.preventDefault(); // IMPORTANT: Prevent default form submission and page refresh
-
-            console.log("Login form submitted. Preventing default behavior."); // Debug log
+            console.log("Default form submission prevented."); // Confirm this line executes
 
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
