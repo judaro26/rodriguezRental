@@ -1,7 +1,6 @@
 // js/services/categories.js
 
 import { showCustomAlert } from '../utils/dom.js'; // Only keep utility imports
-import { getLoggedInCredentials } from './auth.js';
 // Removed: presetLogos - not directly used here for rendering now
 // Removed: addNewCategoryStatus, addDetailStatus, updateDetailStatus - handled by main.js or separate UI status functions
 
@@ -78,10 +77,9 @@ export async function addCategoryDetail(propertyId, categoryName, detailData) {
 }
 
 // updateCategoryDetail - simplified to return success/failure
-export async function updateCategoryDetail(detailData) {
-    const { username, password } = getLoggedInCredentials();
-    const updateDetailStatus = document.getElementById('update-detail-status'); // Temp: get status element here
-
+export async function updateCategoryDetail(detailData, username, password) {
+    const updateDetailStatus = document.getElementById('update-detail-status');
+    
     if (updateDetailStatus) {
         updateDetailStatus.classList.remove('hidden');
         updateDetailStatus.className = 'mt-4 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
