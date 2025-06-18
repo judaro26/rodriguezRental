@@ -13,3 +13,8 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[redirects]]
+  from = "/api/properties/:property_id/files"
+  to = "/.netlify/functions/getFiles"
+  status = 200
