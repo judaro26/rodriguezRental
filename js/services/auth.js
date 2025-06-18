@@ -26,61 +26,34 @@ const registerErrorText = document.getElementById('register-error-text');
  * @returns {Promise<boolean>} - True if login is successful, false otherwise.
  */
 export async function login(username, password) {
-    if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
-    if (loginErrorText) loginErrorText.textContent = '';
+  try {
+    const response = await fetch('/.netlify/functions/loginUser', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
 
-    if (!username || !password) {
-        if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
-        if (loginErrorText) loginErrorText.textContent = 'Please enter both username and password.';
-        return false;
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Store token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify({
+        username: data.username,
+        foreign_approved: data.foreign_approved,
+        domestic_approved: data.domestic_approved
+      }));
+      
+      return true;
+    } else {
+      showCustomAlert(data.message || 'Login failed');
+      return false;
     }
-
-    try {
-        const response = await fetch('/.netlify/functions/loginUser', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            console.log("Login successful:", data.message);
-            // --- CRITICAL FIX: STORE THE TOKEN AND APPROVAL STATUSES IN LOCAL STORAGE ---
-            if (data.token) {
-                localStorage.setItem('token', data.token);
-                console.log('JWT token stored in localStorage.');
-            } else {
-                console.warn('Login successful but no token received from backend!');
-                // You might want to show an alert or handle this case where a token is expected but not provided.
-                showCustomAlert('Login successful, but no session token received. You may experience limited functionality.', 'warning');
-            }
-
-            // Store approval statuses in localStorage as well, so they persist across sessions
-            // and can be read by getUserApprovalStatuses.
-            localStorage.setItem('foreignApproved', data.foreign_approved ? 'true' : 'false');
-            localStorage.setItem('domesticApproved', data.domestic_approved ? 'true' : 'false');
-            console.log(`Foreign Approved: ${data.foreign_approved}, Domestic Approved: ${data.domestic_approved} stored.`);
-
-
-            // Update local state for immediate use within the current session, though localStorage is the source of truth
-            currentLoggedInUsername = username;
-            // No longer storing plain-text password in global state here due to security risk.
-            // currentLoggedInPassword = password; // REMOVE THIS LINE
-
-
-            return true;
-        } else {
-            if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
-            if (loginErrorText) loginErrorText.textContent = data.message || 'An unknown error occurred during login.';
-            return false;
-        }
-    } catch (error) {
-        console.error("Fetch error during login:", error);
-        if (loginErrorMessage) loginErrorMessage.classList.remove('hidden');
-        if (loginErrorText) loginErrorText.textContent = 'Network error or server issue. Please try again later.';
-        return false;
-    }
+  } catch (error) {
+    console.error('Login error:', error);
+    showCustomAlert('Network error during login');
+    return false;
+  }
 }
 
 /**
