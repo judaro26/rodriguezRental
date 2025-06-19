@@ -294,7 +294,7 @@ body {
     color: #4a5568;
 }
 
-/* --- Initial hiding of non-login pages/modals --- */
+* --- Initial hiding of non-login pages/modals --- */
 /* These elements should be hidden by default until JavaScript shows them */
 #register-page,
 #property-selection-page,
@@ -306,6 +306,18 @@ body {
 #update-property-page,
 #verification-modal,
 #upload-folder-modal,
-#custom-alert-modal { /* Include custom alert modal if you're using it */
-    display: none;
+#custom-alert-modal {
+    display: none !important; /* <--- ADDED !important HERE */
 }
+
+/* Ensure .hidden from Tailwind is always effective */
+/* This rule is already correct */
+.hidden {
+    display: none !important;
+}
+
+/*
+   No need for a separate #login-page { display: flex; } rule here.
+   Your main.js showPage(loginPage) function will handle setting display: flex
+   and removing the hidden class for the login page once it's ready.
+*/
