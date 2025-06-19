@@ -61,7 +61,7 @@ export function initFileUploadProcess(file = null, filesToMove = null) {
     return true;
 }
 
-export async function uploadFile(propertyId, filename, fileDataAsBase64, mimeType, folderId, folderName, username, password) {
+export async function uploadFile(propertyId, filename, fileDataAsBase64, mimeType, folderId, folderName, username, password, uploadedByUsername) { // <--- Add uploadedByUsername here
     try {
         console.log('Starting file upload...', {
             propertyId,
@@ -69,7 +69,9 @@ export async function uploadFile(propertyId, filename, fileDataAsBase64, mimeTyp
             mimeType,
             folderId,
             hasData: !!fileDataAsBase64,
-            dataLength: fileDataAsBase64?.length
+            dataLength: fileDataAsBase64?.length,
+            username, // for logging purposes if needed
+            uploadedByUsername // for logging purposes if needed
         });
 
         const response = await fetch('/.netlify/functions/uploadFile', {
@@ -80,8 +82,9 @@ export async function uploadFile(propertyId, filename, fileDataAsBase64, mimeTyp
                 filename,
                 file_data_base64: fileDataAsBase64,
                 file_mime_type: mimeType,
-                username,
+                username, // This is the 'username' for authentication as per backend error
                 password,
+                uploaded_by_username: uploadedByUsername, // <--- ADD THIS LINE
                 folder_id: folderId,
                 folder_name: folderName
             })
@@ -101,6 +104,7 @@ export async function uploadFile(propertyId, filename, fileDataAsBase64, mimeTyp
         throw error; // Re-throw to let the caller handle it
     }
 }
+
 export async function moveFiles(propertyId, fileIds, targetFolderId, targetFolderName, username, password) {
     try {
         const response = await fetch('/.netlify/functions/moveFiles', {
