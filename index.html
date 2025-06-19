@@ -4,34 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Property Information Hub</title>
-
-    <style id="fouc-fix">
-        body {
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out; /* Optional smooth fade-in */
-        }
-        /* Ensure specific pages are hidden by default */
-        /* This applies to all except login-page initially */
-        div[id$="-page"]:not(#login-page), /* Target all pages ending with -page EXCEPT login-page */
-        div[id$="-modal"], /* Target all modals */
-        div[id$="-content"] { /* Target specific content divs like property-files-content */
-            display: none !important; /* Force hide these */
-        }
-        /* Make sure login-page *is* displayed when body becomes visible */
-        #login-page {
-            display: flex !important; /* Ensure login-page gets its intended display */
-        }
-        /* Standard Tailwind hidden class override */
-        .hidden {
-            display: none !important;
-        }
-    </style>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="flex flex-col min-h-screen">
@@ -69,7 +43,7 @@
         </div>
     </div>
 
-    <div id="register-page" class="flex-grow flex items-center justify-center p-4 relative pt-16 hidden">
+    <div id="register-page" class="flex-grow flex items-center justify-center p-4 relative pt-16">
         <button id="back-to-login-from-register-btn" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -96,7 +70,7 @@
         </div>
     </div>
 
-    <div id="property-selection-page" class="flex-grow flex flex-col items-center p-4 relative pt-16 hidden">
+    <div id="property-selection-page" class="flex-grow flex flex-col items-center p-4 relative pt-16">
         <button id="back-to-login-btn" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -115,10 +89,10 @@
             <p class="text-sm" id="properties-error-text"></p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl" id="property-cards-container">
-        </div>
+            </div>
         <button id="add-property-button" class="mt-8 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors duration-200 font-semibold shadow-md flex items-center justify-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6">
-                <path fill-rule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 110 1.5h-6.75v6.75a.75.75 0 11-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clip-rule="evenodd" />
+                <path fill-rule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clip-rule="evenodd" />
             </svg>
             Add New Property
         </button>
@@ -127,7 +101,7 @@
         </button>
     </div>
 
-    <div id="add-property-page" class="flex-grow flex items-center justify-center p-4 relative pt-16 hidden">
+    <div id="add-property-page" class="flex-grow flex items-center justify-center p-4 relative pt-16">
         <button id="back-from-add-property-btn" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -148,7 +122,7 @@
                     <label for="property-description" class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
                     <textarea id="property-description" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Describe the property..." required></textarea>
                 </div>
-                <div>
+                 <div>
                     <label for="property-categories" class="block text-gray-700 text-sm font-semibold mb-2">Categories (comma-separated)</label>
                     <input type="text" id="property-categories" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
@@ -167,7 +141,7 @@
         </div>
     </div>
 
-    <div id="property-categories-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6 relative pt-16 hidden">
+    <div id="property-categories-page" class="flex-grow container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6 relative pt-16">
         <button id="back-to-properties-btn" class="back-button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -178,7 +152,7 @@
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Property Categories</h2>
             <nav id="property-categories-nav">
                 <p class="text-gray-600">No categories for this property or still loading.</p>
-            </nav>
+                </nav>
             <button id="add-new-category-button" class="mt-4 bg-yellow-600 text-white py-2 px-4 rounded-xl hover:bg-yellow-700 transition-colors duration-200 font-semibold w-full">
                 Add New Category
             </button>
@@ -203,54 +177,53 @@
                 <div id="category-details-content" class="absolute inset-0 flex-grow overflow-y-auto pr-2">
                     <p id="category-loading-message" class="text-gray-600">Select a property category to view details.</p>
                     <div id="dynamic-category-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                    </div>
+                        </div>
                 </div>
-
-                <div id="property-files-content" class="absolute inset-0 flex-grow flex flex-col p-4" style="display: none;">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
                 
-                    <div class="flex flex-col md:flex-row gap-6 flex-grow overflow-hidden">
-                        <div class="w-full md:w-1/4 bg-gray-100 p-4 rounded-lg overflow-y-auto">
-                            <div class="flex justify-between items-center mb-4">
-                                <h4 class="text-lg font-semibold">Folders</h4>
-                                <button id="create-folder-button" class="bg-green-600 text-white p-1 rounded-md hover:bg-green-700">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                                    </svg>
+            <div id="property-files-content" class="absolute inset-0 flex-grow flex flex-col p-4" style="display: none;">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">Files for <span id="files-property-title" class="text-blue-600"></span></h3>
+            
+                <div class="flex flex-col md:flex-row gap-6 flex-grow overflow-hidden">
+                    <div class="w-full md:w-1/4 bg-gray-100 p-4 rounded-lg overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-lg font-semibold">Folders</h4>
+                            <button id="create-folder-button" class="bg-green-600 text-white p-1 rounded-md hover:bg-green-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <ul id="folders-list" class="space-y-2"></ul>
+                    </div>
+            
+                    <div class="flex-grow bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                            <h4 class="text-lg font-semibold" id="current-folder-title">All Files</h4>
+                            <div class="flex gap-2">
+                                <button id="move-to-folder-button" class="bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 disabled:opacity-50" disabled>
+                                    Move to Folder
+                                </button>
+                                <button id="delete-selected-files-button" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 disabled:opacity-50" disabled>
+                                    Delete Selected
                                 </button>
                             </div>
-                            <ul id="folders-list" class="space-y-2"></ul>
                         </div>
-                    
-                        <div class="flex-grow bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden flex flex-col">
-                            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                                <h4 class="text-lg font-semibold" id="current-folder-title">All Files</h4>
-                                <div class="flex gap-2">
-                                    <button id="move-to-folder-button" class="bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 disabled:opacity-50" disabled>
-                                        Move to Folder
-                                    </button>
-                                    <button id="delete-selected-files-button" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 disabled:opacity-50" disabled>
-                                        Delete Selected
-                                    </button>
-                                </div>
+                        <div id="files-list-container" class="flex-grow overflow-y-auto">
+                            <p class="text-gray-500 p-4 text-center">No files uploaded yet for this property.</p>
                             </div>
-                            <div id="files-list-container" class="flex-grow overflow-y-auto">
-                                <p class="text-gray-500 p-4 text-center">No files uploaded yet for this property.</p>
-                            </div>
-                        </div>
-                    </div>
-                
-                    <div class="bg-gray-100 p-4 rounded-lg mt-4">
-                        <h4 class="text-lg font-semibold text-gray-700 mb-3">Upload New File</h4>
-                        <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-md mb-3">
-                        <button type="submit" id="upload-file-button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-semibold w-full">
-                            Upload File
-                        </button>
-                        <div id="file-upload-status" class="mt-3 text-center text-sm hidden"></div>
                     </div>
                 </div>
+            
+                <div class="bg-gray-100 p-4 rounded-lg mt-4">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Upload New File</h4>
+                    <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-md mb-3">
+                    <button type="submit" id="upload-file-button" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-semibold w-full">
+                        Upload File
+                    </button>
+                    <div id="file-upload-status" class="mt-3 text-center text-sm hidden"></div>
+                </div>
             </div>
-            <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
+            </div> <button id="add-category-detail-button-bottom" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-xl hover:bg-purple-700 transition-colors duration-200 font-semibold w-full">
                 Add Vendor's Details
             </button>
         </main>
@@ -305,7 +278,7 @@
                 <div class="mt-4 mb-4">
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Choose a Logo (Optional)</label>
                     <div id="preset-logo-picker" class="logo-picker">
-                    </div>
+                        </div>
                     <input type="url" id="custom-logo-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mt-2" placeholder="Or enter a custom logo URL">
                 </div>
                 <div>
@@ -335,8 +308,7 @@
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Update Detail for <span id="update-detail-category-name" class="text-blue-600"></span></h2>
             <form id="update-detail-form" class="space-y-4">
-                <input type="hidden" id="update-detail-id">
-                <div>
+                <input type="hidden" id="update-detail-id"> <div>
                     <label for="update-detail-name" class="block text-gray-700 text-sm font-semibold mb-2">Detail Name (Button Label)</label>
                     <input type="text" id="update-detail-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
@@ -351,7 +323,7 @@
                 <div class="mt-4 mb-4">
                     <label class="block text-gray-700 text-sm font-semibold mb-2">Choose a Logo (Optional)</label>
                     <div id="update-preset-logo-picker" class="logo-picker">
-                    </div>
+                        </div>
                     <input type="url" id="update-custom-logo-url" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mt-2" placeholder="Or enter a custom logo URL">
                 </div>
                 <div>
@@ -381,8 +353,7 @@
         <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Update Property</h2>
             <form id="update-property-form" class="space-y-4">
-                <input type="hidden" id="update-property-id">
-                <div>
+                <input type="hidden" id="update-property-id"> <div>
                     <label for="update-property-title" class="block text-gray-700 text-sm font-semibold mb-2">Property Title</label>
                     <input type="text" id="update-property-title" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
@@ -394,7 +365,7 @@
                     <label for="update-property-description" class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
                     <textarea id="update-property-description" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
                 </div>
-                <div>
+                 <div>
                     <label for="update-property-categories" class="block text-gray-700 text-sm font-semibold mb-2">Categories (comma-separated)</label>
                     <input type="text" id="update-property-categories" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
@@ -413,70 +384,49 @@
         </div>
     </div>
 
-    <div id="verification-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-1/3 min-w-[300px]">
-            <h3 class="text-xl font-semibold mb-4" data-modal-title>Verify Action</h3>
-            <p class="text-gray-700 mb-4">
-                <span data-modal-action-description>Please enter your credentials to confirm action for </span>
-                <span class="font-bold" data-modal-item-description>item</span>.
-            </p>
-            <div class="mb-4">
-                <label for="verification-username" class="block text-sm font-medium text-gray-700 mb-1">Username:</label>
-                <input type="text" id="verification-username" data-modal-username-input class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-            </div>
-            <div class="mb-6">
-                <label for="verification-password" class="block text-sm font-medium text-gray-700 mb-1">Password:</label>
-                <input type="password" id="verification-password" data-modal-password-input class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-            </div>
-            <p class="mt-4 p-2 text-sm text-center text-red-700 bg-red-100 rounded hidden" data-modal-status-message></p>
-            <div class="flex justify-end space-x-3">
-                <button id="cancel-verification-btn" class="btn-secondary">Cancel</button>
-                <button id="confirm-verification-btn" class="btn-primary">Confirm</button>
-            </div>
+    <div id="verification-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Confirm Action</h3>
+            <p class="text-gray-600 mb-4 text-center"><span id="modal-prompt-action">Please enter your credentials to confirm</span> <span id="modal-item-to-delete-name" class="font-bold text-red-600"></span></p>
+            <form id="verification-form" class="space-y-4">
+                <div>
+                    <label for="modal-username" class="block text-gray-700 text-sm font-semibold mb-2">Username</label>
+                    <input type="text" id="modal-username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Your username" required>
+                </div>
+                <div>
+                    <label for="modal-password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="modal-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Your password" required>
+                </div>
+                <div id="verification-status" class="mt-4 p-3 rounded-md text-sm text-center hidden"></div>
+                <div class="flex justify-between gap-4 mt-6">
+                    <button type="button" id="cancel-verification-btn" class="w-1/2 bg-gray-300 text-gray-800 py-3 rounded-xl hover:bg-gray-400 transition-colors duration-200 font-semibold shadow-md">Cancel</button>
+                    <button type="submit" id="confirm-action-button" class="w-1/2 bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-semibold">Confirm Delete</button>
+                </div>
+            </form>
         </div>
     </div>
-
-    <div id="upload-folder-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-1/3 min-w-[300px]">
-            <h3 class="text-xl font-semibold mb-4" data-modal-title>Select Upload Destination</h3>
-            <p class="text-gray-700 mb-4">
-                <span data-modal-action-description>For </span>
-                <span class="font-bold" data-modal-item-description>file: "your_file.pdf"</span>
-            </p>
+    <div id="upload-folder-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">Select or Create Folder</h3>
             <div class="mb-4">
-                <label for="folder-select-dropdown" class="block text-sm font-medium text-gray-700 mb-1">Select Folder:</label>
-                <select id="folder-select-dropdown" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                    <option value="none">-- No Folder (All Files) --</option>
-                    <option value="new">+ Create New Folder</option>
+                <label for="folder-select-dropdown" class="block text-gray-700 text-sm font-bold mb-2">Select Existing Folder:</label>
+                <select id="folder-select-dropdown" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </select>
             </div>
             <div id="new-folder-name-container" class="mb-4 hidden">
-                <label for="new-folder-name-input" class="block text-sm font-medium text-gray-700 mb-1">New Folder Name:</label>
-                <input type="text" id="new-folder-name-input" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="Enter new folder name">
+                <label for="new-folder-name-input" class="block text-gray-700 text-sm font-bold mb-2">New Folder Name:</label>
+                <input type="text" id="new-folder-name-input" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter new folder name">
             </div>
-            <div class="mb-4">
-                <label for="modal-upload-username" class="block text-sm font-medium text-gray-700 mb-1">Username:</label>
-                <input type="text" id="modal-upload-username" data-modal-username-input class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-            </div>
-            <div class="mb-6">
-                <label for="modal-upload-password" class="block text-sm font-medium text-gray-700 mb-1">Password:</label>
-                <input type="password" id="modal-upload-password" data-modal-password-input class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-            </div>
-            <p id="upload-folder-modal-status" data-modal-status-message class="mt-4 p-2 text-sm text-center text-red-700 bg-red-100 rounded hidden"></p>
-            <div class="flex justify-end space-x-3">
-                <button id="cancel-folder-selection-btn" class="btn-secondary">Cancel</button>
-                <button id="confirm-folder-selection-btn" class="btn-primary">Confirm</button>
+            <div id="upload-folder-modal-status" class="hidden mt-4 p-3 rounded-md text-sm text-center"></div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button id="cancel-folder-selection-btn" type="button" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Cancel
+                </button>
+                <button id="confirm-folder-selection-btn" type="button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Confirm
+                </button>
             </div>
         </div>
     </div>
-
-    <div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center">
-            <p class="text-lg font-semibold mb-4" id="custom-alert-message-text"></p>
-            <button id="custom-alert-close-btn" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">OK</button>
-        </div>
-    </div>
-
-    <script src="./js/main.js" type="module"></script>
-</body>
+    <script src="./js/main.js" type="module"></script></body>
 </html>
