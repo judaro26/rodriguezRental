@@ -47,6 +47,7 @@ body {
 }
 
 /* Modal Overlay */
+/* Note: This .modal-overlay class is applied directly in HTML (e.g., on #verification-modal) */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -227,10 +228,10 @@ body {
 
 /* Enhanced file list styles */
 #files-list-container {
-    max-height: calc(100vh - 300px);
+    max-height: calc(100vh - 300px); /* Adjust as needed based on header/footer height */
     overflow-y: auto;
 }
- 
+
 .file-item {
     display: flex;
     align-items: center;
@@ -238,38 +239,38 @@ body {
     border-bottom: 1px solid #e2e8f0;
     transition: background-color 0.2s;
 }
- 
+
 .file-item:hover {
     background-color: #f8fafc;
 }
- 
+
 .file-item.selected {
     background-color: #ebf4ff;
 }
- 
+
 .file-checkbox {
     margin-right: 0.75rem;
 }
- 
+
 .file-icon {
-    width: 40px;
+    width: 40px; /* Adjust size for icon image/font */
     height: 40px;
     object-fit: contain;
     margin-right: 0.75rem;
 }
- 
+
 .file-actions {
-    margin-left: auto;
+    margin-left: auto; /* Push actions to the right */
     display: flex;
     gap: 0.5rem;
 }
- 
+
 /* Folder list styles */
 #folders-list {
-    max-height: calc(100vh - 200px);
+    max-height: calc(100vh - 200px); /* Adjust as needed */
     overflow-y: auto;
 }
- 
+
 .folder-item {
     padding: 0.5rem;
     border-radius: 0.375rem;
@@ -278,46 +279,18 @@ body {
     align-items: center;
     gap: 0.5rem;
 }
- 
+
 .folder-item:hover {
     background-color: #e2e8f0;
 }
- 
-.folder-item.active {
-    background-color: #bee3f8;
-    font-weight: 600;
+
+.folder-item.active { /* This class is added by JS for selected folder */
+    background-color: #bee3f8; /* Light blue background */
+    font-weight: 600; /* Semibold font */
 }
- 
+
 .folder-icon {
     width: 20px;
     height: 20px;
-    color: #4a5568;
+    color: #4a5568; /* Dark gray icon color */
 }
-
-* --- Initial hiding of non-login pages/modals --- */
-/* These elements should be hidden by default until JavaScript shows them */
-#register-page,
-#property-selection-page,
-#add-property-page,
-#property-categories-page,
-#add-new-category-page,
-#add-category-detail-page,
-#update-category-detail-page,
-#update-property-page,
-#verification-modal,
-#upload-folder-modal,
-#custom-alert-modal {
-    display: none !important; /* <--- ADDED !important HERE */
-}
-
-/* Ensure .hidden from Tailwind is always effective */
-/* This rule is already correct */
-.hidden {
-    display: none !important;
-}
-
-/*
-   No need for a separate #login-page { display: flex; } rule here.
-   Your main.js showPage(loginPage) function will handle setting display: flex
-   and removing the hidden class for the login page once it's ready.
-*/
