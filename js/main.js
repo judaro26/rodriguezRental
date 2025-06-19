@@ -1466,10 +1466,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             mimeType,
                             finalFolderId,
                             finalFolderName,
-                            currentLoggedInUsername,
-                            'password' // This should be replaced with actual password handling
+                            currentLoggedInUsername, // This is now 'username' parameter
+                            'password',              // This is 'password' parameter
+                            currentLoggedInUsername  // <--- NEW: This is 'uploadedByUsername' parameter
                         );
-    
                         if (!uploadSuccess) {
                             throw new Error('Upload service returned failure');
                         }
