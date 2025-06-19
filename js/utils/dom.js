@@ -153,11 +153,11 @@ export function showModal(modalElement, itemDescription, actionDescription, conf
     }
 }
 
+// In utils/dom.js (assumed based on your main.js imports)
 export function hideModal(modalElement) {
-    modalElement.classList.add('hidden');
-    // Clear inputs
-    const inputs = modalElement.querySelectorAll('input');
-    inputs.forEach(input => input.value = '');
+    if (modalElement) {
+        modalElement.classList.add('hidden'); // This likely sets display: none
+    }
 }
 
 
