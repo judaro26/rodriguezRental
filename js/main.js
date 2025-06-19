@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Upload Folder Modal Elements
     const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
     console.log('uploadFolderModalStatus:', uploadFolderModalStatus);
-    const folderSelectDropdown = document.getElementById('folder-select-dropdown');
+    let folderSelectDropdown = document.getElementById('folder-select-dropdown');
     console.log('folderSelectDropdown:', folderSelectDropdown);
     const newFolderNameContainer = document.getElementById('new-folder-name-container');
     console.log('newFolderNameContainer:', newFolderNameContainer);
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('newFolderNameInput:', newFolderNameInput);
     const cancelFolderSelectionBtn = document.getElementById('cancel-folder-selection-btn');
     console.log('cancelFolderSelectionBtn:', cancelFolderSelectionBtn);
-    const confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
+    let confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
     console.log('confirmFolderSelectionBtn:', confirmFolderSelectionBtn);
 
     console.log('--- DOM Element Retrieval End ---');
