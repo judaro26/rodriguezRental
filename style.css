@@ -305,7 +305,7 @@ body {
 #update-category-detail-page,
 #update-property-page,
 #verification-modal,
-#upload-folder-modal,
+#upload-folder-modal, /* <-- THIS LINE IS IMPORTANT */
 #custom-alert-modal { /* Include custom alert modal if you're using it */
-    display: none;
+    display: none;
 }
