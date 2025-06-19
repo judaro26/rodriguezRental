@@ -45,23 +45,17 @@ export function showPage(pageElement) {
         console.error("showPage: Target page element is null or undefined.");
         return;
     }
-
-    // Get all elements that represent "pages" in your application.
-    // This is more dynamic than a hardcoded list, assuming your pages are sections.
+    // Updated selector to target sections, divs with -modal or -content, and include the hidden class
     document.querySelectorAll('section[id$="-page"], div[id$="-modal"], div[id$="-content"]').forEach(page => {
         if (page) {
             page.style.display = 'none';
-            page.classList.add('hidden'); // Ensure Tailwind class is added
-        } else {
-            console.warn(`showPage: A page element was null and could not be hidden. Check its ID.`, page);
+            page.classList.add('hidden'); // Ensure hidden class is always added when hiding
         }
     });
 
     if (pageElement) {
-        // Use 'flex' for modals (which are centered) and pages that use flex layout.
-        // Use 'block' for pages that are block-level. You might need to adjust this.
-        pageElement.style.display = pageElement.id.includes('-modal') ? 'flex' : 'flex'; // Assuming most pages are flex
-        pageElement.classList.remove('hidden'); // Remove Tailwind hidden class
+        pageElement.style.display = pageElement.id.includes('-modal') ? 'flex' : 'flex'; // Or 'block' if appropriate
+        pageElement.classList.remove('hidden'); // Remove hidden class to display
     } else {
         console.error('showPage: Attempted to show a null pageElement.');
     }
