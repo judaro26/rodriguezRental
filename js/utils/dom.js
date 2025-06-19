@@ -1,6 +1,10 @@
 // js/utils/dom.js
 
-// Cache common page elements here once for efficiency (these are fine as is)
+// Cache common page elements here once for efficiency
+// These should ideally be obtained within DOMContentLoaded in main.js
+// and passed to functions that need them, or accessed via document.getElementById
+// within the functions if they are guaranteed to exist.
+// For now, retaining this structure as it was in your provided file.
 const loginPage = document.getElementById('login-page');
 const registerPage = document.getElementById('register-page');
 const propertySelectionPage = document.getElementById('property-selection-page');
@@ -10,11 +14,14 @@ const addCategoryDetailPage = document.getElementById('add-category-detail-page'
 const addNewCategoryPage = document.getElementById('add-new-category-page');
 const updatePropertyPage = document.getElementById('update-property-page');
 const updateCategoryDetailPage = document.getElementById('update-category-detail-page');
-const propertyFilesPage = document.getElementById('property-files-content');
+const propertyFilesPage = document.getElementById('property-files-content'); // This seems to be propertyFilesContent, not a page. Adjust showPage logic if needed.
 const verificationModal = document.getElementById('verification-modal');
-const uploadFolderModal = document.getElementById('upload-folder-modal'); // Keep this global as it's a main modal
+const uploadFolderModal = document.getElementById('upload-folder-modal');
+
 
 // Global status message elements (extracted from original script.js)
+// Similar note: these are best retrieved in main.js and passed down or accessed locally.
+// However, assuming they are accessible globally for convenience as in your original file.
 const loginErrorMessage = document.getElementById('login-error-message');
 const registrationStatusMessage = document.getElementById('registration-status-message');
 const registerErrorMessage = document.getElementById('register-error-message');
@@ -25,8 +32,8 @@ const addNewCategoryStatus = document.getElementById('add-new-category-status');
 const updatePropertyStatus = document.getElementById('update-property-status');
 const updateDetailStatus = document.getElementById('update-detail-status');
 const fileUploadStatus = document.getElementById('file-upload-status');
-const verificationStatus = document.getElementById('verification-status');
-const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
+const verificationStatus = document.getElementById('verification-status'); // Specific status for verification modal
+const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status'); // Specific status for upload modal
 
 
 /**
@@ -34,14 +41,14 @@ const uploadFolderModalStatus = document.getElementById('upload-folder-modal-sta
  * @param {HTMLElement} pageElement - The DOM element of the page to show.
  */
 export function showPage(pageElement) {
-    const allPages = [
-        loginPage, registerPage, propertySelectionPage, addPropertyPage,
-        propertyCategoriesPage, addCategoryDetailPage, addNewCategoryPage,
-        updatePropertyPage, updateCategoryDetailPage, propertyFilesPage,
-        verificationModal // Modals are also pages in your setup, needs careful handling
-    ];
+    if (!pageElement) {
+        console.error("showPage: Target page element is null or undefined.");
+        return;
+    }
 
-    allPages.forEach(page => {
+    // Get all elements that represent "pages" in your application.
+    // This is more dynamic than a hardcoded list, assuming your pages are sections.
+    document.querySelectorAll('section[id$="-page"], div[id$="-modal"], div[id$="-content"]').forEach(page => {
         if (page) {
             page.style.display = 'none';
             page.classList.add('hidden'); // Ensure Tailwind class is added
@@ -51,14 +58,16 @@ export function showPage(pageElement) {
     });
 
     if (pageElement) {
-        pageElement.style.display = 'flex'; // Use 'flex' for modals too, as they are centered
+        // Use 'flex' for modals (which are centered) and pages that use flex layout.
+        // Use 'block' for pages that are block-level. You might need to adjust this.
+        pageElement.style.display = pageElement.id.includes('-modal') ? 'flex' : 'flex'; // Assuming most pages are flex
         pageElement.classList.remove('hidden'); // Remove Tailwind hidden class
     } else {
         console.error('showPage: Attempted to show a null pageElement.');
     }
 
     // Hide any global error/status messages when changing pages
-    // You have these listed as global consts, so they can be hidden directly
+    // Using the cached global elements directly from the top of this file
     if (loginErrorMessage) loginErrorMessage.classList.add('hidden');
     if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
     if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
@@ -71,16 +80,21 @@ export function showPage(pageElement) {
     if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
     if (verificationStatus) verificationStatus.classList.add('hidden');
     if (uploadFolderModalStatus) uploadFolderModalStatus.classList.add('hidden');
+
     console.log(`Mapsd to page: #${pageElement ? pageElement.id : 'N/A'}`);
 }
 
 /**
  * Displays a custom alert modal with a message.
+ * It's assumed you have an HTML element with ID 'custom-alert-modal',
+ * with an element with ID 'custom-alert-message-text' inside it for the message,
+ * and an element with ID 'custom-alert-close-btn' for the close button.
  * @param {string} message - The message to display.
+ * @param {string} type - 'info', 'success', 'warning', 'error'. Affects styling.
  */
-export function showCustomAlert(message, type = 'info') { // Added 'type' parameter
-    const alertModal = document.getElementById('custom-alert-modal'); // Should be a single static element
-    const alertMessageElement = document.getElementById('custom-alert-message-text'); // A new span inside alertModal
+export function showCustomAlert(message, type = 'info') {
+    const alertModal = document.getElementById('custom-alert-modal');
+    const alertMessageElement = document.getElementById('custom-alert-message-text');
     const alertCloseBtn = document.getElementById('custom-alert-close-btn');
 
     if (!alertModal || !alertMessageElement || !alertCloseBtn) {
@@ -91,32 +105,35 @@ export function showCustomAlert(message, type = 'info') { // Added 'type' parame
 
     alertMessageElement.textContent = message;
 
-    // Clear previous classes and apply new ones based on type
-    alertModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden'; // Reset classes
-    switch (type) {
-        case 'success':
-            alertModal.querySelector('div').className = 'bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center bg-green-100 text-green-800 border border-green-400';
-            break;
-        case 'warning':
-            alertModal.querySelector('div').className = 'bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center bg-yellow-100 text-yellow-800 border border-yellow-400';
-            break;
-        case 'error':
-            alertModal.querySelector('div').className = 'bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center bg-red-100 text-red-800 border border-red-400';
-            break;
-        case 'info':
-        default:
-            alertModal.querySelector('div').className = 'bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center bg-blue-100 text-blue-800 border border-blue-400';
-            break;
+    // Reset classes on the content div inside the modal
+    const alertContentDiv = alertModal.querySelector('div.bg-white'); // Assuming the inner div is bg-white
+    if (alertContentDiv) {
+        alertContentDiv.className = 'bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center'; // Reset base classes
+        switch (type) {
+            case 'success':
+                alertContentDiv.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-400');
+                break;
+            case 'warning':
+                alertContentDiv.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-400');
+                break;
+            case 'error':
+                alertContentDiv.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-400');
+                break;
+            case 'info':
+            default:
+                alertContentDiv.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-400');
+                break;
+        }
     }
-    alertModal.classList.remove('hidden');
 
-    // Remove existing listener to prevent multiple
-    const oldCloseHandler = alertCloseBtn.onclick;
-    if (oldCloseHandler) {
-        alertCloseBtn.removeEventListener('click', oldCloseHandler); // Assuming it was added with addEventListener
-    }
-    alertCloseBtn.onclick = () => alertModal.classList.add('hidden'); // Re-assign for simplicity if using onclick directly
+    alertModal.classList.remove('hidden'); // Show the modal
 
+    // Ensure only one listener
+    const newCloseHandler = () => alertModal.classList.add('hidden');
+    alertCloseBtn.removeEventListener('click', newCloseHandler); // Remove potential old listeners
+    alertCloseBtn.addEventListener('click', newCloseHandler); // Add new one
+
+    // Automatically hide after a few seconds
     setTimeout(() => {
         alertModal.classList.add('hidden');
     }, 5000); // 5 seconds
@@ -130,10 +147,11 @@ export function showCustomAlert(message, type = 'info') { // Added 'type' parame
 export function hideModal(modalElement) {
     if (modalElement) {
         modalElement.classList.add('hidden');
-        modalElement.style.display = 'none'; // Ensure display is set to none
+        modalElement.style.display = 'none'; // Ensure display is set to none for absolute positioning
+
         // Clear any specific modal inputs or status messages when hiding
-        const usernameInput = modalElement.querySelector('input[type="text"]'); // More generic selector
-        const passwordInput = modalElement.querySelector('input[type="password"]');
+        const usernameInput = modalElement.querySelector('[data-modal-username-input]');
+        const passwordInput = modalElement.querySelector('[data-modal-password-input]');
         const modalStatusMessageElement = modalElement.querySelector('[data-modal-status-message]');
 
         if (usernameInput) usernameInput.value = '';
@@ -146,33 +164,28 @@ export function hideModal(modalElement) {
     }
 }
 
-// Event listener for the verification modal form submission.
-// This section needs to be re-thought slightly.
-// The `showModal` function should handle attaching the submit listener to the form itself
-// or directly to the confirm button, rather than relying on a global `currentVerificationCallback`
-// and a hardcoded DOMContentLoaded listener for only one specific modal's form.
-
-// Let's refactor showModal to be more flexible and directly manage its buttons.
-
-// New approach for showModal
 /**
  * Shows a generic modal and attaches dynamic event listeners.
+ * It's assumed the modal HTML includes elements with:
+ * - data-modal-title (for main heading)
+ * - data-modal-item-description (for item being acted on)
+ * - data-modal-action-description (for full prompt text, e.g., "confirm deleting")
+ * - data-modal-username-input (for username input)
+ * - data-modal-password-input (for password input)
+ * - data-modal-status-message (for internal status/error messages)
+ *
  * @param {HTMLElement} modalElement - The main modal container element (e.g., verificationModal, uploadFolderModal).
  * @param {HTMLElement} confirmButton - The specific "Confirm" button element within this modal.
  * @param {HTMLElement} cancelButton - The specific "Cancel" button element within this modal.
  * @param {string} displayItemDescription - Text describing the item being acted upon (e.g., "file: 'document.pdf'").
- * @param {string} displayActionText - Text describing the action (e.g., "deleting", "moving", "uploading").
+ * @param {string} displayActionText - Text describing the action (e.g., "deleting", "moving", "uploading", "Select Upload Destination"). This will be lowercased for dynamic messages.
  * @param {Function} confirmCallback - Async function to execute on confirm: `(username, password) => Promise<boolean>`.
- * @param {Object} [options] - Optional settings.
- * @param {boolean} [options.isFormSubmission=true] - If true, prevents default for button click and handles form submission.
  */
-export function showModal(modalElement, confirmButton, cancelButton, displayItemDescription, displayActionText, confirmCallback, options = {}) {
-    const { isFormSubmission = true } = options;
+export function showModal(modalElement, confirmButton, cancelButton, displayItemDescription, displayActionText, confirmCallback) {
+    const modalTitleElement = modalElement.querySelector('[data-modal-title]');
+    const modalItemDescElement = modalElement.querySelector('[data-modal-item-description]');
+    const modalActionDescElement = modalElement.querySelector('[data-modal-action-description]');
 
-    const modalTitleElement = modalElement.querySelector('[data-modal-title]'); // New: for modal title
-    const modalItemDescElement = modalElement.querySelector('[data-modal-item-description]'); // New: for item description
-    const modalActionDescElement = modalElement.querySelector('[data-modal-action-description]'); // New: for action description
-    
     const usernameInput = modalElement.querySelector('[data-modal-username-input]');
     const passwordInput = modalElement.querySelector('[data-modal-password-input]');
     const modalStatusMessageElement = modalElement.querySelector('[data-modal-status-message]');
@@ -187,25 +200,32 @@ export function showModal(modalElement, confirmButton, cancelButton, displayItem
     usernameInput.value = '';
     passwordInput.value = '';
     modalStatusMessageElement.textContent = '';
-    modalStatusMessageElement.classList.add('hidden'); // Hide status message initially
+    modalStatusMessageElement.classList.add('hidden');
 
-    // Update modal content based on action (adjust element selectors if needed in your HTML)
-    if (modalTitleElement) modalTitleElement.textContent = displayActionText; // Set modal title (e.g., "Deleting")
-    if (modalItemDescElement) modalItemDescElement.textContent = displayItemDescription; // Set item description (e.g., "file: 'doc.pdf'")
-    if (modalActionDescElement) modalActionDescElement.textContent = `Please enter your credentials to confirm ${displayActionText.toLowerCase()}.`; // Full prompt
+    // Update modal content based on action
+    const actionTextLowercase = typeof displayActionText === 'string' ? displayActionText.toLowerCase() : '';
+    const capitalizedActionText = typeof displayActionText === 'string'
+        ? displayActionText.charAt(0).toUpperCase() + displayActionText.slice(1)
+        : '';
 
-    // Specific button text/styling for verification modal
-    // Assuming this logic is mostly for verificationModal, but generalize if needed
+    if (modalTitleElement) modalTitleElement.textContent = displayActionText || ''; // Use original case for title
+    if (modalItemDescElement) modalItemDescElement.textContent = displayItemDescription || '';
+    if (modalActionDescElement) modalActionDescElement.textContent = `Please enter your credentials to confirm ${actionTextLowercase}.`;
+
+    // Specific button text/styling for verification modal (optional, depends on your design)
     if (modalElement.id === 'verification-modal') {
         if (confirmButton) {
-            confirmButton.textContent = `Confirm ${displayActionText.charAt(0).toUpperCase() + displayActionText.slice(1)}`;
+            confirmButton.textContent = `Confirm ${capitalizedActionText}`;
             confirmButton.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
-            if (displayActionText.toLowerCase() === 'deleting') {
+            if (actionTextLowercase === 'deleting') {
                 confirmButton.classList.add('bg-red-600', 'hover:bg-red-700');
             } else {
                 confirmButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
             }
         }
+    } else { // For other modals like uploadFolderModal, you might have different default button texts
+        // Make sure buttons for uploadFolderModal are simply "Confirm" and "Cancel"
+        // Their text might be static in HTML, or set here if dynamic
     }
 
 
@@ -214,7 +234,6 @@ export function showModal(modalElement, confirmButton, cancelButton, displayItem
 
 
     // --- IMPORTANT: Clear old listeners before adding new ones by cloning buttons ---
-    // This is the safest way to avoid duplicate event listeners.
     const newConfirmButton = confirmButton.cloneNode(true);
     confirmButton.parentNode.replaceChild(newConfirmButton, confirmButton);
     confirmButton = newConfirmButton; // Update reference
@@ -226,10 +245,12 @@ export function showModal(modalElement, confirmButton, cancelButton, displayItem
 
     // Add event listener for Confirm button
     confirmButton.addEventListener('click', async (event) => {
-        if (isFormSubmission) {
-            event.preventDefault(); // Prevent default form submission if wrapped in a <form>
-        }
-        console.log('--- Modal Confirm button CLICKED (callback executing) ---'); // CRITICAL LOG
+        // Prevent default form submission if the button is within a <form>
+        // and you want to control submission via JS.
+        // Assuming your modal buttons are not `type="submit"` directly triggering a form.
+        event.preventDefault(); // Good practice to prevent default click behavior if not intended for navigation/form submission.
+
+        console.log('--- Modal Confirm button CLICKED (callback executing) ---');
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
 
@@ -240,19 +261,19 @@ export function showModal(modalElement, confirmButton, cancelButton, displayItem
         }
 
         confirmButton.disabled = true; // Disable button during processing
-        modalStatusMessageElement.textContent = `Processing ${displayActionText.toLowerCase()}...`;
+        modalStatusMessageElement.textContent = `Processing ${actionTextLowercase}...`;
         modalStatusMessageElement.classList.remove('hidden');
 
         try {
             const success = await confirmCallback(username, password);
             if (success) {
-                hideModal(modalElement);
+                hideModal(modalElement); // Hide modal on success
             } else {
-                // The callback itself should show more specific alerts on failure
-                // If it just returns false, we show a generic modal status
-                if (modalStatusMessageElement.textContent.includes('Processing')) { // Only update if no specific error was set by callback
-                    modalStatusMessageElement.textContent = `Operation failed. Check credentials or try again.`;
-                    modalStatusMessageElement.classList.remove('hidden');
+                // If callback returned false but didn't show an alert, show a generic one.
+                // The callback itself is usually expected to show specific failure alerts.
+                if (modalStatusMessageElement.textContent.includes('Processing')) {
+                     modalStatusMessageElement.textContent = `Operation failed. Check credentials or try again.`;
+                     modalStatusMessageElement.classList.remove('hidden');
                 }
             }
         } catch (error) {
@@ -273,28 +294,3 @@ export function showModal(modalElement, confirmButton, cancelButton, displayItem
 
     console.log(`showModal: Successfully displayed modal '${modalElement.id}'.`);
 }
-
-
-// NO need for this DOMContentLoaded listener in dom.js anymore.
-// The showModal function now directly attaches listeners.
-/*
-document.addEventListener('DOMContentLoaded', () => {
-    const verificationForm = document.getElementById('verification-form');
-    const cancelVerificationBtn = document.getElementById('cancel-verification-btn');
-
-    if (verificationForm) {
-        verificationForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            if (currentVerificationCallback) {
-                await currentVerificationCallback(modalUsernameInput.value.trim(), modalPasswordInput.value.trim());
-            }
-        });
-    }
-
-    if (cancelVerificationBtn) {
-        cancelVerificationBtn.addEventListener('click', () => {
-            hideModal(verificationModal);
-        });
-    }
-});
-*/
