@@ -112,49 +112,54 @@ let currentVerificationCallback = null;
  * @param {Function} callback - The function to call when the modal's confirm button is clicked,
  * receiving (username, password) as arguments.
  */
-export function showModal(modalElement, itemName, actionType, callback) {
-    if (!modalElement) {
-        console.error("showModal: modalElement is null or undefined. Cannot display modal.");
-        return;
+export function showModal(modalElement, itemDescription, actionDescription, confirmationCallback) {
+    // Set modal content
+    modalElement.querySelector('[data-modal-item-description]').textContent = itemDescription;
+    modalElement.querySelector('[data-modal-action-description]').textContent = actionDescription;
+    
+    // Clear previous state
+    const statusMessage = modalElement.querySelector('[data-modal-status-message]');
+    if (statusMessage) {
+        statusMessage.classList.add('hidden');
+        statusMessage.textContent = '';
     }
+    
+    // Show modal
     modalElement.classList.remove('hidden');
-    modalElement.style.display = 'flex';
-
-    if (modalItemToDeleteNameSpan) modalItemToDeleteNameSpan.textContent = itemName;
-    if (modalPromptActionSpan) {
-        modalPromptActionSpan.textContent = `Please enter your credentials to confirm ${actionType} `;
-    }
-
-    if (confirmActionButton) {
-        confirmActionButton.textContent = `Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`;
-        confirmActionButton.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
-        if (actionType === 'deleting') {
-            confirmActionButton.classList.add('bg-red-600', 'hover:bg-red-700');
-        } else if (actionType === 'updating' || actionType === 'renaming') {
-            confirmActionButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        }
-    }
-
-    currentVerificationCallback = callback;
-    if (modalUsernameInput) modalUsernameInput.value = '';
-    if (modalPasswordInput) modalPasswordInput.value = '';
-    if (verificationStatus) {
-        verificationStatus.classList.add('hidden');
-        verificationStatus.textContent = '';
+    
+    // Set up confirm button
+    const confirmBtn = modalElement.querySelector('#confirm-verification-btn');
+    if (confirmBtn) {
+        // Remove any existing listeners to prevent duplicates
+        confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+        
+        // Add new listener
+        modalElement.querySelector('#confirm-verification-btn').addEventListener('click', async () => {
+            const username = modalElement.querySelector('[data-modal-username-input]').value;
+            const password = modalElement.querySelector('[data-modal-password-input]').value;
+            
+            try {
+                const success = await confirmationCallback(username, password);
+                if (success) {
+                    hideModal(modalElement);
+                }
+            } catch (error) {
+                if (statusMessage) {
+                    statusMessage.textContent = `Error: ${error.message}`;
+                    statusMessage.classList.remove('hidden');
+                }
+            }
+        });
     }
 }
 
-/**
- * Hides a modal.
- * @param {HTMLElement} modalElement - The DOM element of the modal to hide.
- */
 export function hideModal(modalElement) {
-    if (modalElement) {
-        modalElement.classList.add('hidden');
-        modalElement.style.display = 'none';
-    }
-    currentVerificationCallback = null;
+    modalElement.classList.add('hidden');
+    // Clear inputs
+    const inputs = modalElement.querySelectorAll('input');
+    inputs.forEach(input => input.value = '');
 }
+
 
 // Event listener for the verification modal form submission.
 document.addEventListener('DOMContentLoaded', () => {
