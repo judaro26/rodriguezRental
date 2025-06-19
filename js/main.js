@@ -1272,21 +1272,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Upload File Button
     if (uploadFileButton) {
-        uploadFileButton.addEventListener('click', async () => {
-            console.log('Upload File button clicked.');
+        uploadFileButton.addEventListener('click', async (event) => {
+            event.preventDefault(); // Prevent default form submission
+            
+            console.log('Upload File button clicked - starting process');
+            
             const propertyId = parseInt(propertyFilesContent?.dataset?.selectedPropertyId);
-            if (!propertyId) { 
-                showCustomAlert('Error: Property not selected for file upload.'); 
-                return; 
+            if (!propertyId) {
+                showCustomAlert('Please select a property first');
+                return;
             }
     
             if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length === 0) {
-                showCustomAlert('Please select a file to upload.');
+                showCustomAlert('Please select a file to upload');
                 return;
             }
-            
+    
             const file = fileUploadInput.files[0];
-            await handleFileUpload(propertyId, file);
+            console.log('Selected file:', file.name, file.size, file.type);
+    
+            // Show loading status
+            if (fileUploadStatus) {
+                fileUploadStatus.classList.remove('hidden');
+                fileUploadStatus.className = 'mt-3 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
+                fileUploadStatus.innerHTML = 'Preparing file for upload...';
+            }
+    
+            // Read file as base64
+            try {
+                const { base64Data, mimeType } = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const result = reader.result;
+                        const base64Data = result.split(',')[1];
+                        const mimeType = result.split(',')[0].split(':')[1].split(';')[0];
+                        resolve({ base64Data, mimeType });
+                    };
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(file);
+                });
+    
+                // Now show the folder selection modal
+                await showUploadFolderSelectionModal(propertyId, file, base64Data, mimeType);
+                
+            } catch (error) {
+                console.error('File upload error:', error);
+                showCustomAlert('Failed to prepare file for upload: ' + error.message);
+                if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
+            }
         });
     }
 
@@ -1344,110 +1377,129 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // showUploadFolderSelectionModal - Unified modal for upload and move
     async function showUploadFolderSelectionModal(propertyId, file, base64Data, mimeType) {
+        console.log('Showing upload folder modal for property:', propertyId);
+        
         // Reset modal UI
         if (uploadFolderModalStatus) {
             uploadFolderModalStatus.classList.add('hidden');
             uploadFolderModalStatus.textContent = '';
         }
         
+        if (newFolderNameContainer) newFolderNameContainer.classList.add('hidden');
+        if (newFolderNameInput) newFolderNameInput.value = '';
+        
         // Populate folder dropdown
         try {
-            const foldersData = (await fetchFileAndFolderData(propertyId, null)).folders;
+            console.log('Fetching folders for dropdown...');
+            const { folders } = await fetchFileAndFolderData(propertyId, null);
+            
             if (folderSelectDropdown) {
-                folderSelectDropdown.innerHTML = '<option value="none">-- No Folder (All Files) --</option><option value="new">+ Create New Folder</option>';
-                foldersData.forEach(f => {
+                folderSelectDropdown.innerHTML = `
+                    <option value="none">-- No Folder (All Files) --</option>
+                    <option value="new">+ Create New Folder</option>
+                `;
+                
+                folders.forEach(folder => {
                     const option = document.createElement('option');
-                    option.value = f.id;
-                    option.textContent = f.name;
+                    option.value = folder.id;
+                    option.textContent = folder.name;
                     folderSelectDropdown.appendChild(option);
                 });
             }
-        } catch (error) {
-            console.error('Error loading folders:', error);
-            showCustomAlert('Error loading folders: ' + error.message);
-            return;
-        }
-    
-        // Show the modal
-        showModal(
-            uploadFolderModal,
-            `file: "${file.name}"`,
-            'Select Upload Destination',
-            async (username, password) => {
-                try {
-                    const selectedFolderId = folderSelectDropdown.value;
-                    let finalFolderId = null;
-                    let finalFolderName = null;
-    
-                    // Handle folder creation if needed
-                    if (selectedFolderId === 'new') {
-                        const newName = newFolderNameInput.value.trim();
-                        if (!newName) {
-                            throw new Error('Please enter a folder name');
-                        }
-                        
-                        const createResponse = await createFolderService(
-                            propertyId, 
-                            newName, 
-                            username, 
-                            password
-                        );
-                        
-                        if (!createResponse.success) {
-                            throw new Error(createResponse.message || 'Failed to create folder');
-                        }
-                        
-                        finalFolderId = createResponse.folderId;
-                        finalFolderName = newName;
-                    } 
-                    else if (selectedFolderId !== 'none') {
-                        finalFolderId = selectedFolderId;
-                        const allFolders = (await fetchFileAndFolderData(propertyId, null)).folders;
-                        const selectedFolder = allFolders.find(f => f.id.toString() === selectedFolderId);
-                        finalFolderName = selectedFolder?.name || 'Selected Folder';
-                    }
-    
-                    // Perform the upload
-                    const uploadSuccess = await uploadFileService(
-                        propertyId,
-                        file.name,
-                        base64Data,
-                        mimeType,
-                        finalFolderId,
-                        finalFolderName,
-                        username,
-                        password
+            
+            // Set up folder selection change handler
+            if (folderSelectDropdown && newFolderNameContainer) {
+                folderSelectDropdown.addEventListener('change', () => {
+                    newFolderNameContainer.classList.toggle(
+                        'hidden', 
+                        folderSelectDropdown.value !== 'new'
                     );
-    
-                    if (!uploadSuccess) {
-                        throw new Error('Upload service returned failure');
-                    }
-    
-                    // Refresh view and clean up
-                    await refreshFilesView(propertyId, currentActiveFolderId);
-                    if (fileUploadInput) fileUploadInput.value = '';
-                    if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
-                    
-                    return true;
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    if (uploadFolderModalStatus) {
-                        uploadFolderModalStatus.textContent = error.message;
-                        uploadFolderModalStatus.classList.remove('hidden');
-                    }
-                    return false;
-                }
+                });
             }
-        );
+            
+            // Set up confirm button
+            if (confirmFolderSelectionBtn) {
+                // Remove any existing listeners to prevent duplicates
+                confirmFolderSelectionBtn.replaceWith(confirmFolderSelectionBtn.cloneNode(true));
+                
+                // Add new listener to the cloned button
+                document.getElementById('confirm-folder-selection-btn').addEventListener('click', async () => {
+                    try {
+                        const selectedFolderId = folderSelectDropdown.value;
+                        let finalFolderId = null;
+                        let finalFolderName = null;
+                        
+                        // Handle folder creation if needed
+                        if (selectedFolderId === 'new') {
+                            const newName = newFolderNameInput.value.trim();
+                            if (!newName) {
+                                throw new Error('Please enter a folder name');
+                            }
+                            
+                            const createResponse = await createFolderService(
+                                propertyId, 
+                                newName, 
+                                currentLoggedInUsername, 
+                                // You might want to get password from a secure source
+                                'password' // This should be replaced with actual password handling
+                            );
+                            
+                            if (!createResponse.success) {
+                                throw new Error(createResponse.message || 'Failed to create folder');
+                            }
+                            
+                            finalFolderId = createResponse.folderId;
+                            finalFolderName = newName;
+                        } 
+                        else if (selectedFolderId !== 'none') {
+                            finalFolderId = selectedFolderId;
+                            const allFolders = (await fetchFileAndFolderData(propertyId, null)).folders;
+                            const selectedFolder = allFolders.find(f => f.id.toString() === selectedFolderId);
+                            finalFolderName = selectedFolder?.name || 'Selected Folder';
+                        }
     
-        // Set up new folder name visibility
-        if (folderSelectDropdown && newFolderNameContainer) {
-            folderSelectDropdown.addEventListener('change', () => {
-                newFolderNameContainer.classList.toggle(
-                    'hidden', 
-                    folderSelectDropdown.value !== 'new'
-                );
-            });
+                        // Perform the upload
+                        const uploadSuccess = await uploadFileService(
+                            propertyId,
+                            file.name,
+                            base64Data,
+                            mimeType,
+                            finalFolderId,
+                            finalFolderName,
+                            currentLoggedInUsername,
+                            'password' // This should be replaced with actual password handling
+                        );
+    
+                        if (!uploadSuccess) {
+                            throw new Error('Upload service returned failure');
+                        }
+    
+                        // Refresh view and clean up
+                        await refreshFilesView(propertyId, currentActiveFolderId);
+                        if (fileUploadInput) fileUploadInput.value = '';
+                        if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
+                        hideModal(uploadFolderModal);
+                        
+                        showCustomAlert('File uploaded successfully!');
+                        
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        if (uploadFolderModalStatus) {
+                            uploadFolderModalStatus.textContent = error.message;
+                            uploadFolderModalStatus.classList.remove('hidden');
+                        }
+                    }
+                });
+            }
+            
+            // Show the modal
+            console.log('Showing modal...');
+            uploadFolderModal.classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Error preparing upload modal:', error);
+            showCustomAlert('Failed to prepare upload: ' + error.message);
+            if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
         }
     }
        
@@ -1638,7 +1690,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         console.warn("cancelFolderSelectionBtn element not found.");
     }
-
+    const fileUploadForm = document.getElementById('file-upload-form'); // Make sure your form has this ID
+    if (fileUploadForm) {
+        fileUploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('Prevented default file form submission');
+        });
+    }
 
     // --- Back Button Event Listeners ---
     if (backToLoginBtn) {
