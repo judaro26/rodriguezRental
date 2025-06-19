@@ -13,16 +13,16 @@
         }
         /* Ensure specific pages are hidden by default */
         /* This applies to all except login-page initially */
-        div[id$="-page"]:not(#login-page),
-        div[id$="-modal"],
-        div[id$="-content"] {
-            display: none !important; /* !important to override Tailwind defaults */
+        div[id$="-page"]:not(#login-page), /* Target all pages ending with -page EXCEPT login-page */
+        div[id$="-modal"], /* Target all modals */
+        div[id$="-content"] { /* Target specific content divs like property-files-content */
+            display: none !important; /* Force hide these */
         }
         /* Make sure login-page *is* displayed when body becomes visible */
         #login-page {
             display: flex !important; /* Ensure login-page gets its intended display */
         }
-        /* Standard Tailwind hidden class override */
+        /* Standard Tailwind hidden class override (for JS-controlled hiding/showing) */
         .hidden {
             display: none !important;
         }
