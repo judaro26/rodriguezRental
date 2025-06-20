@@ -191,14 +191,6 @@ export function hideModal(modalElement) {
     }
 }
 
-// In utils/dom.js (assumed based on your main.js imports)
-export function hideModal(modalElement) {
-    if (modalElement) {
-        modalElement.classList.add('hidden'); // This likely sets display: none
-    }
-}
-
-
 // Event listener for the verification modal form submission.
 document.addEventListener('DOMContentLoaded', () => {
     const verificationForm = document.getElementById('verification-form');
