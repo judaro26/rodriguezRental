@@ -1370,16 +1370,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     
  confirmFolderSelectionBtn.addEventListener('click', async () => {
                 console.log('Confirm Folder Selection button clicked inside modal.');
-                hideModal(uploadFolderModal);
+                   hideModal(uploadFolderModal); // Hide the folder selection modal immediately
 
-                const actionVerb = fileToUpload ? 'uploading' : 'moving';
-                const itemDescription = fileToUpload ? fileToUpload.name : `${filesToMove.length} selected file(s)`;
+                    // Determine the action for the re-verification modal message
+                    const actionVerb = fileToUpload ? 'uploading' : 'moving';
+                    const itemDescription = fileToUpload ? fileToUpload.name : `${filesToMove.length} selected file(s)`;
 
-                showModal(
-                    verificationModal,
-                    `for ${actionVerb} ${itemDescription}`,
-                    `${actionVerb.charAt(0).toUpperCase() + actionVerb.slice(1)} Verification`,
-                    async (modalUsername, modalPassword) => {
+                    console.log('Attempting to show verification modal for:', itemDescription); // ADD THIS LINE
+                    console.log('Verification Modal Element:', verificationModal); // ADD THIS LINE
+
+                    // Trigger re-verification modal here
+                    showModal(
+                        verificationModal, // The actual HTML modal element for re-verification
+                        `for ${actionVerb} ${itemDescription}`, // Message shown in verification modal
+                        `${actionVerb.charAt(0).toUpperCase() + actionVerb.slice(1)} Verification`, // Title of verification modal
+                        async (modalUsername, modalPassword) => {
                         console.log('--- Verification Modal Callback Started ---'); // <-- NEW LOG
                         try {
                             if (!modalUsername || !modalPassword) {
