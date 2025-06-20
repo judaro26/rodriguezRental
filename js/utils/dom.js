@@ -112,44 +112,80 @@ let currentVerificationCallback = null;
  * @param {Function} callback - The function to call when the modal's confirm button is clicked,
  * receiving (username, password) as arguments.
  */
-export function showModal(modalElement, itemDescription, actionDescription, confirmationCallback) {
-    // Set modal content
-    modalElement.querySelector('[data-modal-item-description]').textContent = itemDescription;
-    modalElement.querySelector('[data-modal-action-description]').textContent = actionDescription;
-    
-    // Clear previous state
-    const statusMessage = modalElement.querySelector('[data-modal-status-message]');
-    if (statusMessage) {
-        statusMessage.classList.add('hidden');
-        statusMessage.textContent = '';
+
+export function showModal(modalElement, itemDescription = '', actionVerb = '', callback = null) {
+    console.log('showModal called for:', modalElement.id); // ADD THIS LINE
+    console.log('Item Description:', itemDescription);     // ADD THIS LINE
+    console.log('Action Verb:', actionVerb);               // ADD THIS LINE
+    console.log('Callback provided:', !!callback);         // ADD THIS LINE
+
+    if (!modalElement) {
+        console.error('showModal: Modal element is null or undefined.'); // ADD THIS LINE
+        return;
     }
-    
-    // Show modal
-    modalElement.classList.remove('hidden');
-    
-    // Set up confirm button
-    const confirmBtn = modalElement.querySelector('#confirm-verification-btn');
-    if (confirmBtn) {
-        // Remove any existing listeners to prevent duplicates
-        confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+
+    const modalContent = modalElement.querySelector('#verification-modal-content'); // Assuming your verification modal has a content area
+    const modalConfirmBtn = modalElement.querySelector('#verification-confirm-btn');
+    const modalCancelBtn = modalElement.querySelector('#verification-cancel-btn');
+    const modalUsernameInput = modalElement.querySelector('#verification-username-input'); // Assuming these inputs exist
+    const modalPasswordInput = modalElement.querySelector('#verification-password-input');
+    const modalMessageSpan = modalElement.querySelector('#verification-message'); // Assuming a span for messages
+    const modalTitleSpan = modalElement.querySelector('#verification-title'); // Assuming a span for title
+
+    if (modalMessageSpan) {
+        modalMessageSpan.textContent = `Please enter your username and password to confirm ${actionVerb} ${itemDescription}.`;
+    }
+    if (modalTitleSpan) {
+        modalTitleSpan.textContent = actionVerb; // Or a more elaborate title based on 'actionVerb'
+    }
+
+    // Clear previous inputs
+    if (modalUsernameInput) modalUsernameInput.value = '';
+    if (modalPasswordInput) modalPasswordInput.value = '';
+
+    // Remove any existing event listeners to prevent multiple calls
+    // It's crucial to remove previous listeners if the same button/element is re-used.
+    const newModalConfirmBtn = modalConfirmBtn.cloneNode(true);
+    modalConfirmBtn.parentNode.replaceChild(newModalConfirmBtn, modalConfirmBtn);
+    modalConfirmBtn = newModalConfirmBtn; // Reassign to the new node
+
+    const newModalCancelBtn = modalCancelBtn.cloneNode(true);
+    modalCancelBtn.parentNode.replaceChild(newModalCancelBtn, modalCancelBtn);
+    modalCancelBtn = newModalCancelBtn; // Reassign to the new node
+
+
+    modalConfirmBtn.addEventListener('click', async () => {
+        console.log('Verification modal confirm button clicked.'); // ADD THIS LINE
+        const username = modalUsernameInput ? modalUsernameInput.value.trim() : '';
+        const password = modalPasswordInput ? modalPasswordInput.value.trim() : '';
         
-        // Add new listener
-        modalElement.querySelector('#confirm-verification-btn').addEventListener('click', async () => {
-            const username = modalElement.querySelector('[data-modal-username-input]').value;
-            const password = modalElement.querySelector('[data-modal-password-input]').value;
-            
-            try {
-                const success = await confirmationCallback(username, password);
-                if (success) {
-                    hideModal(modalElement);
-                }
-            } catch (error) {
-                if (statusMessage) {
-                    statusMessage.textContent = `Error: ${error.message}`;
-                    statusMessage.classList.remove('hidden');
-                }
+        if (callback) {
+            console.log('Executing showModal callback...'); // ADD THIS LINE
+            const success = await callback(username, password);
+            if (success) {
+                hideModal(modalElement);
             }
-        });
+            // If callback returns false, modal stays open to show error, or handles error internally
+        } else {
+            hideModal(modalElement);
+        }
+    });
+
+    modalCancelBtn.addEventListener('click', () => {
+        console.log('Verification modal cancel button clicked.'); // ADD THIS LINE
+        hideModal(modalElement);
+        if (callback) {
+            callback(null, null); // Indicate cancellation to the caller
+        }
+    });
+
+    modalElement.classList.remove('hidden');
+    // Consider adding a CSS class for fade-in or display: block/flex based on your styling
+}
+
+export function hideModal(modalElement) {
+    if (modalElement) {
+        modalElement.classList.add('hidden');
     }
 }
 
