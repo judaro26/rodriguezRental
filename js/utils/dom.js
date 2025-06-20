@@ -113,6 +113,8 @@ let currentVerificationCallback = null;
  * receiving (username, password) as arguments.
  */
 
+// js/utils/dom.js
+
 export function showModal(modalElement, itemDescription = '', actionVerb = '', callback = null) {
     console.log('showModal called for:', modalElement.id); // ADD THIS LINE
     console.log('Item Description:', itemDescription);     // ADD THIS LINE
@@ -181,6 +183,12 @@ export function showModal(modalElement, itemDescription = '', actionVerb = '', c
 
     modalElement.classList.remove('hidden');
     // Consider adding a CSS class for fade-in or display: block/flex based on your styling
+}
+
+export function hideModal(modalElement) {
+    if (modalElement) {
+        modalElement.classList.add('hidden');
+    }
 }
 
 export function hideModal(modalElement) {
