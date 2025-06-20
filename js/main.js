@@ -8,7 +8,7 @@ import { addCategoryDetail, updateCategoryDetail, deleteCategoryDetail, getCateg
 import {
     displayPropertyFiles as fetchFileAndFolderData,
     createFolder as createFolderService,
-    uploadFile as uploadFileService,
+    uploadFileService,
     moveFiles as moveFilesService,
     deleteFiles as deleteFilesService,
     initFileUploadProcess as initFileUploadProcessService
