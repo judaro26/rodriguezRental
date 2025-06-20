@@ -1419,11 +1419,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         targetFolderId,
                         targetFolderName
                     });
-                    const { username, password } = getUserApprovalStatuses();
-                        if (!username || !password) {
-                            showCustomAlert('Authentication credentials missing');
-                            return;
-                        }
+                    // With this:
+                    const authStatus = getUserApprovalStatuses();
+                    if (!authStatus || !authStatus.username || !authStatus.password) {
+                        showCustomAlert('Please login again - session expired');
+                        hideModal(uploadFolderModal);
+                        showPage(loginPage);
+                        return;
+                    }
+                    const { username, password } = authStatus;
                     const uploadSuccess = await uploadFileService(
                         propertyId,                     // property_id
                         file.name,                      // filename
