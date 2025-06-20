@@ -191,12 +191,6 @@ export function hideModal(modalElement) {
     }
 }
 
-export function hideModal(modalElement) {
-    if (modalElement) {
-        modalElement.classList.add('hidden');
-    }
-}
-
 // In utils/dom.js (assumed based on your main.js imports)
 export function hideModal(modalElement) {
     if (modalElement) {
