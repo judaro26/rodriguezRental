@@ -64,7 +64,7 @@ export function initFileUploadProcess(file = null, filesToMove = null) {
     return true;
 }
 
-    export async function uploadFileService(
+     export async function uploadFileService(
         propertyId,
         fileName,
         base64Data,
@@ -75,8 +75,15 @@ export function initFileUploadProcess(file = null, filesToMove = null) {
         password,
         uploadedByUsername
     ) {
+        console.log('Starting file upload with params:', {
+            propertyId,
+            fileName,
+            mimeType,
+            folderId,
+            folderName
+        });
+        
         try {
-            // Changed endpoint to match your Netlify functions pattern
             const response = await fetch('/.netlify/functions/uploadFile', {
                 method: 'POST',
                 headers: {
@@ -94,17 +101,18 @@ export function initFileUploadProcess(file = null, filesToMove = null) {
                 })
             });
     
+            console.log('Upload response status:', response.status);
             const data = await response.json();
+            console.log('Upload response data:', data);
+            
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to upload file');
             }
     
-            showCustomAlert('File uploaded successfully!');
             return true;
         } catch (error) {
-            console.error('Error uploading file:', error);
-            showCustomAlert('File upload failed: ' + error.message);
-            return false;
+            console.error('Upload error details:', error);
+            throw error; // Re-throw to be caught by the caller
         }
     }
 
