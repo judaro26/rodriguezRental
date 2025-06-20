@@ -64,55 +64,54 @@ export function initFileUploadProcess(file = null, filesToMove = null) {
     return true;
 }
 
-     export async function uploadFileService(
+    export async function uploadFileService(
         propertyId,
         fileName,
         base64Data,
         mimeType,
-        folderId,
-        folderName,
+        folderId = null,
+        folderName = null,
         username,
         password,
         uploadedByUsername
     ) {
-        console.log('Starting file upload with params:', {
-            propertyId,
-            fileName,
-            mimeType,
-            folderId,
-            folderName
+        console.log('Upload parameters:', {
+            propertyId, fileName, mimeType, username, uploadedByUsername
         });
-        
+    
         try {
+            // Validate required fields
+            if (!propertyId || !fileName || !base64Data || !mimeType || !username || !password || !uploadedByUsername) {
+                throw new Error('Missing required fields for upload');
+            }
+    
             const response = await fetch('/.netlify/functions/uploadFile', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + btoa(username + ':' + password)
+                    'Authorization': 'Basic ' + btoa(`${username}:${password}`)
                 },
                 body: JSON.stringify({
                     property_id: propertyId,
-                    file_name: fileName,
-                    file_data: base64Data,
-                    mime_type: mimeType,
+                    filename: fileName,
+                    file_data_base64: base64Data,
+                    file_mime_type: mimeType,
                     folder_id: folderId,
                     folder_name: folderName,
-                    uploaded_by_username: uploadedByUsername
+                    uploaded_by_username: uploadedByUsername,
+                    username: username,
+                    password: password
                 })
             });
     
-            console.log('Upload response status:', response.status);
             const data = await response.json();
-            console.log('Upload response data:', data);
-            
             if (!response.ok) {
-                throw new Error(data.message || 'Failed to upload file');
+                throw new Error(data.message || 'Upload failed');
             }
-    
             return true;
         } catch (error) {
-            console.error('Upload error details:', error);
-            throw error; // Re-throw to be caught by the caller
+            console.error('Upload error:', error);
+            throw error;
         }
     }
 
