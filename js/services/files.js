@@ -62,44 +62,44 @@ export function initFileUploadProcess(file = null, filesToMove = null) {
 }
 
     export async function uploadFileService(
-        propertyId,
-        fileName,
-        base64Data,
-        mimeType,
-        folderId,
-        folderName,
-        username,
-        password,
-        uploadedByUsername
-    ) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/properties/${propertyId}/files/upload`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + btoa(username + ':' + password)
-                },
-                body: JSON.stringify({
-                    file_name: fileName,
-                    file_data: base64Data,
-                    mime_type: mimeType,
-                    folder_id: folderId,
-                    folder_name: folderName,
-                    uploaded_by_username: uploadedByUsername
-                })
-            });
-    
-            if (!response.ok) {
-                throw new Error('Failed to upload file');
+            propertyId,
+            fileName,
+            base64Data,
+            mimeType,
+            folderId,
+            folderName,
+            username,
+            password,
+            uploadedByUsername
+        ) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/properties/${propertyId}/files/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + btoa(username + ':' + password)
+                    },
+                    body: JSON.stringify({
+                        file_name: fileName,
+                        file_data: base64Data,
+                        mime_type: mimeType,
+                        folder_id: folderId,
+                        folder_name: folderName,
+                        uploaded_by_username: uploadedByUsername
+                    })
+                });
+        
+                if (!response.ok) {
+                    throw new Error('Failed to upload file');
+                }
+        
+                return true;
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                showCustomAlert('File upload failed: ' + error.message);
+                return false;
             }
-    
-            return true;
-        } catch (error) {
-            console.error('Error uploading file:', error);
-            showCustomAlert('File upload failed: ' + error.message);
-            return false;
         }
-    }
 
 export async function moveFiles(propertyId, fileIds, targetFolderId, targetFolderName, username, password) {
     try {
