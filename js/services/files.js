@@ -61,49 +61,45 @@ export function initFileUploadProcess(file = null, filesToMove = null) {
     return true;
 }
 
-export async function uploadFile(propertyId, filename, fileDataAsBase64, mimeType, folderId, folderName, username, password, uploadedByUsername) { // <--- Add uploadedByUsername here
-    try {
-        console.log('Starting file upload...', {
-            propertyId,
-            filename,
-            mimeType,
-            folderId,
-            hasData: !!fileDataAsBase64,
-            dataLength: fileDataAsBase64?.length,
-            username, // for logging purposes if needed
-            uploadedByUsername // for logging purposes if needed
-        });
-
-        const response = await fetch('/.netlify/functions/uploadFile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                property_id: propertyId,
-                filename,
-                file_data_base64: fileDataAsBase64,
-                file_mime_type: mimeType,
-                username, // This is the 'username' for authentication as per backend error
-                password,
-                uploaded_by_username: uploadedByUsername, // <--- ADD THIS LINE
-                folder_id: folderId,
-                folder_name: folderName
-            })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            console.error('Upload failed:', data);
-            throw new Error(data.message || 'Upload failed');
+    export async function uploadFileService(
+        propertyId,
+        fileName,
+        base64Data,
+        mimeType,
+        folderId,
+        folderName,
+        username,
+        password,
+        uploadedByUsername
+    ) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/properties/${propertyId}/files/upload`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + btoa(username + ':' + password)
+                },
+                body: JSON.stringify({
+                    file_name: fileName,
+                    file_data: base64Data,
+                    mime_type: mimeType,
+                    folder_id: folderId,
+                    folder_name: folderName,
+                    uploaded_by_username: uploadedByUsername
+                })
+            });
+    
+            if (!response.ok) {
+                throw new Error('Failed to upload file');
+            }
+    
+            return true;
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            showCustomAlert('File upload failed: ' + error.message);
+            return false;
         }
-
-        console.log('Upload successful:', data);
-        return true;
-    } catch (error) {
-        console.error('Upload error:', error);
-        throw error; // Re-throw to let the caller handle it
     }
-}
 
 export async function moveFiles(propertyId, fileIds, targetFolderId, targetFolderName, username, password) {
     try {
