@@ -1419,20 +1419,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                         targetFolderId,
                         targetFolderName
                     });
-                    
                     const { username, password } = getUserApprovalStatuses();
+                        if (!username || !password) {
+                            showCustomAlert('Authentication credentials missing');
+                            return;
+                        }
                     const uploadSuccess = await uploadFileService(
-                        propertyId,
-                        file.name,
-                        base64Data,
-                        mimeType,
-                        targetFolderId,
-                        targetFolderName,
-                        username,
-                        password,
-                        username
+                        propertyId,                     // property_id
+                        file.name,                      // filename
+                        base64Data,                     // file_data_base64
+                        mimeType,                       // file_mime_type
+                        targetFolderId,                 // folder_id (optional)
+                        targetFolderName,               // folder_name (optional)
+                        username,                       // username (for auth)
+                        password,                       // password (for auth)
+                        currentLoggedInUsername         // uploaded_by_username
                     );
-                    
+                                        
                     if (uploadSuccess) {
                         showCustomAlert('File uploaded successfully!');
                         hideModal(uploadFolderModal);
