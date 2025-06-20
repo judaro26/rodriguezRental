@@ -1381,7 +1381,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Clear any existing listeners
             confirmFolderSelectionBtn.replaceWith(confirmFolderSelectionBtn.cloneNode(true));
             const newConfirmBtn = document.getElementById('confirm-folder-selection-btn');
-            
+            if (!username || !password) {
+                console.error('Missing credentials in uploadFileService');
+                throw new Error('Session expired - please login again');
+            }
             newConfirmBtn.addEventListener('click', async () => {
                 try {
                     const selectedFolderId = folderSelectDropdown.value;
