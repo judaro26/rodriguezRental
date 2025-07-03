@@ -230,7 +230,7 @@ body {
     max-height: calc(100vh - 300px);
     overflow-y: auto;
 }
- 
+
 .file-item {
     display: flex;
     align-items: center;
@@ -238,38 +238,38 @@ body {
     border-bottom: 1px solid #e2e8f0;
     transition: background-color 0.2s;
 }
- 
+
 .file-item:hover {
     background-color: #f8fafc;
 }
- 
+
 .file-item.selected {
     background-color: #ebf4ff;
 }
- 
+
 .file-checkbox {
     margin-right: 0.75rem;
 }
- 
+
 .file-icon {
     width: 40px;
     height: 40px;
     object-fit: contain;
     margin-right: 0.75rem;
 }
- 
+
 .file-actions {
     margin-left: auto;
     display: flex;
     gap: 0.5rem;
 }
- 
+
 /* Folder list styles */
 #folders-list {
     max-height: calc(100vh - 200px);
     overflow-y: auto;
 }
- 
+
 .folder-item {
     padding: 0.5rem;
     border-radius: 0.375rem;
@@ -278,16 +278,16 @@ body {
     align-items: center;
     gap: 0.5rem;
 }
- 
+
 .folder-item:hover {
     background-color: #e2e8f0;
 }
- 
+
 .folder-item.active {
     background-color: #bee3f8;
     font-weight: 600;
 }
- 
+
 .folder-icon {
     width: 20px;
     height: 20px;
@@ -304,8 +304,8 @@ body {
 #add-category-detail-page,
 #update-category-detail-page,
 #update-property-page,
-#verification-modal,
-#upload-folder-modal, /* <-- THIS LINE IS IMPORTANT */
-#custom-alert-modal { /* Include custom alert modal if you're using it */
-    display: none;
+/* Removed #verification-modal from here, as it's controlled by JS with Tailwind's 'hidden' class */
+#upload-folder-modal,
+#custom-alert-modal {
+    display: none;
 }
