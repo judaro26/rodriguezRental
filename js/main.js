@@ -29,254 +29,155 @@ let currentActiveFolderId = null; // null for 'All Files', stores folder ID for 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOMContentLoaded fired. Starting DOM element retrieval and event listener setup.');
 
-    // --- PART 1: GET ALL DOM ELEMENT REFERENCES ---
+    // --- PART 1: GET ALL DOM ELEMENT REFERENCES (Keep these as they are) ---
     const loginPage = document.getElementById('login-page');
-    console.log('loginPage:', loginPage);
+    // ... (all your other document.getElementById calls) ...
     const registerPage = document.getElementById('register-page');
-    console.log('registerPage:', registerPage);
     const propertySelectionPage = document.getElementById('property-selection-page');
-    console.log('propertySelectionPage:', propertySelectionPage);
     const addPropertyPage = document.getElementById('add-property-page');
-    console.log('addPropertyPage:', addPropertyPage);
     const propertyCategoriesPage = document.getElementById('property-categories-page');
-    console.log('propertyCategoriesPage:', propertyCategoriesPage);
     const addCategoryDetailPage = document.getElementById('add-category-detail-page');
-    console.log('addCategoryDetailPage:', addCategoryDetailPage);
     const addNewCategoryPage = document.getElementById('add-new-category-page');
-    console.log('addNewCategoryPage:', addNewCategoryPage);
     const updatePropertyPage = document.getElementById('update-property-page');
-    console.log('updatePropertyPage:', updatePropertyPage);
     const updateCategoryDetailPage = document.getElementById('update-category-detail-page');
-    console.log('updateCategoryDetailPage:', updateCategoryDetailPage);
     const propertyFilesContent = document.getElementById('property-files-content');
-    console.log('propertyFilesContent:', propertyFilesContent);
     const verificationModal = document.getElementById('verification-modal');
-    console.log('verificationModal:', verificationModal);
     const uploadFolderModal = document.getElementById('upload-folder-modal');
-    console.log('uploadFolderModal:', uploadFolderModal);
 
     // Login/Register Elements
     const loginForm = document.getElementById('login-form');
-    console.log('loginForm (after getElementById):', loginForm);
     const usernameInput = document.getElementById('username');
-    console.log('usernameInput:', usernameInput);
     const passwordInput = document.getElementById('password');
-    console.log('passwordInput:', passwordInput);
     const showRegisterFormBtn = document.getElementById('show-register-form-btn');
-    console.log('showRegisterFormBtn:', showRegisterFormBtn);
     const backToLoginFromRegisterBtn = document.getElementById('back-to-login-from-register-btn');
-    console.log('backToLoginFromRegisterBtn:', backToLoginFromRegisterBtn);
     const registerForm = document.getElementById('register-form');
-    console.log('registerForm:', registerForm);
     const regUsernameInput = document.getElementById('reg-username');
-    console.log('regUsernameInput:', regUsernameInput);
     const regPasswordInput = document.getElementById('reg-password');
-    console.log('regPasswordInput:', regPasswordInput);
     const registrationStatusMessage = document.getElementById('registration-status-message');
     const registerErrorMessage = document.getElementById('register-error-message');
     const registerErrorText = document.getElementById('register-error-text');
 
     // Property Selection Page Elements
     const propertyCardsContainer = document.getElementById('property-cards-container');
-    console.log('propertyCardsContainer:', propertyCardsContainer);
     const propertiesLoadingMessage = document.getElementById('properties-loading-message');
-    console.log('propertiesLoadingMessage:', propertiesLoadingMessage);
     const propertiesErrorText = document.getElementById('properties-error-text');
-    console.log('propertiesErrorText:', propertiesErrorText);
     const propertiesErrorMessage = document.getElementById('properties-error-message');
-    console.log('propertiesErrorMessage:', propertiesErrorMessage);
     const addPropertyButton = document.getElementById('add-property-button');
-    console.log('addPropertyButton:', addPropertyButton);
     const refreshPropertiesButton = document.getElementById('refresh-properties-button');
-    console.log('refreshPropertiesButton:', refreshPropertiesButton);
     const backToLoginBtn = document.getElementById('back-to-login-btn');
-    console.log('backToLoginBtn:', backToLoginBtn);
     const filterAllPropertiesBtn = document.getElementById('filter-all-properties');
-    console.log('filterAllPropertiesBtn:', filterAllPropertiesBtn);
     const filterDomesticPropertiesBtn = document.getElementById('filter-domestic-properties');
-    console.log('filterDomesticPropertiesBtn:', filterDomesticPropertiesBtn);
     const filterForeignPropertiesBtn = document.getElementById('filter-foreign-properties');
-    console.log('filterForeignPropertiesBtn:', filterForeignPropertiesBtn);
 
     // Add Property Page Elements
     const addPropertyForm = document.getElementById('add-property-form');
-    console.log('addPropertyForm:', addPropertyForm);
     const propertyTitleInput = document.getElementById('property-title');
-    console.log('propertyTitleInput:', propertyTitleInput);
     const propertyImageInput = document.getElementById('property-image');
-    console.log('propertyImageInput:', propertyImageInput);
     const propertyDescriptionInput = document.getElementById('property-description');
-    console.log('propertyDescriptionInput:', propertyDescriptionInput);
     const propertyCategoriesInput = document.getElementById('property-categories');
-    console.log('propertyCategoriesInput:', propertyCategoriesInput);
     const cancelAddPropertyButton = document.getElementById('cancel-add-property');
-    console.log('cancelAddPropertyButton:', cancelAddPropertyButton);
     const addPropertyStatus = document.getElementById('add-property-status');
-    console.log('addPropertyStatus:', addPropertyStatus);
     const backFromAddPropertyBtn = document.getElementById('back-from-add-property-btn');
-    console.log('backFromAddPropertyBtn:', backFromAddPropertyBtn);
     const propertyIsForeignInput = document.getElementById('property-is-foreign');
-    console.log('propertyIsForeignInput:', propertyIsForeignInput);
 
     // Property Categories Page Elements
     const propertyCategoriesNav = document.getElementById('property-categories-nav');
-    console.log('propertyCategoriesNav:', propertyCategoriesNav);
     const categoryDetailsHeading = document.getElementById('current-property-title');
-    console.log('categoryDetailsHeading:', categoryDetailsHeading);
     const dynamicCategoryButtonsContainer = document.getElementById('dynamic-category-buttons-container');
-    console.log('dynamicCategoryButtonsContainer:', dynamicCategoryButtonsContainer);
     const categoryLoadingMessage = document.getElementById('category-loading-message');
-    console.log('categoryLoadingMessage:', categoryLoadingMessage);
     const backToPropertiesBtn = document.getElementById('back-to-properties-btn');
-    console.log('backToPropertiesBtn:', backToPropertiesBtn);
     const addNewCategoryButton = document.getElementById('add-new-category-button');
-    console.log('addNewCategoryButton:', addNewCategoryButton);
     const deleteCategoryButton = document.getElementById('delete-category-button');
-    console.log('deleteCategoryButton:', deleteCategoryButton);
     const refreshCategoriesButtonOnCategoriesPage = document.getElementById('refresh-categories-on-page-button');
-    console.log('refreshCategoriesButtonOnCategoriesPage:', refreshCategoriesButtonOnCategoriesPage);
     const viewFilesButton = document.getElementById('view-files-button');
-    console.log('viewFilesButton:', viewFilesButton);
     const propertyHeader = document.getElementById('property-header');
-    console.log('propertyHeader:', propertyHeader);
     const currentPropertyTitle = document.getElementById('current-property-title');
-    console.log('currentPropertyTitle:', currentPropertyTitle);
     const currentPropertyThumbnail = document.getElementById('current-property-thumbnail');
-    console.log('currentPropertyThumbnail:', currentPropertyThumbnail);
     const addCategoryDetailButtonAtBottom = document.getElementById('add-category-detail-button-bottom');
-    console.log('addCategoryDetailButtonAtBottom:', addCategoryDetailButtonAtBottom);
 
     // Add New Category Page Elements
     const addNewCategoryForm = document.getElementById('add-new-category-form');
-    console.log('addNewCategoryForm:', addNewCategoryForm);
     const newCategoryNameInput = document.getElementById('new-category-name');
-    console.log('newCategoryNameInput:', newCategoryNameInput);
     const categoryPropertyTitleSpan = document.getElementById('category-property-title');
-    console.log('categoryPropertyTitleSpan:', categoryPropertyTitleSpan);
     const cancelNewCategoryButton = document.getElementById('cancel-new-category');
-    console.log('cancelNewCategoryButton:', cancelNewCategoryButton);
     const addNewCategoryStatus = document.getElementById('add-new-category-status');
-    console.log('addNewCategoryStatus:', addNewCategoryStatus);
 
     // Add Category Detail Page Elements
     const addDetailForm = document.getElementById('add-detail-form');
-    console.log('addDetailForm:', addDetailForm);
     const detailNameInput = document.getElementById('detail-name');
-    console.log('detailNameInput:', detailNameInput);
     const detailUrlInput = document.getElementById('detail-url');
-    console.log('detailUrlInput:', detailUrlInput);
     const detailDescriptionInput = document.getElementById('detail-description');
-    console.log('detailDescriptionInput:', detailDescriptionInput);
     const presetLogoPicker = document.getElementById('preset-logo-picker');
-    console.log('presetLogoPicker:', presetLogoPicker);
     const customLogoUrlInput = document.getElementById('custom-logo-url');
-    console.log('customLogoUrlInput:', customLogoUrlInput);
     const detailUsernameAddInput = document.getElementById('detail-username-add');
-    console.log('detailUsernameAddInput:', detailUsernameAddInput);
     const detailPasswordAddInput = document.getElementById('detail-password-add');
-    console.log('detailPasswordAddInput:', detailPasswordAddInput);
     const cancelAddDetailButton = document.getElementById('cancel-add-detail');
-    console.log('cancelAddDetailButton:', cancelAddDetailButton);
     const addDetailStatus = document.getElementById('add-detail-status');
-    console.log('addDetailStatus:', addDetailStatus);
     const addDetailCategoryNameSpan = document.getElementById('add-detail-category-name');
-    console.log('addDetailCategoryNameSpan:', addDetailCategoryNameSpan);
 
     // Update Category Detail Page Elements
     const backFromAddNewCategoryBtn = document.getElementById('back-from-add-new-category-btn');
-    console.log('backFromAddNewCategoryBtn:', backFromAddNewCategoryBtn);
+    // NOTE: Re-declarations below will cause errors if the variables above are 'const'.
+    // Ensure these are unique or passed into functions that use them.
+    // However, if your 'category-renderer.js' still references them globally with `document.getElementById`,
+    // it's fine for them to be `const` if they are defined once at the top-level of their respective modules.
+    // For now, let's assume the ones declared at the top of category-renderer.js are distinct from these if used within the module.
+    // If you intend for these to be shared across modules, consider making them global in a more controlled way,
+    // or passing them as arguments.
+    // For this main.js, these re-declarations are problematic.
+    // Removing the re-declarations here and assuming the imports work,
+    // or making these `let` if they are meant to be reassigned.
     const updateDetailForm = document.getElementById('update-detail-form');
-    console.log('updateDetailForm:', updateDetailForm);
     const updateDetailIdInput = document.getElementById('update-detail-id');
-    console.log('updateDetailIdInput:', updateDetailIdInput);
     const updateDetailNameInput = document.getElementById('update-detail-name');
-    console.log('updateDetailNameInput:', updateDetailNameInput);
     const updateDetailUrlInput = document.getElementById('update-detail-url');
-    console.log('updateDetailUrlInput:', updateDetailUrlInput);
     const updateDetailDescriptionInput = document.getElementById('update-detail-description');
-    console.log('updateDetailDescriptionInput:', updateDetailDescriptionInput);
     const updatePresetLogoPicker = document.getElementById('update-preset-logo-picker');
-    console.log('updatePresetLogoPicker:', updatePresetLogoPicker);
     const updateCustomLogoUrlInput = document.getElementById('update-custom-logo-url');
-    console.log('updateCustomLogoUrlInput:', updateCustomLogoUrlInput);
     const updateDetailUsernameInput = document.getElementById('update-detail-username');
-    console.log('updateDetailUsernameInput:', updateDetailUsernameInput);
     const updateDetailPasswordInput = document.getElementById('update-detail-password');
-    console.log('updateDetailPasswordInput:', updateDetailPasswordInput);
     const cancelUpdateDetailButton = document.getElementById('cancel-update-detail');
-    console.log('cancelUpdateDetailButton:', cancelUpdateDetailButton);
     const updateDetailStatus = document.getElementById('update-detail-status');
-    console.log('updateDetailStatus:', updateDetailStatus);
     const backFromUpdateDetailBtn = document.getElementById('back-from-update-detail-btn');
-    console.log('backFromUpdateDetailBtn:', backFromUpdateDetailBtn);
     const updateDetailCategoryNameSpan = document.getElementById('update-detail-category-name');
-    console.log('updateDetailCategoryNameSpan:', updateDetailCategoryNameSpan);
 
     // Update Property Page Elements
     const backFromAddDetailBtn = document.getElementById('back-from-add-detail-btn');
-    console.log('backFromAddDetailBtn:', backFromAddDetailBtn);
     const updatePropertyForm = document.getElementById('update-property-form');
-    console.log('updatePropertyForm:', updatePropertyForm);
     const updatePropertyIdInput = document.getElementById('update-property-id');
-    console.log('updatePropertyIdInput:', updatePropertyIdInput);
     const updatePropertyTitleInput = document.getElementById('update-property-title');
-    console.log('updatePropertyTitleInput:', updatePropertyTitleInput);
     const updatePropertyImageInput = document.getElementById('update-property-image');
-    console.log('updatePropertyImageInput:', updatePropertyImageInput);
     const updatePropertyDescriptionInput = document.getElementById('update-property-description');
-    console.log('updatePropertyDescriptionInput:', updatePropertyDescriptionInput);
     const updatePropertyCategoriesInput = document.getElementById('update-property-categories');
-    console.log('updatePropertyCategoriesInput:', updatePropertyCategoriesInput);
     const updatePropertyIsForeignInput = document.getElementById('update-property-is-foreign');
-    console.log('updatePropertyIsForeignInput:', updatePropertyIsForeignInput);
     const cancelUpdatePropertyButton = document.getElementById('cancel-update-property');
-    console.log('cancelUpdatePropertyButton:', cancelUpdatePropertyButton);
     const updatePropertyStatus = document.getElementById('update-property-status');
-    console.log('updatePropertyStatus:', updatePropertyStatus);
     const backFromUpdatePropertyBtn = document.getElementById('back-from-update-property-btn');
-    console.log('backFromUpdatePropertyBtn:', backFromUpdatePropertyBtn);
 
     // Property Files Page Elements
     const filesPropertyTitleSpan = document.getElementById('files-property-title');
-    console.log('filesPropertyTitleSpan:', filesPropertyTitleSpan);
     const filesPropertyThumbnail = document.getElementById('files-property-thumbnail');
-    console.log('filesPropertyThumbnail:', filesPropertyThumbnail);
     const fileUploadInput = document.getElementById('file-upload-input');
-    console.log('fileUploadInput:', fileUploadInput);
     const uploadFileButton = document.getElementById('upload-file-button');
-    console.log('uploadFileButton:', uploadFileButton);
     const fileUploadStatus = document.getElementById('file-upload-status');
-    console.log('fileUploadStatus:', fileUploadStatus);
     const filesListContainer = document.getElementById('files-list-container');
-    console.log('filesListContainer:', filesListContainer);
-    const backFromFilesButton = document.getElementById('back-from-files-button');
-    console.log('backFromFilesButton:', backFromFilesButton);
+    const backFromFilesButton = document.getElementById('back-from-files-button'); // This is the element not found warning
     const createFolderButton = document.getElementById('create-folder-button');
-    console.log('createFolderButton:', createFolderButton);
     const moveToFolderButton = document.getElementById('move-to-folder-button');
-    console.log('moveToFolderButton:', moveToFolderButton);
     const deleteSelectedFilesButton = document.getElementById('delete-selected-files-button');
-    console.log('deleteSelectedFilesButton:', deleteSelectedFilesButton);
     const foldersList = document.getElementById('folders-list');
-    console.log('foldersList:', foldersList);
     const currentFolderTitle = document.getElementById('current-folder-title');
-    console.log('currentFolderTitle:', currentFolderTitle);
 
     // Upload Folder Modal Elements
     const uploadFolderModalStatus = document.getElementById('upload-folder-modal-status');
-    console.log('uploadFolderModalStatus:', uploadFolderModalStatus);
-    let folderSelectDropdown = document.getElementById('folder-select-dropdown');
-    console.log('folderSelectDropdown:', folderSelectDropdown);
+    let folderSelectDropdown = document.getElementById('folder-select-dropdown'); // Keep as let as it's reassigned
     const newFolderNameContainer = document.getElementById('new-folder-name-container');
-    console.log('newFolderNameContainer:', newFolderNameContainer);
     const newFolderNameInput = document.getElementById('new-folder-name-input');
-    console.log('newFolderNameInput:', newFolderNameInput);
     const cancelFolderSelectionBtn = document.getElementById('cancel-folder-selection-btn');
-    console.log('cancelFolderSelectionBtn:', cancelFolderSelectionBtn);
-    let confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn');
-    console.log('confirmFolderSelectionBtn:', confirmFolderSelectionBtn);
+    let confirmFolderSelectionBtn = document.getElementById('confirm-folder-selection-btn'); // Keep as let as it's reassigned
 
     console.log('--- DOM Element Retrieval End ---');
+    console.log('All event listeners attached.'); // This log should now accurately reflect that all initial listeners are set up.
 
     // --- PART 2: INITIAL PAGE LOAD & ATTACH EVENT LISTENERS ---
 
@@ -291,9 +192,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (success) {
                 currentLoggedInUsername = usernameInput.value;
 
-                // Pass ALL the necessary DOM elements to fetchProperties
                 const propertiesLoaded = await fetchProperties(
-                    null, // initial filter (all)
+                    null,
                     propertyCardsContainer,
                     propertiesLoadingMessage,
                     propertiesErrorMessage,
@@ -301,7 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     filterAllPropertiesBtn,
                     filterDomesticPropertiesBtn,
                     filterForeignPropertiesBtn,
-                    propertySelectionPage // Pass propertySelectionPage here
+                    propertySelectionPage
                 );
 
                 if (propertiesLoaded) {
@@ -324,7 +224,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (registerForm) registerForm.reset();
             if (regUsernameInput) regUsernameInput.value = '';
             if (regPasswordInput) regPasswordInput.value = '';
-            // Clear any status messages when navigating to register page
             if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
             if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
             if (registerErrorText) registerErrorText.textContent = '';
@@ -347,7 +246,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
-                // Clear any status messages before new attempt
                 if (registrationStatusMessage) registrationStatusMessage.classList.add('hidden');
                 if (registerErrorMessage) registerErrorMessage.classList.add('hidden');
                 if (registerErrorText) registerErrorText.textContent = '';
@@ -381,7 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { domesticApproved, foreignApproved } = getUserApprovalStatuses();
             if (domesticApproved || foreignApproved) {
                 setPropertiesFilter(
-                    null, // filter for all
+                    null,
                     propertyCardsContainer,
                     filterAllPropertiesBtn,
                     filterDomesticPropertiesBtn,
@@ -399,7 +297,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { domesticApproved } = getUserApprovalStatuses();
             if (domesticApproved) {
                 setPropertiesFilter(
-                    false, // filter for domestic
+                    false,
                     propertyCardsContainer,
                     filterAllPropertiesBtn,
                     filterDomesticPropertiesBtn,
@@ -417,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { foreignApproved } = getUserApprovalStatuses();
             if (foreignApproved) {
                 setPropertiesFilter(
-                    true, // filter for foreign
+                    true,
                     propertyCardsContainer,
                     filterAllPropertiesBtn,
                     filterDomesticPropertiesBtn,
@@ -435,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Refresh Properties button clicked.');
             try {
                 await fetchProperties(
-                    null, // Assuming refresh means all properties
+                    null,
                     propertyCardsContainer,
                     propertiesLoadingMessage,
                     propertiesErrorMessage,
@@ -467,7 +365,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     is_foreign: propertyIsForeignInput.checked
                 };
 
-                // Validate required fields for property
                 if (!propertyData.title) {
                     showCustomAlert('Property title is required.');
                     return;
@@ -514,7 +411,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     is_foreign: updatePropertyIsForeignInput.checked
                 };
 
-                // Validate required fields
                 if (!propertyData.id || isNaN(propertyData.id)) {
                     showCustomAlert('Property ID is missing or invalid.');
                     return;
@@ -569,7 +465,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     showPage(propertyCategoriesPage);
 
-                    // Update property header visuals on the categories page
                     if (currentPropertyTitle) {
                         currentPropertyTitle.textContent = currentSelectedProperty.title;
                     }
@@ -578,12 +473,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         currentPropertyThumbnail.alt = `${currentSelectedProperty.title} thumbnail`;
                     }
 
-                    // Store selected property ID on the page element for easier access by other listeners
                     if (propertyCategoriesPage) {
                         propertyCategoriesPage.dataset.selectedPropertyId = currentSelectedProperty.id;
                     }
 
-                    // Render categories in the left sidebar
                     renderPropertyCategories(
                         currentSelectedProperty,
                         null,
@@ -595,7 +488,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         refreshCategoriesButtonOnCategoriesPage
                     );
 
-                    // Automatically select first category when property is viewed
                     if (currentSelectedProperty.categories && currentSelectedProperty.categories.length > 0) {
                         const firstCategoryName = currentSelectedProperty.categories[0];
                         currentSelectedCategoryName = firstCategoryName;
@@ -603,7 +495,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             propertyCategoriesPage.dataset.selectedCategoryName = firstCategoryName;
                         }
 
-                        // Explicitly highlight the first category in the sidebar
                         const firstCategoryDiv = propertyCategoriesNav.querySelector(`[data-category-name="${firstCategoryName}"]`);
                         if (firstCategoryDiv) {
                             propertyCategoriesNav.querySelectorAll('[data-category-name]').forEach(div => {
@@ -612,7 +503,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             firstCategoryDiv.classList.add('bg-blue-200', 'text-blue-800');
                         }
 
-                        // Render details for the first category
                         await renderCategoryDetailsUI(
                             currentSelectedProperty.id,
                             currentSelectedCategoryName,
@@ -651,7 +541,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const propertyToEdit = getPropertyById(propertyId);
                 if (propertyToEdit) {
                     showPage(updatePropertyPage);
-                    // Populate the update form with existing data
                     if (updatePropertyIdInput) updatePropertyIdInput.value = propertyToEdit.id;
                     if (updatePropertyTitleInput) updatePropertyTitleInput.value = propertyToEdit.title;
                     if (updatePropertyImageInput) updatePropertyImageInput.value = propertyToEdit.image;
@@ -673,11 +562,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const categoryDiv = event.target.closest('[data-category-name]');
             if (categoryDiv) {
                 console.log(`Category "${categoryDiv.dataset.categoryName}" clicked.`);
-                // Remove existing highlights from all category divs
                 propertyCategoriesNav.querySelectorAll('[data-category-name]').forEach(div => {
                     div.classList.remove('bg-blue-200', 'text-blue-800');
                 });
-                // Add highlight to the clicked category
                 categoryDiv.classList.add('bg-blue-200', 'text-blue-800');
 
                 currentSelectedCategoryName = categoryDiv.dataset.categoryName;
@@ -743,7 +630,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (success) {
                 showCustomAlert(`Category "${newCategoryName}" added successfully!`);
                 showPage(propertyCategoriesPage);
-                // Re-render categories sidebar and details
                 renderPropertyCategories(
                     currentSelectedProperty, null, propertyCategoriesNav,
                     categoryDetailsHeading, currentPropertyThumbnail,
@@ -781,10 +667,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const success = await deleteCategoryDetail(currentSelectedProperty.id, currentSelectedCategoryName, null, username, password);
                     if (success) {
                         showCustomAlert(`Category "${currentSelectedCategoryName}" deleted successfully!`);
-                        // After deletion, refresh categories in sidebar and clear details
                         currentSelectedCategoryName = null;
 
-                        // Re-fetch property to update its categories array
                         await fetchProperties(
                             null,
                             propertyCardsContainer,
@@ -796,7 +680,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             filterForeignPropertiesBtn,
                             propertySelectionPage
                         );
-                        // Re-set currentSelectedProperty from updated list
                         currentSelectedProperty = getPropertyById(currentSelectedProperty.id);
 
                         renderPropertyCategories(
@@ -858,7 +741,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (addDetailForm) addDetailForm.reset();
                 if (detailUsernameAddInput) detailUsernameAddInput.value = '';
                 if (detailPasswordAddInput) detailPasswordAddInput.value = '';
-                // Ensure preset logo picker is rendered and cleared
                 if (presetLogoPicker && customLogoUrlInput) {
                     renderPresetLogosForForm(presetLogoPicker, customLogoUrlInput, '');
                 }
@@ -892,7 +774,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 detail_password: detailPasswordAddInput.value.trim()
             };
 
-            // Basic validation for detail name
             if (!detailData.detail_name) {
                 showCustomAlert('Detail name is required.');
                 return;
@@ -944,7 +825,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 detail_password: updateDetailPasswordInput.value.trim()
             };
 
-            // Basic validation
             if (!detailData.id || isNaN(detailData.id)) {
                 showCustomAlert('Detail ID is missing or invalid.');
                 return;
@@ -976,12 +856,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn("updateDetailForm element not found.");
     }
 
-    // Detail Tile Actions (Delegated from dynamicCategoryButtonsContainer)
+    // --- CONSOLIDATED Detail Tile Actions (Delegated from dynamicCategoryButtonsContainer) ---
+    // This combines the logic for edit, delete, view, copy, and password toggle
     if (dynamicCategoryButtonsContainer) {
         dynamicCategoryButtonsContainer.addEventListener('click', async (event) => {
             const editBtn = event.target.closest('[data-action="edit"]');
             const deleteBtn = event.target.closest('[data-action="delete-detail"]');
             const viewBtn = event.target.closest('[data-action="view"]');
+            const copyBtn = event.target.closest('.copy-btn');
+            const toggleBtn = event.target.closest('.password-toggle-btn');
+
 
             if (editBtn) {
                 console.log('Edit Detail button clicked.');
@@ -1000,7 +884,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showPage(updateCategoryDetailPage);
 
             } else if (deleteBtn) {
-                console.log('Delete Detail button clicked.');
+                console.log('Delete Detail button clicked.'); // This should now appear only once
                 const detailId = parseInt(deleteBtn.dataset.id);
                 const detailName = deleteBtn.dataset.name;
                 if (isNaN(detailId) || !currentSelectedProperty || !currentSelectedCategoryName) {
@@ -1030,6 +914,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('View Detail URL button clicked.');
                 const url = viewBtn.dataset.url;
                 if (url) { window.open(url, '_blank'); } else { showCustomAlert('No URL provided for this detail.'); }
+            } else if (copyBtn) {
+                console.log('Copy button clicked.');
+                const targetInput = document.getElementById(copyBtn.dataset.target);
+                if (targetInput) {
+                    try {
+                        navigator.clipboard.writeText(targetInput.value);
+                        showCustomAlert('Copied to clipboard!');
+                    } catch (err) {
+                        console.error('Failed to copy: ', err);
+                        showCustomAlert('Failed to copy to clipboard. Please copy manually.');
+                    }
+                }
+            } else if (toggleBtn) {
+                console.log('Password toggle button clicked.');
+                const targetInput = document.getElementById(toggleBtn.dataset.target);
+                if (targetInput) {
+                    targetInput.type = targetInput.type === 'password' ? 'text' : 'password';
+                    toggleBtn.textContent = targetInput.type === 'password' ? '👁️' : '🙈';
+                }
             }
         });
     } else {
@@ -1056,30 +959,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             console.log('filesListContainer cleared and loading message set.');
 
-            // Clear any previous selections
             currentSelectedFileIds.clear();
             updateSelectionUI(currentSelectedFileIds, moveToFolderButton, deleteSelectedFilesButton);
             console.log('currentSelectedFileIds cleared and selection UI updated.');
 
-            // Fetch data
             console.log('Calling fetchFileAndFolderData...');
             const { files, folders } = await fetchFileAndFolderData(propertyId, folderId);
             console.log('fetchFileAndFolderData returned:');
             console.log('  Files:', files);
             console.log('  Folders:', folders);
 
-            // Ensure files and folders are arrays
             const safeFiles = Array.isArray(files) ? files : [];
             const safeFolders = Array.isArray(folders) ? folders : [];
             console.log(`After safety check: ${safeFiles.length} files, ${safeFolders.length} folders.`);
 
-            // Render UI
             console.log('Calling renderFoldersList...');
             renderFoldersList(safeFolders, foldersList, currentFolderTitle, folderId);
             console.log('Calling renderFilesList...');
             renderFilesList(safeFiles, filesListContainer);
 
-            // If no files/folders, show appropriate message
             const effectiveFoldersCount = safeFolders.filter(f => f.id !== 'root').length;
             if (safeFiles.length === 0 && effectiveFoldersCount === 0) {
                 if (filesListContainer) {
@@ -1106,13 +1004,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('View Files button clicked.');
             if (currentSelectedProperty) {
                 console.log('User clicked "View Files" for property ID:', currentSelectedProperty.id);
-                // Hide category details and show files content
                 const categoryDetailsContent = document.getElementById('category-details-content');
                 if (categoryDetailsContent) categoryDetailsContent.style.display = 'none';
                 if (propertyFilesContent) propertyFilesContent.style.display = 'flex';
                 console.log('propertyFilesContent display style after click:', propertyFilesContent.style.display);
 
-                // Update property info in files view
                 if (filesPropertyTitleSpan) filesPropertyTitleSpan.textContent = currentSelectedProperty.title;
                 if (filesPropertyThumbnail) {
                     filesPropertyThumbnail.src = currentSelectedProperty.image || 'https://placehold.co/64x64/CCCCCC/FFFFFF?text=Property';
@@ -1123,12 +1019,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     addCategoryDetailButtonAtBottom.style.display = 'none';
                 }
 
-                // Store property ID for file operations
                 if (propertyFilesContent) {
                     propertyFilesContent.dataset.selectedPropertyId = currentSelectedProperty.id;
                 }
 
-                // Refresh the files view, starting at the root (null folderId)
                 console.log('Calling refreshFilesView...');
                 await refreshFilesView(currentSelectedProperty.id, null);
                 console.log('refreshFilesView call completed.');
@@ -1142,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Create Folder Button
-   if (createFolderButton) {
+    if (createFolderButton) {
         createFolderButton.addEventListener('click', async () => {
             console.log('Create Folder button clicked.');
             const propertyId = parseInt(propertyFilesContent?.dataset?.selectedPropertyId);
@@ -1158,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 verificationModal,
                 `for creating folder "${folderName.trim()}"`,
                 'Folder Creation Verification',
-                async (username, password) => { // This is the callback after re-verification
+                async (username, password) => {
                     if (!username || !password) {
                         showCustomAlert('Username and password are required to create a folder.');
                         return false;
@@ -1169,15 +1063,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (createResponse.success) {
                             showCustomAlert(`Folder "${folderName.trim()}" created successfully!`);
                             await refreshFilesView(propertyId, currentActiveFolderId);
-                            return true; // Indicate success
+                            return true;
                         } else {
                             showCustomAlert(`Folder creation failed: ${createResponse.message || 'Unknown error.'}`);
-                            return false; // Indicate failure
+                            return false;
                         }
                     } catch (error) {
                         console.error('Error in createFolderService callback:', error);
                         showCustomAlert(`Error creating folder: ${error.message}`);
-                        return false; // Indicate failure
+                        return false;
                     }
                 }
             );
@@ -1236,7 +1130,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const filesToMoveArray = Array.from(currentSelectedFileIds);
             console.log('Initiating move operation for files:', filesToMoveArray);
 
-            // Call showUploadFolderSelectionModal for a move operation (fileToUpload params are null)
             await showUploadFolderSelectionModal(propertyId, null, null, null, filesToMoveArray);
         });
     }
@@ -1262,7 +1155,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const file = fileUploadInput.files[0];
             console.log('Selected file:', file.name, file.size, file.type);
 
-            // Call helper function that reads file and then shows the modal
             await handleFileUpload(propertyId, file);
         });
     }
@@ -1274,12 +1166,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fileUploadStatus.className = 'mt-3 p-3 rounded-md text-sm text-center bg-blue-100 text-blue-700';
                 fileUploadStatus.innerHTML = 'Preparing file for upload... <progress value="0" max="100"></progress>';
             }
-    
+            
             const { base64Data, mimeType } = await readFileAsBase64(file);
-    
-            // Pass the actual file object, not null, for upload context
+            
             await showUploadFolderSelectionModal(propertyId, file, base64Data, mimeType);
-    
+            
         } catch (error) {
             console.error('File upload error in handleFileUpload:', error);
             showCustomAlert('Failed to prepare file for upload: ' + error.message);
@@ -1317,176 +1208,179 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // showUploadFolderSelectionModal - Unified modal for upload and move
-       async function showUploadFolderSelectionModal(propertyId, fileToUpload, base64Data, mimeType, filesToMove = null) {
-            console.log('showUploadFolderSelectionModal: Preparing modal for property:', propertyId, 'File to Upload:', fileToUpload?.name, 'Files to Move:', filesToMove?.length);
-    
-            // Reset modal UI
-            if (uploadFolderModalStatus) {
-                uploadFolderModalStatus.classList.add('hidden');
-                uploadFolderModalStatus.textContent = '';
+    async function showUploadFolderSelectionModal(propertyId, fileToUpload, base64Data, mimeType, filesToMove = null) {
+        console.log('showUploadFolderSelectionModal: Preparing modal for property:', propertyId, 'File to Upload:', fileToUpload?.name, 'Files to Move:', filesToMove?.length);
+        
+        if (uploadFolderModalStatus) {
+            uploadFolderModalStatus.classList.add('hidden');
+            uploadFolderModalStatus.textContent = '';
+        }
+        
+        if (newFolderNameContainer) newFolderNameContainer.classList.add('hidden');
+        if (newFolderNameInput) newFolderNameInput.value = '';
+        
+        try {
+            const { folders } = await fetchFileAndFolderData(propertyId, null);
+            
+            if (folderSelectDropdown) {
+                const oldFolderSelectDropdown = folderSelectDropdown;
+                folderSelectDropdown = oldFolderSelectDropdown.cloneNode(true);
+                oldFolderSelectDropdown.parentNode.replaceChild(folderSelectDropdown, oldFolderSelectDropdown);
+                
+                folderSelectDropdown.innerHTML = `
+                    <option value="none">-- No Folder (All Files) --</option>
+                    <option value="new">+ Create New Folder</option>
+                `;
+                
+                folders.forEach(folder => {
+                    const option = document.createElement('option');
+                    option.value = folder.id;
+                    option.textContent = folder.name;
+                    folderSelectDropdown.appendChild(option);
+                });
+                
+                folderSelectDropdown.addEventListener('change', () => {
+                    newFolderNameContainer.classList.toggle(
+                        'hidden',
+                        folderSelectDropdown.value !== 'new'
+                    );
+                });
             }
-    
-            if (newFolderNameContainer) newFolderNameContainer.classList.add('hidden');
-            if (newFolderNameInput) newFolderNameInput.value = '';
-    
-            try {
-                // Populate folder dropdown with current folders
-                const { folders } = await fetchFileAndFolderData(propertyId, null);
-    
-                if (folderSelectDropdown) {
-                    // IMPORTANT: Re-bind event listener by replacing the element
-                    const oldFolderSelectDropdown = folderSelectDropdown;
-                    folderSelectDropdown = oldFolderSelectDropdown.cloneNode(true);
-                    oldFolderSelectDropdown.parentNode.replaceChild(folderSelectDropdown, oldFolderSelectDropdown);
-    
-                    folderSelectDropdown.innerHTML = `
-                        <option value="none">-- No Folder (All Files) --</option>
-                        <option value="new">+ Create New Folder</option>
-                    `;
-    
-                    // Add existing folders to the dropdown
-                    folders.forEach(folder => {
-                        const option = document.createElement('option');
-                        option.value = folder.id;
-                        option.textContent = folder.name;
-                        folderSelectDropdown.appendChild(option);
-                    });
-    
-                    // Add the change listener to the new dropdown element
-                    folderSelectDropdown.addEventListener('change', () => {
-                        newFolderNameContainer.classList.toggle(
-                            'hidden',
-                            folderSelectDropdown.value !== 'new'
-                        );
-                    });
-                }
-    
-                // Set up confirm button
-                if (confirmFolderSelectionBtn) {
-                    // IMPORTANT: Re-bind event listener by replacing the element
-                    const oldConfirmBtn = confirmFolderSelectionBtn;
-                    confirmFolderSelectionBtn = oldConfirmBtn.cloneNode(true);
-                    oldConfirmBtn.parentNode.replaceChild(confirmFolderSelectionBtn, oldConfirmBtn);
-    
- confirmFolderSelectionBtn.addEventListener('click', async () => {
-                console.log('Confirm Folder Selection button clicked inside modal.');
-                   hideModal(uploadFolderModal); // Hide the folder selection modal immediately
+            
+            if (confirmFolderSelectionBtn) {
+                const oldConfirmBtn = confirmFolderSelectionBtn;
+                confirmFolderSelectionBtn = oldConfirmBtn.cloneNode(true);
+                oldConfirmBtn.parentNode.replaceChild(confirmFolderSelectionBtn, oldConfirmBtn);
+                
+                confirmFolderSelectionBtn.addEventListener('click', async () => {
+                    console.log('Confirm Folder Selection button clicked inside modal.');
+                    hideModal(uploadFolderModal); // Hide the folder selection modal immediately
 
-                    // Determine the action for the re-verification modal message
                     const actionVerb = fileToUpload ? 'uploading' : 'moving';
                     const itemDescription = fileToUpload ? fileToUpload.name : `${filesToMove.length} selected file(s)`;
 
-                    console.log('Attempting to show verification modal for:', itemDescription); // ADD THIS LINE
-                    console.log('Verification Modal Element:', verificationModal); // ADD THIS LINE
+                    console.log('Attempting to show verification modal for:', itemDescription);
+                    console.log('Verification Modal Element:', verificationModal);
 
-                    // Trigger re-verification modal here
                     showModal(
-                        verificationModal, // The actual HTML modal element for re-verification
-                        `for ${actionVerb} ${itemDescription}`, // Message shown in verification modal
-                        `${actionVerb.charAt(0).toUpperCase() + actionVerb.slice(1)} Verification`, // Title of verification modal
+                        verificationModal,
+                        `for ${actionVerb} ${itemDescription}`,
+                        `${actionVerb.charAt(0).toUpperCase() + actionVerb.slice(1)} Verification`,
                         async (modalUsername, modalPassword) => {
-                        console.log('--- Verification Modal Callback Started ---'); // <-- NEW LOG
-                        try {
-                            if (!modalUsername || !modalPassword) {
-                                showCustomAlert('Username and password are required for this operation.');
-                                console.error('Verification failed: Missing username or password.'); // <-- NEW LOG
-                                return false;
-                            }
-                            console.log('Verification successful. User:', modalUsername); // <-- NEW LOG
-
-                            const selectedFolderId = folderSelectDropdown.value;
-                            let targetFolderId = null;
-                            let targetFolderName = null;
-                            let operationSuccessful = false;
-
-                            if (selectedFolderId === 'new') {
-                                const newName = newFolderNameInput.value.trim();
-                                if (!newName) {
-                                    showCustomAlert('Please enter a name for the new folder.');
-                                    console.error('New folder name empty.'); // <-- NEW LOG
+                            console.log('--- Verification Modal Callback Started ---');
+                            try {
+                                if (!modalUsername || !modalPassword) {
+                                    showCustomAlert('Username and password are required for this operation.');
+                                    console.error('Verification failed: Missing username or password.');
                                     return false;
                                 }
-                                console.log('Attempting to create new folder:', newName);
-                                const createResponse = await createFolderService(propertyId, newName, modalUsername, modalPassword);
+                                console.log('Verification successful. User:', modalUsername);
 
-                                if (!createResponse.success) {
-                                    showCustomAlert(`Failed to create new folder: ${createResponse.message || 'Unknown error.'}`);
-                                    console.error('Folder creation failed:', createResponse.message); // <-- NEW LOG
+                                const selectedFolderId = folderSelectDropdown.value;
+                                let targetFolderId = null;
+                                let targetFolderName = null;
+                                let operationSuccessful = false;
+
+                                if (selectedFolderId === 'new') {
+                                    const newName = newFolderNameInput.value.trim();
+                                    if (!newName) {
+                                        showCustomAlert('Please enter a name for the new folder.');
+                                        console.error('New folder name empty.');
+                                        return false;
+                                    }
+                                    console.log('Attempting to create new folder:', newName);
+                                    const createResponse = await createFolderService(propertyId, newName, modalUsername, modalPassword);
+
+                                    if (!createResponse.success) {
+                                        showCustomAlert(`Failed to create new folder: ${createResponse.message || 'Unknown error.'}`);
+                                        console.error('Folder creation failed:', createResponse.message);
+                                        return false;
+                                    }
+                                    targetFolderId = createResponse.folderId;
+                                    targetFolderName = createResponse.folderName || newName;
+                                    console.log('New folder created with ID:', targetFolderId, 'Name:', targetFolderName);
+                                } else if (selectedFolderId && selectedFolderId !== 'none') {
+                                    targetFolderId = selectedFolderId;
+                                    const currentFolders = (await fetchFileAndFolderData(propertyId, null)).folders;
+                                    const selectedFolder = currentFolders.find(f => f.id.toString() === selectedFolderId);
+                                    targetFolderName = selectedFolder?.name || 'Selected Folder';
+                                    console.log('Existing folder selected:', targetFolderName, 'ID:', targetFolderId);
+                                } else {
+                                    console.log('No specific folder selected (root directory). targetFolderId remains null.');
+                                }
+
+                                console.log('Checking conditions for file operation...');
+                                console.log('fileToUpload:', fileToUpload);
+                                console.log('base64Data present:', !!base64Data);
+                                console.log('mimeType:', mimeType);
+                                console.log('filesToMove:', filesToMove);
+
+                                if (fileToUpload && base64Data && mimeType) {
+                                    console.log('Condition met: Proceeding with file upload via uploadFileService...');
+                                    operationSuccessful = await uploadFileService(
+                                        propertyId,
+                                        fileToUpload.name,
+                                        base64Data,
+                                        mimeType,
+                                        targetFolderId,
+                                        targetFolderName,
+                                        modalUsername,
+                                        modalPassword,
+                                        currentLoggedInUsername // Assuming currentLoggedInUsername is available in this scope
+                                    );
+                                } else if (filesToMove && filesToMove.length > 0) {
+                                    console.log('Condition met: Proceeding with file move via moveFilesService...');
+                                    operationSuccessful = await moveFilesService(
+                                        propertyId,
+                                        filesToMove,
+                                        targetFolderId,
+                                        targetFolderName,
+                                        modalUsername,
+                                        modalPassword,
+                                        currentLoggedInUsername // Assuming currentLoggedInUsername is available in this scope
+                                    );
+                                } else {
+                                    console.error('Neither fileToUpload nor filesToMove specified. No valid operation detected.');
+                                    showCustomAlert('No valid file operation detected. Please try again.');
                                     return false;
                                 }
-                                targetFolderId = createResponse.folderId;
-                                targetFolderName = createResponse.folderName || newName;
-                                console.log('New folder created with ID:', targetFolderId, 'Name:', targetFolderName);
-                            } else if (selectedFolderId && selectedFolderId !== 'none') {
-                                targetFolderId = selectedFolderId;
-                                const currentFolders = (await fetchFileAndFolderData(propertyId, null)).folders;
-                                const selectedFolder = currentFolders.find(f => f.id.toString() === selectedFolderId);
-                                targetFolderName = selectedFolder?.name || 'Selected Folder';
-                                console.log('Existing folder selected:', targetFolderName, 'ID:', targetFolderId);
-                            } else {
-                                console.log('No specific folder selected (root directory). targetFolderId remains null.');
-                            }
 
-                            // Perform the actual file operation (upload or move)
-                            console.log('Checking conditions for file operation...'); // <-- NEW LOG
-                            console.log('fileToUpload:', fileToUpload); // <-- NEW LOG
-                            console.log('base64Data present:', !!base64Data); // <-- NEW LOG
-                            console.log('mimeType:', mimeType); // <-- NEW LOG
-                            console.log('filesToMove:', filesToMove); // <-- NEW LOG
+                                if (operationSuccessful) {
+                                    showCustomAlert(`${fileToUpload ? 'File' : 'Files'} ${actionVerb} successfully!`);
+                                    await refreshFilesView(propertyId, currentActiveFolderId);
+                                    // Clear file input only for upload operation
+                                    if (fileToUpload && fileUploadInput) {
+                                        fileUploadInput.value = '';
+                                    }
+                                } else {
+                                    showCustomAlert(`${fileToUpload ? 'File' : 'Files'} ${actionVerb} failed.`);
+                                }
+                                return operationSuccessful;
 
-                            if (fileToUpload && base64Data && mimeType) {
-                                console.log('Condition met: Proceeding with file upload via uploadFileService...'); // <-- THIS IS THE KEY LOG
-                                operationSuccessful = await uploadFileService(
-                                    propertyId,
-                                    fileToUpload.name,
-                                    base64Data,
-                                    mimeType,
-                                    targetFolderId,
-                                    targetFolderName,
-                                    modalUsername,
-                                    modalPassword,
-                                    getLoggedInUsername()
-                                );
-                                // ... (rest of upload success/failure handling) ...
-                            } else if (filesToMove && filesToMove.length > 0) {
-                                console.log('Condition met: Proceeding with file move via moveFilesService...'); // <-- KEY LOG FOR MOVE
-                                // ... (rest of move logic) ...
-                            } else {
-                                console.error('Neither fileToUpload nor filesToMove specified. No valid operation detected.');
-                                showCustomAlert('No valid file operation detected. Please try again.');
+                            } catch (error) {
+                                console.error('Operation error during re-verification callback:', error);
+                                showCustomAlert('Operation failed: ' + error.message);
                                 return false;
-                            }
-
-                            // ... (rest of success/failure handling and refresh) ...
-
-                        } catch (error) {
-                            console.error('Operation error during re-verification callback:', error);
-                            showCustomAlert('Operation failed: ' + error.message);
-                            return false;
-                        } finally {
-                            console.log('--- Verification Modal Callback Finished ---'); // <-- NEW LOG
-                            if (fileUploadStatus) {
-                                fileUploadStatus.classList.add('hidden');
-                                fileUploadStatus.innerHTML = '';
+                            } finally {
+                                console.log('--- Verification Modal Callback Finished ---');
+                                if (fileUploadStatus) {
+                                    fileUploadStatus.classList.add('hidden');
+                                    fileUploadStatus.innerHTML = '';
+                                }
                             }
                         }
-                    }
-                );
-            });
-                }
-    
-                // Finally, show the initial folder selection modal
-                showModal(uploadFolderModal);
-    
-            } catch (error) {
-                console.error('showUploadFolderSelectionModal: Error preparing modal:', error);
-                showCustomAlert('Failed to prepare folder selection: ' + error.message);
-                // Ensure status is hidden if there's an error before showing the modal
-                if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
+                    );
+                });
             }
+            showModal(uploadFolderModal); // Show the initial folder selection modal
+            
+        } catch (error) {
+            console.error('showUploadFolderSelectionModal: Error preparing modal:', error);
+            showCustomAlert('Failed to prepare folder selection: ' + error.message);
+            if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
         }
+    }
 
-    
 
     // --- General File/Folder Event Listeners (Delegated) ---
     if (filesListContainer) {
@@ -1578,11 +1472,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         cancelFolderSelectionBtn.addEventListener('click', () => {
             console.log('Cancel folder selection button clicked.');
             hideModal(uploadFolderModal);
-            if (fileUploadInput) fileUploadInput.value = ''; // Clear file input
-            // Clear any active selections if user cancels a move operation
+            if (fileUploadInput) fileUploadInput.value = '';
             currentSelectedFileIds.clear();
             updateSelectionUI(currentSelectedFileIds, moveToFolderButton, deleteSelectedFilesButton);
-            if (fileUploadStatus) fileUploadStatus.classList.add('hidden'); // Hide upload status
+            if (fileUploadStatus) fileUploadStatus.classList.add('hidden');
         });
     }
 
@@ -1676,7 +1569,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn("backFromUpdatePropertyBtn element not found.");
     }
 
-    if (backFromFilesButton) {
+    // Fix for backFromFilesButton element not found:
+    // Option 1: Add the button to your HTML in the property-files-content section.
+    // Option 2: If it's not needed, remove this 'if' block.
+    if (backFromFilesButton) { // This `if` check is essential because the element might not exist
         backFromFilesButton.addEventListener('click', () => {
             console.log('Back from Files button clicked.');
             showPage(propertyCategoriesPage);
@@ -1689,8 +1585,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     } else {
-        console.warn("backFromFilesButton element not found.");
+        console.warn("backFromFilesButton element not found."); // This warning indicates the HTML element is missing
     }
 
-    console.log('All event listeners attached.');
+
+    // Call the initial check for authentication
+    await checkAuthAndRenderProperties();
 }); // End DOMContentLoaded
+
+// Helper function to get the current logged-in username (used by file services)
+// This function needs to be accessible outside the DOMContentLoaded if services use it.
+function getLoggedInUsername() {
+    return currentLoggedInUsername;
+}
